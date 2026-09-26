@@ -414,6 +414,15 @@
     trackCanvas.height = CANVAS_H;
     const trackCtx = trackCanvas.getContext('2d');
 
+    // Функция преобразования Z в координату Y холста (Z: -90..+90 -> Y: 0..CANVAS_H)
+    function zToY(z) {
+      return ((z + MAP_LENGTH / 2) / MAP_LENGTH) * CANVAS_H;
+    }
+
+    // Главная широкая трасса полигона (ширина 28 метров по центру)
+    const trackLeft = CANVAS_W * 0.32;
+    const trackWidth = CANVAS_W * 0.36;
+
     // Процедурная генерация богатых текстур для 7 секторов полигона
     function initPolygonTextures() {
       // 1. Общий фон: зеленая тайга с легким шумом
@@ -427,15 +436,6 @@
         trackCtx.fillStyle = Math.random() > 0.5 ? '#52623e' : '#6b7a54';
         trackCtx.fillRect(px, py, 4 + Math.random() * 8, 4 + Math.random() * 8);
       }
-
-      // Функция преобразования Z в координату Y холста (Z: -90..+90 -> Y: 0..CANVAS_H)
-      function zToY(z) {
-        return ((z + MAP_LENGTH / 2) / MAP_LENGTH) * CANVAS_H;
-      }
-
-      // Главная широкая трасса полигона (ширина 28 метров по центру)
-      const trackLeft = CANVAS_W * 0.32;
-      const trackWidth = CANVAS_W * 0.36;
 
       // СЕКТОР 1: БЕТОННАЯ ПЛОЩАДКА (Z: -88 .. -60)
       const y1_start = zToY(-88);
@@ -648,12 +648,46 @@
 
     const terrainMat = new THREE.MeshStandardMaterial({
       map: terrainTexture,
-      bumpMap: terrainTexture,
-      bumpScale: 0.12,
-      roughness: 0.82,
-      metalness: 0.1,
-      flatShading: true
+      roughness: 0.85,
+      metalness: 0.08,
+      flatShading: false
     });
+
+    // Подключение фотореалистичных PBR карт Ground109 (ambientCG.com)
+    const pbrLoader = new THREE.TextureLoader();
+    pbrLoader.load('textures/Ground109/Ground109_1K-JPG_NormalGL.jpg', (normalTex) => {
+      normalTex.wrapS = THREE.RepeatWrapping;
+      normalTex.wrapT = THREE.RepeatWrapping;
+      normalTex.repeat.set(24, 54);
+      terrainMat.normalMap = normalTex;
+      terrainMat.normalScale.set(1.5, 1.5);
+      terrainMat.needsUpdate = true;
+    });
+
+    pbrLoader.load('textures/Ground109/Ground109_1K-JPG_Roughness.jpg', (roughTex) => {
+      roughTex.wrapS = THREE.RepeatWrapping;
+      roughTex.wrapT = THREE.RepeatWrapping;
+      roughTex.repeat.set(24, 54);
+      terrainMat.roughnessMap = roughTex;
+      terrainMat.needsUpdate = true;
+    });
+
+    // Бесшовное нанесение фотореалистичного гравия Ground109 Color на Сектор 2
+    const gravelImg = new Image();
+    gravelImg.crossOrigin = 'anonymous';
+    gravelImg.onload = () => {
+      const gPattern = trackCtx.createPattern(gravelImg, 'repeat');
+      if (gPattern) {
+        const y2_start = zToY(-60);
+        const y2_end = zToY(-35);
+        trackCtx.fillStyle = gPattern;
+        trackCtx.fillRect(trackLeft - 10, y2_start, trackWidth + 20, y2_end - y2_start);
+        drawGroundStencil(-58, 'СЕКТОР 2: ЛЕСНАЯ ГРУНТОВКА', 'ФОТОРЕАЛИСТИЧНЫЙ ГРАВИЙ (Ground109)', '#4ade80');
+        terrainTexture.needsUpdate = true;
+      }
+    };
+    gravelImg.src = 'textures/Ground109/Ground109_1K-JPG_Color.jpg';
+
     const terrainMesh = new THREE.Mesh(terrainGeo, terrainMat);
     terrainMesh.receiveShadow = true;
     scene.add(terrainMesh);
