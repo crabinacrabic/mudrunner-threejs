@@ -364,10 +364,10 @@
 
     const container = document.getElementById('canvas-container');
 
-    // --- 1. СЦЕНА, КАМЕРА, СВЕТ В СТИЛЕ BRUNO SIMON ---
+    // --- 1. СЦЕНА, КАМЕРА, СВЕТ В СТИЛЕ СИБИРСКОЙ ТАЙГИ SNOWRUNNER & BRUNO SIMON ---
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xb5aa96);
-    scene.fog = new THREE.FogExp2(0xb5aa96, 0.009);
+    scene.background = new THREE.Color(0x788e99); // Свежее северное таежное небо
+    scene.fog = new THREE.FogExp2(0x788e99, 0.0065);
 
     const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.5, 380);
     camera.position.set(-26, 22, 26);
@@ -378,14 +378,16 @@
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
+    renderer.toneMappingExposure = 1.05;
     container.appendChild(renderer.domElement);
 
-    const hemiLight = new THREE.HemisphereLight(0xfffaed, 0x544332, 0.85);
+    // Рассеянный свет неба и отражения земли
+    const hemiLight = new THREE.HemisphereLight(0xe5eff5, 0x2a3822, 0.95);
     scene.add(hemiLight);
 
-    const sunLight = new THREE.DirectionalLight(0xffeed6, 1.4);
-    sunLight.position.set(50, 75, -45);
+    // Теплое солнце, пробивающееся сквозь верхушки сосен
+    const sunLight = new THREE.DirectionalLight(0xfff2dc, 1.5);
+    sunLight.position.set(45, 70, -40);
     sunLight.castShadow = true;
     sunLight.shadow.mapSize.width = 2048;
     sunLight.shadow.mapSize.height = 2048;
@@ -399,7 +401,8 @@
     sunLight.shadow.bias = -0.0004;
     scene.add(sunLight);
 
-    const fillLight = new THREE.DirectionalLight(0xaad0d0, 0.45);
+    // Мягкий заполняющий свет
+    const fillLight = new THREE.DirectionalLight(0x8fa5b0, 0.5);
     fillLight.position.set(-40, 30, 40);
     scene.add(fillLight);
 
@@ -423,157 +426,144 @@
     const trackLeft = CANVAS_W * 0.32;
     const trackWidth = CANVAS_W * 0.36;
 
-    // Процедурная генерация богатых текстур для 7 секторов полигона
+    // Процедурная генерация богатых природных текстур без резких лоскутных срезов и криповых плашек
     function initPolygonTextures() {
-      // 1. Общий фон: зеленая тайга с легким шумом
-      trackCtx.fillStyle = '#5e6f47';
+      // 1. Естественный глубокий фон сибирской тайги
+      trackCtx.fillStyle = '#223319';
       trackCtx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-      // Шум почвы и травы
-      for (let i = 0; i < 6000; i++) {
+      // Богатый шум лесной подстилки (хвоя, мох, темный суглинок)
+      for (let i = 0; i < 7000; i++) {
         const px = Math.random() * CANVAS_W;
         const py = Math.random() * CANVAS_H;
-        trackCtx.fillStyle = Math.random() > 0.5 ? '#52623e' : '#6b7a54';
-        trackCtx.fillRect(px, py, 4 + Math.random() * 8, 4 + Math.random() * 8);
+        const roll = Math.random();
+        trackCtx.fillStyle = roll > 0.6 ? '#2b3f20' : (roll > 0.3 ? '#1a2914' : '#332719');
+        trackCtx.fillRect(px, py, 3 + Math.random() * 8, 3 + Math.random() * 8);
+      }
+
+      // Функция мягкого органического коридора дороги с неровными лесными обочинами
+      function fillOrganicRoad(yStart, yEnd, style) {
+        trackCtx.fillStyle = style;
+        const steps = 18;
+        const dy = (yEnd - yStart) / steps;
+        for (let s = 0; s < steps; s++) {
+          const cy = yStart + s * dy;
+          const wobble = Math.sin(cy * 0.05) * 14 + (Math.random() - 0.5) * 8;
+          const rw = trackWidth + (Math.random() - 0.5) * 12;
+          trackCtx.fillRect(trackLeft + wobble - 6, cy - 2, rw + 12, dy + 5);
+        }
       }
 
       // СЕКТОР 1: БЕТОННАЯ ПЛОЩАДКА (Z: -88 .. -60)
       const y1_start = zToY(-88);
       const y1_end = zToY(-60);
-      trackCtx.fillStyle = '#7a7a78';
+      trackCtx.fillStyle = '#686967';
       trackCtx.fillRect(trackLeft, y1_start, trackWidth, y1_end - y1_start);
 
-      // Швы бетонных плит и желтые полосы
-      trackCtx.strokeStyle = '#4a4a48';
-      trackCtx.lineWidth = 4;
-      for (let y = y1_start; y < y1_end; y += 45) {
+      // Швы бетонных плит
+      trackCtx.strokeStyle = '#3e3e3c';
+      trackCtx.lineWidth = 3;
+      for (let y = y1_start; y < y1_end; y += 42) {
         trackCtx.beginPath();
         trackCtx.moveTo(trackLeft, y);
         trackCtx.lineTo(trackLeft + trackWidth, y);
         trackCtx.stroke();
       }
-      trackCtx.strokeStyle = '#e5a93b';
-      trackCtx.lineWidth = 8;
-      trackCtx.beginPath();
-      trackCtx.moveTo(trackLeft + 15, y1_start);
-      trackCtx.lineTo(trackLeft + 15, y1_end);
-      trackCtx.moveTo(trackLeft + trackWidth - 15, y1_start);
-      trackCtx.lineTo(trackLeft + trackWidth - 15, y1_end);
-      trackCtx.stroke();
+
+      // Белая аккуратная стартовая линия (как на автодроме)
+      trackCtx.fillStyle = 'rgba(240, 240, 240, 0.9)';
+      trackCtx.fillRect(trackLeft + 15, y1_start + 50, trackWidth - 30, 8);
+      trackCtx.fillStyle = '#ffffff';
+      trackCtx.font = 'bold 22px "Segoe UI", Arial, sans-serif';
+      trackCtx.textAlign = 'center';
+      trackCtx.fillText('★  START  ★', CANVAS_W * 0.5, y1_start + 40);
 
       // СЕКТОР 2: ЛЕСНАЯ ГРУНТОВКА И КАМНИ (Z: -60 .. -35)
       const y2_start = y1_end;
       const y2_end = zToY(-35);
-      trackCtx.fillStyle = '#524334';
-      trackCtx.fillRect(trackLeft, y2_start, trackWidth, y2_end - y2_start);
-      // Гравий
-      trackCtx.fillStyle = '#3d3125';
-      for (let g = 0; g < 400; g++) {
+      const grad2 = trackCtx.createLinearGradient(0, y2_start, 0, y2_end);
+      grad2.addColorStop(0, '#594a3a');
+      grad2.addColorStop(1, '#66533f');
+      fillOrganicRoad(y2_start, y2_end, grad2);
+
+      // Мелкий гравий и россыпи камней
+      trackCtx.fillStyle = '#3a2d21';
+      for (let g = 0; g < 500; g++) {
         const gx = trackLeft + Math.random() * trackWidth;
         const gy = y2_start + Math.random() * (y2_end - y2_start);
-        trackCtx.fillRect(gx, gy, 5, 5);
+        trackCtx.fillRect(gx, gy, 4, 4);
       }
 
       // СЕКТОР 3: СЫПУЧИЙ ПЕСОК (Z: -35 .. -10)
       const y3_start = y2_end;
       const y3_end = zToY(-10);
-      const sandGrad = trackCtx.createLinearGradient(0, y3_start, 0, y3_end);
-      sandGrad.addColorStop(0, '#c89d5f');
-      sandGrad.addColorStop(0.5, '#dcb274');
-      sandGrad.addColorStop(1, '#b6894c');
-      trackCtx.fillStyle = sandGrad;
-      trackCtx.fillRect(trackLeft - 30, y3_start, trackWidth + 60, y3_end - y3_start);
-      // Песчаные барханные волны
-      trackCtx.strokeStyle = 'rgba(160, 115, 60, 0.4)';
-      trackCtx.lineWidth = 6;
-      for (let y = y3_start; y < y3_end; y += 22) {
+      const sandGrad = trackCtx.createLinearGradient(0, y3_start - 30, 0, y3_end);
+      sandGrad.addColorStop(0, '#66533f'); // Плавный переход от гравия
+      sandGrad.addColorStop(0.2, '#b88f56');
+      sandGrad.addColorStop(0.6, '#caa268');
+      sandGrad.addColorStop(1, '#9e7642'); // Переход к влажной почве
+      fillOrganicRoad(y3_start, y3_end, sandGrad);
+
+      // Мягкие ветровые песчаные барханы
+      trackCtx.strokeStyle = 'rgba(145, 105, 52, 0.35)';
+      trackCtx.lineWidth = 5;
+      for (let y = y3_start; y < y3_end; y += 24) {
         trackCtx.beginPath();
-        trackCtx.moveTo(trackLeft - 20, y);
-        trackCtx.bezierCurveTo(trackLeft + trackWidth * 0.3, y + 10, trackLeft + trackWidth * 0.7, y - 10, trackLeft + trackWidth + 20, y);
+        trackCtx.moveTo(trackLeft - 10, y);
+        trackCtx.bezierCurveTo(trackLeft + trackWidth * 0.3, y + 12, trackLeft + trackWidth * 0.7, y - 8, trackLeft + trackWidth + 10, y);
         trackCtx.stroke();
       }
 
       // СЕКТОР 4: ВЯЗКАЯ ГЛИНА И КОЛЕЯ (Z: -10 .. +18)
       const y4_start = y3_end;
       const y4_end = zToY(18);
-      trackCtx.fillStyle = '#3a2717';
-      trackCtx.fillRect(trackLeft, y4_start, trackWidth, y4_end - y4_start);
-      // Наезженные глубокие колеи
-      trackCtx.fillStyle = '#22150b';
-      trackCtx.fillRect(trackLeft + trackWidth * 0.25, y4_start, 35, y4_end - y4_start);
-      trackCtx.fillRect(trackLeft + trackWidth * 0.65, y4_start, 35, y4_end - y4_start);
+      const clayGrad = trackCtx.createLinearGradient(0, y4_start - 25, 0, y4_end);
+      clayGrad.addColorStop(0, '#9e7642'); // Мягкий переход от песка
+      clayGrad.addColorStop(0.25, '#4a3320');
+      clayGrad.addColorStop(0.7, '#342113');
+      clayGrad.addColorStop(1, '#20140b'); // Переход к болоту
+      fillOrganicRoad(y4_start, y4_end, clayGrad);
+
+      // Глубокие влажные колеи
+      trackCtx.fillStyle = 'rgba(24, 15, 8, 0.75)';
+      trackCtx.fillRect(trackLeft + trackWidth * 0.23, y4_start, 38, y4_end - y4_start);
+      trackCtx.fillRect(trackLeft + trackWidth * 0.65, y4_start, 38, y4_end - y4_start);
 
       // СЕКТОР 5: ГИБЛОЕ БОЛОТО С ВОДОЙ (Z: +18 .. +45)
       const y5_start = y4_end;
       const y5_end = zToY(45);
-      trackCtx.fillStyle = '#160e07'; // Черный торф
-      trackCtx.fillRect(trackLeft - 40, y5_start, trackWidth + 80, y5_end - y5_start);
-      // Лужи стоячей черной воды
-      trackCtx.fillStyle = '#0f1412';
-      for (let w = 0; w < 12; w++) {
+      const swampGrad = trackCtx.createLinearGradient(0, y5_start - 25, 0, y5_end);
+      swampGrad.addColorStop(0, '#20140b');
+      swampGrad.addColorStop(0.5, '#120d09'); // Черный торф
+      swampGrad.addColorStop(1, '#241910');
+      fillOrganicRoad(y5_start, y5_end, swampGrad);
+
+      // Природные пятна черной торфяной воды
+      trackCtx.fillStyle = '#0c1210';
+      for (let w = 0; w < 16; w++) {
         const wx = trackLeft + Math.random() * trackWidth;
         const wy = y5_start + Math.random() * (y5_end - y5_start);
         trackCtx.beginPath();
-        trackCtx.ellipse(wx, wy, 45, 25, Math.random() * Math.PI, 0, Math.PI * 2);
+        trackCtx.ellipse(wx, wy, 42, 22, Math.random() * Math.PI, 0, Math.PI * 2);
         trackCtx.fill();
       }
 
       // СЕКТОР 6: БРЕВЕНЧАТАЯ ГАТЬ (Z: +45 .. +58)
       const y6_start = y5_end;
       const y6_end = zToY(58);
-      trackCtx.fillStyle = '#2d1e13';
-      trackCtx.fillRect(trackLeft, y6_start, trackWidth, y6_end - y6_start);
+      trackCtx.fillStyle = '#261b12';
+      fillOrganicRoad(y6_start, y6_end, trackCtx.fillStyle);
 
       // СЕКТОР 7: СНЕЖНЫЙ ПЕРЕВАЛ "СЕВЕР" (Z: +58 .. +88)
       const y7_start = y6_end;
       const y7_end = zToY(88);
-      const snowGrad = trackCtx.createLinearGradient(0, y7_start, 0, y7_end);
-      snowGrad.addColorStop(0, '#c7d5e2'); // Переход от грязи к снегу
-      snowGrad.addColorStop(0.2, '#eef3f8');
-      snowGrad.addColorStop(1, '#ffffff'); // Ослепительно белый снег
-      trackCtx.fillStyle = snowGrad;
-      trackCtx.fillRect(trackLeft - 60, y7_start, trackWidth + 120, y7_end - y7_start);
-
-      // Трафаретные указатели с разметкой прямо на грунте полигона
-      function drawGroundStencil(z, mainText, subText, color = '#ff9f1c') {
-        const y = zToY(z);
-        trackCtx.save();
-        // Темная контрастная полоса под надписью поперек всей трассы
-        trackCtx.fillStyle = 'rgba(12, 10, 8, 0.88)';
-        trackCtx.fillRect(trackLeft - 10, y - 26, trackWidth + 20, 52);
-
-        // Яркая сигнальная рамка
-        trackCtx.strokeStyle = color;
-        trackCtx.lineWidth = 5;
-        trackCtx.strokeRect(trackLeft - 8, y - 24, trackWidth + 16, 48);
-
-        // Черно-желтая сигнальная штриховка слева и справа
-        trackCtx.fillStyle = color;
-        trackCtx.fillRect(trackLeft - 6, y - 22, 18, 44);
-        trackCtx.fillRect(trackLeft + trackWidth - 12, y - 22, 18, 44);
-
-        // Основное название сектора
-        trackCtx.fillStyle = color;
-        trackCtx.font = '900 22px "Segoe UI", Arial, sans-serif';
-        trackCtx.textAlign = 'center';
-        trackCtx.fillText(mainText, CANVAS_W * 0.5, y - 2);
-
-        // Подсказка по типу грунта
-        trackCtx.fillStyle = '#ffffff';
-        trackCtx.font = '700 15px "Segoe UI", Arial, sans-serif';
-        trackCtx.fillText(subText, CANVAS_W * 0.5, y + 17);
-
-        trackCtx.restore();
-      }
-
-      // Нанесение табличек на землю на въезде в каждый сектор:
-      drawGroundStencil(-84, 'СЕКТОР 1: БЕТОН (СТАРТ)', 'СКОРОСТНАЯ ПРЯМАЯ | ТЕСТ 6x4 И 6x6', '#2ec4b6');
-      drawGroundStencil(-58, 'СЕКТОР 2: ЛЕСНАЯ ГРУНТОВКА', 'КОЛЕИ, КАМНИ И ПРЕПЯТСТВИЯ', '#4ade80');
-      drawGroundStencil(-33, 'СЕКТОР 3: СЫПУЧИЙ ПЕСОК', 'ПЕСЧАНЫЙ КАРЬЕР | ВКЛЮЧИТЕ AWD [Q]', '#fbbf24');
-      drawGroundStencil(-8,  'СЕКТОР 4: ВЯЗКАЯ ГЛИНА', 'ГЛУБОКАЯ КОЛЕЯ | БЛОКИРУЙТЕ ДИФФ [E]', '#f97316');
-      drawGroundStencil(20,  'СЕКТОР 5: ГИБЛОЕ БОЛОТО', 'ОПАСНАЯ ТОПЬ И ВОДА | ЛЕБЁДКА [F]', '#ef4444');
-      drawGroundStencil(46,  'СЕКТОР 6: БРЕВЕНЧАТАЯ ГАТЬ', 'МОСТ ИЗ БРЕВЕН ЧЕРЕЗ ОВРАГ', '#a855f7');
-      drawGroundStencil(60,  'СЕКТОР 7: СНЕЖНЫЙ ПЕРЕВАЛ', 'ПОДЪЕМ НА 7.5 М | ПОНИЖЕННАЯ [R]', '#38bdf8');
+      const snowGrad = trackCtx.createLinearGradient(0, y7_start - 35, 0, y7_end);
+      snowGrad.addColorStop(0, '#261b12');
+      snowGrad.addColorStop(0.2, '#667788'); // Первые заморозки
+      snowGrad.addColorStop(0.45, '#c5d5e2'); // Иней и наледь
+      snowGrad.addColorStop(0.75, '#eef4f9');
+      snowGrad.addColorStop(1, '#ffffff'); // Глубокие чистые сугробы
+      fillOrganicRoad(y7_start, y7_end, snowGrad);
     }
     initPolygonTextures();
 
@@ -680,9 +670,11 @@
       if (gPattern) {
         const y2_start = zToY(-60);
         const y2_end = zToY(-35);
+        trackCtx.save();
+        trackCtx.globalAlpha = 0.88;
         trackCtx.fillStyle = gPattern;
         trackCtx.fillRect(trackLeft - 10, y2_start, trackWidth + 20, y2_end - y2_start);
-        drawGroundStencil(-58, 'СЕКТОР 2: ЛЕСНАЯ ГРУНТОВКА', 'ФОТОРЕАЛИСТИЧНЫЙ ГРАВИЙ (Ground109)', '#4ade80');
+        trackCtx.restore();
         terrainTexture.needsUpdate = true;
       }
     };
@@ -1070,32 +1062,37 @@
 
     // --- 7. ДЕРЕВЬЯ, СКАЛЫ И БРЕВЕНЧАТЫЙ МОСТ ---
     const trees = [];
-    const trunkGeo = new THREE.CylinderGeometry(0.3, 0.45, 3.8, 6);
-    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x3d2817, roughness: 0.9 });
-    const foliageMat = new THREE.MeshStandardMaterial({ color: 0x2d4726, roughness: 0.8, flatShading: true });
-    const snowFoliageMat = new THREE.MeshStandardMaterial({ color: 0x223522, roughness: 0.8 });
-    const snowCapMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.6 });
+    const trunkGeo = new THREE.CylinderGeometry(0.24, 0.4, 3.8, 6);
+    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x332214, roughness: 0.9 });
+    const foliageMat = new THREE.MeshStandardMaterial({ color: 0x1b2d18, roughness: 0.85 });
+    const foliageMat2 = new THREE.MeshStandardMaterial({ color: 0x22381e, roughness: 0.85 });
+    const snowFoliageMat = new THREE.MeshStandardMaterial({ color: 0x1a261b, roughness: 0.85 });
+    const snowCapMat = new THREE.MeshStandardMaterial({ color: 0xedf2f7, roughness: 0.65 });
 
-    function plantPine(x, z) {
+    function plantPine(x, z, scale = 1.0) {
       const y = getTerrainHeight(x, z);
       const isSnowy = (z > 58);
       const group = new THREE.Group();
       group.position.set(x, y, z);
+      group.scale.setScalar(scale);
+      group.rotation.y = Math.random() * Math.PI * 2;
 
       const trunk = new THREE.Mesh(trunkGeo, trunkMat);
       trunk.position.y = 1.9;
       trunk.castShadow = true;
       group.add(trunk);
 
+      const fMat = isSnowy ? snowFoliageMat : (Math.random() > 0.5 ? foliageMat : foliageMat2);
+
       for (let t = 0; t < 3; t++) {
-        const cone = new THREE.Mesh(new THREE.ConeGeometry(2.6 - t * 0.5, 3.2, 7), isSnowy ? snowFoliageMat : foliageMat);
-        cone.position.y = 3.6 + t * 1.8;
+        const cone = new THREE.Mesh(new THREE.ConeGeometry(2.5 - t * 0.45, 3.0, 8), fMat);
+        cone.position.y = 3.5 + t * 1.7;
         cone.castShadow = true;
         group.add(cone);
 
         if (isSnowy) {
-          const snowCap = new THREE.Mesh(new THREE.ConeGeometry(2.4 - t * 0.5, 1.1, 7), snowCapMat);
-          snowCap.position.y = 4.3 + t * 1.8;
+          const snowCap = new THREE.Mesh(new THREE.ConeGeometry(2.3 - t * 0.45, 1.1, 8), snowCapMat);
+          snowCap.position.y = 4.2 + t * 1.7;
           group.add(snowCap);
         }
       }
@@ -1103,10 +1100,42 @@
       trees.push({ x, y: y + 2.0, z, group });
     }
 
-    // Деревья вдоль обочин полигона
-    for (let z = -80; z <= 85; z += 12) {
-      plantPine(-18 - Math.random() * 8, z + Math.random() * 4);
-      plantPine(18 + Math.random() * 8, z + Math.random() * 4);
+    // Естественные таежные рощи по холмам вдоль трассы
+    for (let z = -84; z <= 86; z += 6.5) {
+      // Левая сторона
+      const xL = -18 - Math.random() * 14;
+      const sL = 0.7 + Math.random() * 0.65;
+      plantPine(xL, z + (Math.random() - 0.5) * 5, sL);
+      if (Math.random() > 0.45) {
+        plantPine(xL - 4 - Math.random() * 6, z + (Math.random() - 0.5) * 4, sL * 0.85);
+      }
+
+      // Правая сторона
+      const xR = 18 + Math.random() * 14;
+      const sR = 0.7 + Math.random() * 0.65;
+      plantPine(xR, z + (Math.random() - 0.5) * 5, sR);
+      if (Math.random() > 0.45) {
+        plantPine(xR + 4 + Math.random() * 6, z + (Math.random() - 0.5) * 4, sR * 0.85);
+      }
+    }
+
+    // Природные валуны и замшелые камни по обочинам
+    const rockMat = new THREE.MeshStandardMaterial({ color: 0x58524b, roughness: 0.9, flatShading: true });
+    const snowRockMat = new THREE.MeshStandardMaterial({ color: 0x7c858d, roughness: 0.8, flatShading: true });
+    const rockGeo = new THREE.DodecahedronGeometry(0.85, 1);
+    for (let r = 0; r < 36; r++) {
+      const rz = -82 + Math.random() * 168;
+      const side = Math.random() > 0.5 ? 1 : -1;
+      const rx = side * (16 + Math.random() * 9);
+      const ry = getTerrainHeight(rx, rz);
+      const rock = new THREE.Mesh(rockGeo, rz > 58 ? snowRockMat : rockMat);
+      const sc = 0.5 + Math.random() * 1.0;
+      rock.scale.set(sc * (0.8 + Math.random() * 0.4), sc * 0.6, sc * (0.8 + Math.random() * 0.4));
+      rock.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
+      rock.position.set(rx, ry + 0.15, rz);
+      rock.castShadow = true;
+      rock.receiveShadow = true;
+      scene.add(rock);
     }
 
     // Мост из бревен над оврагом (Сектор 6, Z: +46 .. +56)
