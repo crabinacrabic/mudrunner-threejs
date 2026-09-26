@@ -348,15 +348,21 @@
       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
     }
   </style>
-  <!-- Three.js (r128) -->
+  <!-- Three.js (r128) & GLTFLoader -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script>
+    if (typeof THREE !== 'undefined' && !THREE.GLTFLoader) {
+      document.write('<script src="js/GLTFLoader.js"><\/script>');
+    }
+  </script>
 </head>
 <body>
   <div id="canvas-container"></div>
 
   <div id="header-bar">
     <h1>Полигон "Тайга" <span class="badge-tag">SNOWRUNNER</span></h1>
-    <div class="subtitle">7 секторов грунта &bull; 4 единицы техники &bull; Деформация грязи и снега</div>
+    <div class="subtitle">7 секторов грунта &bull; 5 единиц техники &bull; 3D модели Quaternius & GLTF</div>
   </div>
 
   <!-- Выбор техники в стиле Bruno Simon -->
@@ -372,14 +378,14 @@
       <span class="v-num">2</span>
       <div class="v-info">
         <span class="v-name">Джип 4x4</span>
-        <span class="v-type">Bruno Red &bull; AWD</span>
+        <span class="v-type">Следопыт &bull; 3D SUV</span>
       </div>
     </button>
     <button class="v-card" id="vbtn-2" onclick="switchVehicle(2)">
       <span class="v-num">3</span>
       <div class="v-info">
         <span class="v-name">Седан "Классика"</span>
-        <span class="v-type">Ретро &bull; RWD</span>
+        <span class="v-type">Городской &bull; RWD</span>
       </div>
     </button>
     <button class="v-card" id="vbtn-3" onclick="switchVehicle(3)">
@@ -387,6 +393,13 @@
       <div class="v-info">
         <span class="v-name">Ретро-Автобус</span>
         <span class="v-type">ПАЗ &bull; Twin 4x2</span>
+      </div>
+    </button>
+    <button class="v-card" id="vbtn-4" onclick="switchVehicle(4)">
+      <span class="v-num">5</span>
+      <div class="v-info">
+        <span class="v-name">Спорткупе GT</span>
+        <span class="v-type">Racer &bull; 4x2</span>
       </div>
     </button>
   </div>
@@ -1629,13 +1642,67 @@
       return { group: g, wheelsData };
     }
 
-    // Сборка 4 моделей автомобилей
+    // 5. МОДЕЛЬ: СПОРТКУПЕ "RACER GT" (4x2 RWD)
+    function createRacerModel() {
+      const g = new THREE.Group();
+      const wheelsData = [];
+
+      const frame = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.16, 4.0), matChassis);
+      frame.position.y = 0.26;
+      g.add(frame);
+
+      const body = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.44, 4.0), new THREE.MeshStandardMaterial({ color: 0xffb703, roughness: 0.25, metalness: 0.3 }));
+      body.position.set(0, 0.48, 0);
+      body.castShadow = true;
+      g.add(body);
+
+      const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.42, 1.8), matGlass);
+      cabin.position.set(0, 0.84, -0.1);
+      cabin.castShadow = true;
+      g.add(cabin);
+
+      const spoiler = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.06, 0.35), matDarkMetal);
+      spoiler.position.set(0, 0.88, -1.85);
+      spoiler.castShadow = true;
+      g.add(spoiler);
+
+      const wSetup = [
+        { x: -0.85, z:  1.35, isFront: true,  isDriven: false },
+        { x:  0.85, z:  1.35, isFront: true,  isDriven: false },
+        { x: -0.85, z: -1.35, isFront: false, isDriven: true  },
+        { x:  0.85, z: -1.35, isFront: false, isDriven: true  },
+      ];
+
+      wSetup.forEach(wp => {
+        const wInfo = createWheelMesh(0.36, 0.32, 0.24, 'chrome_cap');
+        wInfo.group.position.set(wp.x, 0.36, wp.z);
+        g.add(wInfo.group);
+
+        wheelsData.push({
+          group: wInfo.group,
+          tireMesh: wInfo.tireMesh,
+          localX: wp.x,
+          localZ: wp.z,
+          hubY: 0.36,
+          radius: 0.36,
+          isFront: wp.isFront,
+          isDriven: wp.isDriven,
+          lastDrawPos: new THREE.Vector2(0, 0),
+          slipRatio: 0
+        });
+      });
+
+      return { group: g, wheelsData };
+    }
+
+    // Сборка 5 моделей автомобилей
     const modelTruck = createTruckModel();
     const modelJeep  = createJeepModel();
     const modelSedan = createSedanModel();
     const modelBus   = createBusModel();
+    const modelRacer = createRacerModel();
 
-    const vehicleModelGroups = [modelTruck, modelJeep, modelSedan, modelBus];
+    const vehicleModelGroups = [modelTruck, modelJeep, modelSedan, modelBus, modelRacer];
     vehicleModelGroups.forEach(m => truck.add(m.group));
 
     const vehicleConfigs = [
@@ -1730,6 +1797,29 @@
         hasDiffLock: true,
         hasLowGear: true,
         hasAirBrakes: true,
+      },
+      {
+        id: 'racer',
+        name: 'Спорткупе "Racer GT"',
+        badge: '4x2 Sport',
+        mass: 1100,
+        power: 28,
+        maxSpeed: 64,
+        lowMaxSpeed: 24,
+        torqueMult: 2.2,
+        frontAxleZ: 1.35,
+        rearAxleZ: -1.50,
+        trackHalfWidth: 0.85,
+        bumperZ: 2.10,
+        exhaustPos: new THREE.Vector3(-0.55, 0.28, -2.1),
+        winchPos: new THREE.Vector3(0, 0.35, 2.1),
+        clearance: 0.25,
+        sinkFactor: 2.0,
+        soundType: 'sport',
+        hasAWD: false,
+        hasDiffLock: false,
+        hasLowGear: true,
+        hasAirBrakes: false,
       }
     ];
 
@@ -1748,7 +1838,7 @@
 
       activeWheels = vehicleModelGroups[idx].wheelsData;
 
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < vehicleConfigs.length; i++) {
         const btn = document.getElementById('vbtn-' + i);
         if (btn) {
           if (i === idx) btn.classList.add('active');
@@ -1783,6 +1873,336 @@
       playSwitchVehicleSound(currentVehicleConfig.soundType);
       showPopup('ВЫБРАН: ' + currentVehicleConfig.name.toUpperCase());
     }
+
+    // --- ИНТЕГРАЦИЯ 3D-МОДЕЛЕЙ ИЗ ОТКРЫТЫХ БИБЛИОТЕК (GLTF / GLB) ---
+    function loadVehicleGLTFModels() {
+      if (typeof THREE === 'undefined' || typeof THREE.GLTFLoader === 'undefined') {
+        console.warn('GLTFLoader не доступен — работают процедурные модели');
+        return;
+      }
+
+      const loader = new THREE.GLTFLoader();
+
+      // 1. SUV (Quaternius 4x4)
+      loader.load('models/suv.glb', (gltf) => {
+        try {
+          applyGLTFToJeep(gltf);
+        } catch (e) {
+          console.error('Ошибка применения suv.glb:', e);
+        }
+      }, undefined, (e) => console.log('suv.glb fallback active'));
+
+      // 2. Sedan (Quaternius Car)
+      loader.load('models/car.glb', (gltf) => {
+        try {
+          applyGLTFToSedan(gltf);
+        } catch (e) {
+          console.error('Ошибка применения car.glb:', e);
+        }
+      }, undefined, (e) => console.log('car.glb fallback active'));
+
+      // 3. Sports Car (Quaternius Racer)
+      loader.load('models/sports-car.glb', (gltf) => {
+        try {
+          applyGLTFToRacer(gltf);
+        } catch (e) {
+          console.error('Ошибка применения sports-car.glb:', e);
+        }
+      }, undefined, (e) => console.log('sports-car.glb fallback active'));
+
+      // 4. Dump Truck (Тягач "Тайга")
+      loader.load('models/dump-truck.glb', (gltf) => {
+        try {
+          applyGLTFToTruck(gltf);
+        } catch (e) {
+          console.error('Ошибка применения dump-truck.glb:', e);
+        }
+      }, undefined, (e) => console.log('dump-truck.glb fallback active'));
+
+      // 5. Retro Bus (Автобус)
+      loader.load('models/bus.glb', (gltf) => {
+        try {
+          applyGLTFToBus(gltf);
+        } catch (e) {
+          console.error('Ошибка применения bus.glb:', e);
+        }
+      }, undefined, (e) => console.log('bus.glb fallback active'));
+    }
+
+    function applyGLTFToJeep(gltf) {
+      const root = gltf.scene;
+      modelJeep.group.clear();
+      modelJeep.wheelsData.length = 0;
+
+      root.traverse(c => {
+        if (c.isMesh) {
+          c.castShadow = true;
+          c.receiveShadow = true;
+          if (c.material) {
+            c.material.roughness = 0.35;
+            c.material.metalness = 0.15;
+          }
+        }
+      });
+
+      const bodyGroup = root.getObjectByName('SUV_Cube');
+      const flWheelGroup = root.getObjectByName('SUV_FrontLeftWheel_Cylinder010');
+      const frWheelGroup = root.getObjectByName('SUV_FrontRightWheel_Cylinder005');
+      const backWheelsGroup = root.getObjectByName('SUV_BackWheels_Cylinder009');
+      if (backWheelsGroup) backWheelsGroup.visible = false;
+
+      const scale = 1.15;
+      const subGroup = new THREE.Group();
+      subGroup.scale.set(scale, scale, scale);
+      if (bodyGroup) subGroup.add(bodyGroup);
+
+      // Экспедиционный багажник: ящик с инструментами и канистра
+      const crate = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.28, 0.42), matBoxGreen);
+      crate.position.set(0.1, 1.48, 0.1);
+      crate.castShadow = true;
+      subGroup.add(crate);
+
+      const can = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.34, 0.38), matJerryCan);
+      can.position.set(-0.32, 1.51, -0.4);
+      can.castShadow = true;
+      subGroup.add(can);
+
+      const wheelDefs = [
+        { source: flWheelGroup, cx:  0.773, cy: 0.309, cz:  1.317, isFront: true,  isDriven: true },
+        { source: frWheelGroup, cx: -0.762, cy: 0.309, cz:  1.317, isFront: true,  isDriven: true },
+        { source: flWheelGroup, cx:  0.773, cy: 0.309, cz: -1.251, isFront: false, isDriven: true },
+        { source: frWheelGroup, cx: -0.762, cy: 0.309, cz: -1.251, isFront: false, isDriven: true }
+      ];
+
+      wheelDefs.forEach(wp => {
+        const wg = new THREE.Group();
+        wg.position.set(wp.cx, wp.cy, wp.cz);
+
+        const spinAnchor = new THREE.Group();
+        wg.add(spinAnchor);
+
+        if (wp.source) {
+          const meshClone = wp.source.clone(true);
+          meshClone.position.set(-wp.cx, -wp.cy, -1.317);
+          spinAnchor.add(meshClone);
+        }
+
+        subGroup.add(wg);
+
+        modelJeep.wheelsData.push({
+          group: wg,
+          tireMesh: spinAnchor,
+          localX: wp.cx * scale,
+          localZ: wp.cz * scale,
+          hubY: wp.cy * scale,
+          radius: 0.327 * scale,
+          isFront: wp.isFront,
+          isDriven: wp.isDriven,
+          lastDrawPos: new THREE.Vector2(0, 0),
+          slipRatio: 0
+        });
+      });
+
+      modelJeep.group.add(subGroup);
+      if (currentVehicleIndex === 1) {
+        activeWheels = modelJeep.wheelsData;
+      }
+    }
+
+    function applyGLTFToSedan(gltf) {
+      const root = gltf.scene;
+      modelSedan.group.clear();
+      modelSedan.wheelsData.length = 0;
+
+      root.traverse(c => {
+        if (c.isMesh) {
+          c.castShadow = true;
+          c.receiveShadow = true;
+          if (c.material) {
+            c.material.roughness = 0.32;
+            c.material.metalness = 0.18;
+          }
+        }
+      });
+
+      const bodyGroup = root.getObjectByName('NormalCar1_Cube012');
+      const flWheel = root.getObjectByName('NormalCar1_FrontLeftWheel_Cube007');
+      const frWheel = root.getObjectByName('NormalCar1_FrontRightWheel_Cube008');
+      const backWheels = root.getObjectByName('NormalCar1_BackWheels_Cube011');
+      if (backWheels) backWheels.visible = false;
+
+      const scale = 1.15;
+      const subGroup = new THREE.Group();
+      subGroup.scale.set(scale, scale, scale);
+      if (bodyGroup) subGroup.add(bodyGroup);
+
+      const wheelDefs = [
+        { source: flWheel, cx:  0.691, cy: 0.268, cz:  1.196, isFront: true,  isDriven: false },
+        { source: frWheel, cx: -0.689, cy: 0.268, cz:  1.196, isFront: true,  isDriven: false },
+        { source: flWheel, cx:  0.691, cy: 0.268, cz: -1.243, isFront: false, isDriven: true  },
+        { source: frWheel, cx: -0.689, cy: 0.268, cz: -1.243, isFront: false, isDriven: true  }
+      ];
+
+      wheelDefs.forEach(wp => {
+        const wg = new THREE.Group();
+        wg.position.set(wp.cx, wp.cy, wp.cz);
+
+        const spinAnchor = new THREE.Group();
+        wg.add(spinAnchor);
+
+        if (wp.source) {
+          const meshClone = wp.source.clone(true);
+          meshClone.position.set(-wp.cx, -wp.cy, -1.196);
+          spinAnchor.add(meshClone);
+        }
+
+        subGroup.add(wg);
+
+        modelSedan.wheelsData.push({
+          group: wg,
+          tireMesh: spinAnchor,
+          localX: wp.cx * scale,
+          localZ: wp.cz * scale,
+          hubY: wp.cy * scale,
+          radius: 0.262 * scale,
+          isFront: wp.isFront,
+          isDriven: wp.isDriven,
+          lastDrawPos: new THREE.Vector2(0, 0),
+          slipRatio: 0
+        });
+      });
+
+      modelSedan.group.add(subGroup);
+      if (currentVehicleIndex === 2) {
+        activeWheels = modelSedan.wheelsData;
+      }
+    }
+
+    function applyGLTFToRacer(gltf) {
+      const root = gltf.scene;
+      modelRacer.group.clear();
+      modelRacer.wheelsData.length = 0;
+
+      root.traverse(c => {
+        if (c.isMesh) {
+          c.castShadow = true;
+          c.receiveShadow = true;
+          if (c.material) {
+            c.material.roughness = 0.28;
+            c.material.metalness = 0.25;
+          }
+        }
+      });
+
+      const bodyGroup = root.getObjectByName('SportsCar2_Cube006');
+      const flWheel = root.getObjectByName('SportsCar2_FrontLeftWheel_Cylinder017');
+      const frWheel = root.getObjectByName('SportsCar2_FrontRightWheel_Cylinder018');
+      const backWheels = root.getObjectByName('SportsCar2_BackWheels_Cylinder002');
+      if (backWheels) backWheels.visible = false;
+
+      const scale = 1.15;
+      const subGroup = new THREE.Group();
+      subGroup.scale.set(scale, scale, scale);
+      if (bodyGroup) subGroup.add(bodyGroup);
+
+      const wheelDefs = [
+        { source: flWheel, cx:  0.726, cy: 0.265, cz:  1.186, isFront: true,  isDriven: false },
+        { source: frWheel, cx: -0.724, cy: 0.265, cz:  1.186, isFront: true,  isDriven: false },
+        { source: flWheel, cx:  0.726, cy: 0.265, cz: -1.321, isFront: false, isDriven: true  },
+        { source: frWheel, cx: -0.724, cy: 0.265, cz: -1.321, isFront: false, isDriven: true  }
+      ];
+
+      wheelDefs.forEach(wp => {
+        const wg = new THREE.Group();
+        wg.position.set(wp.cx, wp.cy, wp.cz);
+
+        const spinAnchor = new THREE.Group();
+        wg.add(spinAnchor);
+
+        if (wp.source) {
+          const meshClone = wp.source.clone(true);
+          meshClone.position.set(-wp.cx, -wp.cy, -1.186);
+          spinAnchor.add(meshClone);
+        }
+
+        subGroup.add(wg);
+
+        modelRacer.wheelsData.push({
+          group: wg,
+          tireMesh: spinAnchor,
+          localX: wp.cx * scale,
+          localZ: wp.cz * scale,
+          hubY: wp.cy * scale,
+          radius: 0.280 * scale,
+          isFront: wp.isFront,
+          isDriven: wp.isDriven,
+          lastDrawPos: new THREE.Vector2(0, 0),
+          slipRatio: 0
+        });
+      });
+
+      modelRacer.group.add(subGroup);
+      if (currentVehicleIndex === 4) {
+        activeWheels = modelRacer.wheelsData;
+      }
+    }
+
+    function applyGLTFToTruck(gltf) {
+      const root = gltf.scene;
+      const dt = root.getObjectByName('Dumptruck_01_Cube');
+      if (!dt) return;
+
+      root.traverse(c => {
+        if (c.isMesh) {
+          c.castShadow = true;
+          c.receiveShadow = true;
+          if (c.name.includes('_2') || (c.material && c.material.name === '1A1A1A')) {
+            c.visible = false;
+          }
+        }
+      });
+
+      const dtGroup = new THREE.Group();
+      dtGroup.scale.set(0.48, 0.48, 0.48);
+      dtGroup.position.set(0, 0.65, 0.35);
+      dtGroup.add(dt);
+
+      modelTruck.group.children.forEach(c => {
+        if (c.geometry && c.geometry.type === 'BoxGeometry' && c.position.y > 1.2 && c.position.z > 1.0) {
+          c.visible = false;
+        }
+      });
+
+      modelTruck.group.add(dtGroup);
+    }
+
+    function applyGLTFToBus(gltf) {
+      const root = gltf.scene;
+      const busMesh = root.getObjectByName('Bus');
+      if (!busMesh) return;
+
+      root.traverse(c => {
+        if (c.isMesh) {
+          c.castShadow = true;
+          c.receiveShadow = true;
+        }
+      });
+
+      const busGroup = new THREE.Group();
+      busGroup.scale.set(0.046, 0.046, 0.046);
+      busGroup.position.set(0, 0.22, 0);
+      busGroup.add(busMesh);
+
+      modelBus.group.children.forEach(c => {
+        if (!c.children || !c.children[0] || !c.children[0].geometry || c.children[0].geometry.type !== 'CylinderGeometry') {
+          c.visible = false;
+        }
+      });
+      modelBus.group.add(busGroup);
+    }
+
+    // Запуск асинхронной загрузки 3D-моделей
+    loadVehicleGLTFModels();
 
     // Изначально показываем только тягач
     vehicleModelGroups.forEach((m, i) => {
@@ -2085,6 +2505,18 @@
           g.connect(audioCtx.destination);
           osc.start(t);
           osc.stop(t + 0.21);
+        } else if (type === 'sport') {
+          // Агрессивная перегазовка спорткара "Вруум!"
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(220, t);
+          osc.frequency.exponentialRampToValueAtTime(560, t + 0.14);
+          osc.frequency.exponentialRampToValueAtTime(320, t + 0.32);
+          g.gain.setValueAtTime(0.24, t);
+          g.gain.exponentialRampToValueAtTime(0.005, t + 0.32);
+          osc.connect(g);
+          g.connect(audioCtx.destination);
+          osc.start(t);
+          osc.stop(t + 0.33);
         } else {
           // Басовитый мембранный сигнал автобуса
           osc.type = 'sawtooth';
@@ -2295,6 +2727,7 @@
         case 'Digit2': case 'Numpad2': switchVehicle(1); break;
         case 'Digit3': case 'Numpad3': switchVehicle(2); break;
         case 'Digit4': case 'Numpad4': switchVehicle(3); break;
+        case 'Digit5': case 'Numpad5': switchVehicle(4); break;
         case 'KeyW': case 'ArrowUp': keys.forward = true; break;
         case 'KeyS': case 'ArrowDown': keys.backward = true; break;
         case 'KeyA': case 'ArrowLeft': keys.left = true; break;

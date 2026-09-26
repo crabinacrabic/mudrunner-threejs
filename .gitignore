@@ -6,3 +6,5 @@ desktop.ini
 # Logs & temp
 *.log
 .temp/
+node_modules/
+package-lock.json
