@@ -434,8 +434,9 @@
       transition: transform 0.05s linear;
     }
   </style>
-  <!-- Three.js (r128) & GLTFLoader -->
+  <!-- Three.js (r128), DRACOLoader & GLTFLoader -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
   <script>
     if (typeof THREE !== 'undefined' && !THREE.GLTFLoader) {
@@ -594,10 +595,10 @@
 
     const container = document.getElementById('canvas-container');
 
-    // --- 1. СЦЕНА, КАМЕРА, СВЕТ В ФИРМЕННОМ ТЕПЛОМ СТИЛЕ BRUNO SIMON ---
+    // --- 1. СЦЕНА, КАМЕРА, СВЕТ В ТЕПЛОМ УЮТНОМ СТИЛЕ BRUNO SIMON (COZY DIORAMA) ---
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xd6cab7); // Фирменный теплый беж Бруно Симона
-    scene.fog = new THREE.FogExp2(0xd6cab7, 0.007);
+    scene.background = new THREE.Color(0xe5cbb0); // Теплый персиково-песочный тон Bruno Simon
+    scene.fog = new THREE.FogExp2(0xe5cbb0, 0.0055);
 
     const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.5, 380);
     camera.position.set(-26, 22, 26);
@@ -608,22 +609,22 @@
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.12;
+    renderer.toneMappingExposure = 1.18;
     container.appendChild(renderer.domElement);
 
-    // Мягкий рассеянный свет студии/диорамы
-    const hemiLight = new THREE.HemisphereLight(0xfff6ed, 0x6e5a48, 0.9);
+    // Мягкий обволакивающий студийный свет диорамы (без жёстких чёрных теней)
+    const hemiLight = new THREE.HemisphereLight(0xfff9ee, 0x9c7a56, 1.02);
     scene.add(hemiLight);
 
-    // Теплое солнце, отбрасывающее мягкие тени
-    const sunLight = new THREE.DirectionalLight(0xffeed9, 1.45);
-    sunLight.position.set(45, 70, -40);
+    // Золотистое послеполуденное солнце Bruno Simon
+    const sunLight = new THREE.DirectionalLight(0xfff1d6, 1.55);
+    sunLight.position.set(48, 75, -35);
     sunLight.castShadow = true;
     sunLight.shadow.mapSize.width = 2048;
     sunLight.shadow.mapSize.height = 2048;
     sunLight.shadow.camera.near = 10;
-    sunLight.shadow.camera.far = 240;
-    const shadowD = 65;
+    sunLight.shadow.camera.far = 250;
+    const shadowD = 68;
     sunLight.shadow.camera.left = -shadowD;
     sunLight.shadow.camera.right = shadowD;
     sunLight.shadow.camera.top = shadowD;
@@ -631,191 +632,290 @@
     sunLight.shadow.bias = -0.0004;
     scene.add(sunLight);
 
-    const fillLight = new THREE.DirectionalLight(0xb0c4d0, 0.4);
-    fillLight.position.set(-40, 30, 40);
+    const fillLight = new THREE.DirectionalLight(0xdbeafe, 0.48);
+    fillLight.position.set(-45, 35, 45);
     scene.add(fillLight);
 
-    // --- 2. ДЛИННЫЙ ТЕСТОВЫЙ ПОЛИГОН (РАЗМЕР 80м x 180м) ---
+    // --- 2. КОЗИ-ТЕКСТУРЫ POLY HAVEN + ТЕПЛАЯ ПАЛИТРА BRUNO SIMON (80м x 180м) ---
     const MAP_WIDTH = 80;   // X: -40 .. +40
     const MAP_LENGTH = 180; // Z: -90 .. +90
     const CANVAS_W = 1024;
     const CANVAS_H = 2048;
 
+    // Базовый холст (палитра Bruno Simon + мягкий оверлей текстур Poly Haven)
+    const baseCanvas = document.createElement('canvas');
+    baseCanvas.width = CANVAS_W;
+    baseCanvas.height = CANVAS_H;
+    const baseCtx = baseCanvas.getContext('2d');
+
+    // Отдельный слой накопленной колеи и разливов воды (не стирается при подгрузке текстур)
+    const rutLayerCanvas = document.createElement('canvas');
+    rutLayerCanvas.width = CANVAS_W;
+    rutLayerCanvas.height = CANVAS_H;
+    const rutLayerCtx = rutLayerCanvas.getContext('2d');
+
+    // Итоговый холст, передаваемый в Three.js
     const trackCanvas = document.createElement('canvas');
     trackCanvas.width = CANVAS_W;
     trackCanvas.height = CANVAS_H;
     const trackCtx = trackCanvas.getContext('2d');
 
-    // Функция преобразования Z в координату Y холста (Z: -90..+90 -> Y: 0..CANVAS_H)
     function zToY(z) {
       return ((z + MAP_LENGTH / 2) / MAP_LENGTH) * CANVAS_H;
     }
 
-    // Главная широкая трасса полигона (ширина 28 метров по центру)
-    const trackLeft = CANVAS_W * 0.32;
-    const trackWidth = CANVAS_W * 0.36;
+    const trackLeft = CANVAS_W * 0.30;
+    const trackWidth = CANVAS_W * 0.40;
 
-    // Процедурная генерация стильного полигона в чистой эстетике Bruno Simon (без фото-шума)
-    function initPolygonTextures() {
-      // 1. Фирменный фон Бруно Симона: теплый мягкий глиняно-песочный оттенок
-      trackCtx.fillStyle = '#c7bca7';
-      trackCtx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    // Хранилище загруженных кози-текстур с Poly Haven
+    const phImages = {};
 
-      // Боковые зеленые холмы полигона в стиле диорамы
-      const grassGradL = trackCtx.createLinearGradient(0, 0, trackLeft, 0);
-      grassGradL.addColorStop(0, '#5b7345');
-      grassGradL.addColorStop(1, '#7a945d');
-      trackCtx.fillStyle = grassGradL;
-      trackCtx.fillRect(0, 0, trackLeft - 8, CANVAS_H);
-
-      const grassGradR = trackCtx.createLinearGradient(trackLeft + trackWidth + 8, 0, CANVAS_W, 0);
-      grassGradR.addColorStop(0, '#7a945d');
-      grassGradR.addColorStop(1, '#5b7345');
-      trackCtx.fillStyle = grassGradR;
-      trackCtx.fillRect(trackLeft + trackWidth + 8, 0, CANVAS_W - (trackLeft + trackWidth + 8), CANVAS_H);
-
-      // Мягкий шум поверхности
-      for (let i = 0; i < 4000; i++) {
-        const px = Math.random() * CANVAS_W;
-        const py = Math.random() * CANVAS_H;
-        trackCtx.fillStyle = Math.random() > 0.5 ? 'rgba(0,0,0,0.035)' : 'rgba(255,255,255,0.035)';
-        trackCtx.fillRect(px, py, 4, 4);
-      }
-
-      function fillOrganicRoad(yStart, yEnd, style) {
-        trackCtx.fillStyle = style;
-        const steps = 18;
-        const dy = (yEnd - yStart) / steps;
-        for (let s = 0; s < steps; s++) {
-          const cy = yStart + s * dy;
-          const wobble = Math.sin(cy * 0.05) * 10;
-          const rw = trackWidth + Math.sin(cy * 0.08) * 6;
-          trackCtx.fillRect(trackLeft + wobble - 4, cy - 2, rw + 8, dy + 5);
+    function drawTiledOverlay(ctx, img, x, y, w, h, alpha = 0.28, blendMode = 'soft-light', tileScale = 256) {
+      if (!img || !img.complete || !img.naturalWidth) return;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x, y, w, h);
+      ctx.clip();
+      ctx.globalAlpha = alpha;
+      ctx.globalCompositeOperation = blendMode;
+      for (let ty = Math.floor(y / tileScale) * tileScale; ty < y + h; ty += tileScale) {
+        for (let tx = Math.floor(x / tileScale) * tileScale; tx < x + w; tx += tileScale) {
+          ctx.drawImage(img, tx, ty, tileScale, tileScale);
         }
       }
+      ctx.restore();
+    }
 
-      // СЕКТОР 1: БЕТОННАЯ ПЛОЩАДКА (Z: -88 .. -60)
+    function initPolygonTextures() {
+      // 1. Теплый карамельно-терракотовый базовый тон в стиле bruno-simon.com
+      baseCtx.fillStyle = '#dfbe99';
+      baseCtx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+      // Уютные оливково-луговые холмы по бокам
+      const grassGradL = baseCtx.createLinearGradient(0, 0, trackLeft, 0);
+      grassGradL.addColorStop(0, '#729356');
+      grassGradL.addColorStop(0.7, '#8cae68');
+      grassGradL.addColorStop(1, '#c5ba8e');
+      baseCtx.fillStyle = grassGradL;
+      baseCtx.fillRect(0, 0, trackLeft + 6, CANVAS_H);
+
+      const grassGradR = baseCtx.createLinearGradient(trackLeft + trackWidth - 6, 0, CANVAS_W, 0);
+      grassGradR.addColorStop(0, '#c5ba8e');
+      grassGradR.addColorStop(0.3, '#8cae68');
+      grassGradR.addColorStop(1, '#729356');
+      baseCtx.fillStyle = grassGradR;
+      baseCtx.fillRect(trackLeft + trackWidth - 6, 0, CANVAS_W - (trackLeft + trackWidth - 6), CANVAS_H);
+
+      // Наложение кози-текстуры луговой травы Poly Haven (aerial_grass_rock)
+      drawTiledOverlay(baseCtx, phImages.grass, 0, 0, trackLeft + 10, CANVAS_H, 0.30, 'overlay', 256);
+      drawTiledOverlay(baseCtx, phImages.grass, trackLeft + trackWidth - 10, 0, CANVAS_W - (trackLeft + trackWidth - 10), CANVAS_H, 0.30, 'overlay', 256);
+
+      function fillCozyRoad(yStart, yEnd, style, phImg, phAlpha = 0.32, phBlend = 'overlay') {
+        baseCtx.save();
+        baseCtx.fillStyle = style;
+        const steps = 28;
+        const dy = (yEnd - yStart) / steps;
+        baseCtx.beginPath();
+        for (let s = 0; s <= steps; s++) {
+          const cy = yStart + s * dy;
+          const wobble = Math.sin(cy * 0.035) * 8;
+          const lx = trackLeft + wobble - 6;
+          if (s === 0) baseCtx.moveTo(lx, cy);
+          else baseCtx.lineTo(lx, cy);
+        }
+        for (let s = steps; s >= 0; s--) {
+          const cy = yStart + s * dy;
+          const wobble = Math.sin(cy * 0.035) * 8;
+          const rw = trackWidth + Math.sin(cy * 0.06) * 6;
+          baseCtx.lineTo(trackLeft + wobble + rw + 6, cy);
+        }
+        baseCtx.closePath();
+        baseCtx.fill();
+        if (phImg && phImg.complete && phImg.naturalWidth) {
+          baseCtx.clip();
+          drawTiledOverlay(baseCtx, phImg, trackLeft - 24, yStart - 10, trackWidth + 48, (yEnd - yStart) + 20, phAlpha, phBlend, 220);
+        }
+        baseCtx.restore();
+      }
+
+      // СЕКТОР 1: ТЕПЛЫЙ УЮТНЫЙ БЕТОН (Z: -88 .. -60)
       const y1_start = zToY(-88);
       const y1_end = zToY(-60);
-      trackCtx.fillStyle = '#747982';
-      trackCtx.fillRect(trackLeft, y1_start, trackWidth, y1_end - y1_start);
+      const concGrad = baseCtx.createLinearGradient(0, y1_start, 0, y1_end);
+      concGrad.addColorStop(0, '#9ea5ad');
+      concGrad.addColorStop(0.85, '#959ba3');
+      concGrad.addColorStop(1, '#a98c6c');
+      fillCozyRoad(y1_start, y1_end, concGrad, phImages.concrete, 0.32, 'overlay');
 
-      // Швы бетонных плит
-      trackCtx.strokeStyle = '#51555e';
-      trackCtx.lineWidth = 3;
-      for (let y = y1_start; y < y1_end; y += 42) {
-        trackCtx.beginPath();
-        trackCtx.moveTo(trackLeft, y);
-        trackCtx.lineTo(trackLeft + trackWidth, y);
-        trackCtx.stroke();
+      // Плиты и стартовая разметка в стиле Bruno Simon
+      baseCtx.strokeStyle = 'rgba(95, 98, 105, 0.55)';
+      baseCtx.lineWidth = 3;
+      for (let y = y1_start; y < y1_end; y += 44) {
+        baseCtx.beginPath();
+        baseCtx.moveTo(trackLeft, y);
+        baseCtx.lineTo(trackLeft + trackWidth, y);
+        baseCtx.stroke();
       }
+      baseCtx.fillStyle = '#fff9eb';
+      baseCtx.fillRect(trackLeft + 18, y1_start + 45, trackWidth - 36, 8);
+      baseCtx.font = '900 24px "Segoe UI", Arial, sans-serif';
+      baseCtx.textAlign = 'center';
+      baseCtx.fillText('★  BRUNO SIMON  •  TAIGA 6x6  ★', CANVAS_W * 0.5, y1_start + 34);
 
-      // Аккуратная белая стартовая разметка Бруно Симона
-      trackCtx.fillStyle = '#f3f4f6';
-      trackCtx.fillRect(trackLeft + 15, y1_start + 45, trackWidth - 30, 8);
-      trackCtx.fillStyle = '#ffffff';
-      trackCtx.font = 'bold 24px "Segoe UI", Arial, sans-serif';
-      trackCtx.textAlign = 'center';
-      trackCtx.fillText('★  START 6x6  ★', CANVAS_W * 0.5, y1_start + 35);
-
-      // СЕКТОР 2: ЛЕСНАЯ ГРУНТОВКА И КАМНИ (Z: -60 .. -35)
+      // СЕКТОР 2: УЮТНАЯ ЛЕСНАЯ ДОРОЖКА (Z: -60 .. -35)
       const y2_start = y1_end;
       const y2_end = zToY(-35);
-      const grad2 = trackCtx.createLinearGradient(0, y2_start, 0, y2_end);
-      grad2.addColorStop(0, '#747982');
-      grad2.addColorStop(0.3, '#785d43');
-      grad2.addColorStop(1, '#8c6848');
-      fillOrganicRoad(y2_start, y2_end, grad2);
+      const grad2 = baseCtx.createLinearGradient(0, y2_start - 15, 0, y2_end);
+      grad2.addColorStop(0, '#a98c6c');
+      grad2.addColorStop(0.25, '#b68356');
+      grad2.addColorStop(0.8, '#c28b59');
+      grad2.addColorStop(1, '#d6a063');
+      fillCozyRoad(y2_start, y2_end, grad2, phImages.forest, 0.34, 'soft-light');
 
-      // Стилизованные камушки
-      trackCtx.fillStyle = '#5c4530';
-      for (let g = 0; g < 220; g++) {
-        const gx = trackLeft + Math.random() * trackWidth;
-        const gy = y2_start + Math.random() * (y2_end - y2_start);
-        trackCtx.beginPath();
-        trackCtx.arc(gx, gy, 2 + Math.random() * 3, 0, Math.PI * 2);
-        trackCtx.fill();
-      }
-
-      // СЕКТОР 3: СЫПУЧИЙ ПЕСОК (Z: -35 .. -10)
+      // СЕКТОР 3: СОЛНЕЧНЫЙ ПЕСЧАНЫЙ КАРЬЕР (Z: -35 .. -10)
       const y3_start = y2_end;
       const y3_end = zToY(-10);
-      const sandGrad = trackCtx.createLinearGradient(0, y3_start - 30, 0, y3_end);
-      sandGrad.addColorStop(0, '#8c6848');
-      sandGrad.addColorStop(0.3, '#dba758');
-      sandGrad.addColorStop(0.7, '#e9b968');
-      sandGrad.addColorStop(1, '#bf8d45');
-      fillOrganicRoad(y3_start, y3_end, sandGrad);
+      const sandGrad = baseCtx.createLinearGradient(0, y3_start - 20, 0, y3_end);
+      sandGrad.addColorStop(0, '#d6a063');
+      sandGrad.addColorStop(0.25, '#eebc6d');
+      sandGrad.addColorStop(0.75, '#f4c97d');
+      sandGrad.addColorStop(1, '#c98e54');
+      fillCozyRoad(y3_start, y3_end, sandGrad, phImages.sand, 0.38, 'overlay');
 
       // Мягкие волны барханов
-      trackCtx.strokeStyle = 'rgba(165, 120, 50, 0.4)';
-      trackCtx.lineWidth = 5;
-      for (let y = y3_start; y < y3_end; y += 24) {
-        trackCtx.beginPath();
-        trackCtx.moveTo(trackLeft - 10, y);
-        trackCtx.bezierCurveTo(trackLeft + trackWidth * 0.3, y + 10, trackLeft + trackWidth * 0.7, y - 10, trackLeft + trackWidth + 10, y);
-        trackCtx.stroke();
+      baseCtx.strokeStyle = 'rgba(185, 130, 62, 0.35)';
+      baseCtx.lineWidth = 5;
+      for (let y = y3_start; y < y3_end; y += 22) {
+        baseCtx.beginPath();
+        baseCtx.moveTo(trackLeft - 6, y);
+        baseCtx.bezierCurveTo(trackLeft + trackWidth * 0.3, y + 10, trackLeft + trackWidth * 0.7, y - 10, trackLeft + trackWidth + 6, y);
+        baseCtx.stroke();
       }
 
-      // СЕКТОР 4: ВЯЗКАЯ ГЛИНА И КОЛЕЯ (Z: -10 .. +18)
+      // СЕКТОР 4: ТЕПЛАЯ ТЕРРАКОТОВАЯ ГЛИНА И КОЛЕЯ (Z: -10 .. +18)
       const y4_start = y3_end;
       const y4_end = zToY(18);
-      const clayGrad = trackCtx.createLinearGradient(0, y4_start - 25, 0, y4_end);
-      clayGrad.addColorStop(0, '#bf8d45');
-      clayGrad.addColorStop(0.3, '#5c381c');
-      clayGrad.addColorStop(0.8, '#442611');
-      clayGrad.addColorStop(1, '#2c1709');
-      fillOrganicRoad(y4_start, y4_end, clayGrad);
+      const clayGrad = baseCtx.createLinearGradient(0, y4_start - 20, 0, y4_end);
+      clayGrad.addColorStop(0, '#c98e54');
+      clayGrad.addColorStop(0.25, '#8c5330');
+      clayGrad.addColorStop(0.75, '#784424');
+      clayGrad.addColorStop(1, '#583b28');
+      fillCozyRoad(y4_start, y4_end, clayGrad, phImages.mud, 0.38, 'overlay');
 
-      // Влажные темные колеи
-      trackCtx.fillStyle = 'rgba(28, 15, 6, 0.65)';
-      trackCtx.fillRect(trackLeft + trackWidth * 0.23, y4_start, 36, y4_end - y4_start);
-      trackCtx.fillRect(trackLeft + trackWidth * 0.65, y4_start, 36, y4_end - y4_start);
+      // Естественные влажные колеи с бликами воды
+      baseCtx.fillStyle = 'rgba(58, 34, 18, 0.55)';
+      baseCtx.fillRect(trackLeft + trackWidth * 0.25, y4_start, 38, y4_end - y4_start);
+      baseCtx.fillRect(trackLeft + trackWidth * 0.65, y4_start, 38, y4_end - y4_start);
 
-      // СЕКТОР 5: ГИБЛОЕ БОЛОТО С ВОДОЙ (Z: +18 .. +45)
+      // СЕКТОР 5: ЖИВОПИСНОЕ ТОРФЯНОЕ БОЛОТО С БИРЮЗОВО-ИЗУМРУДНОЙ ВОДОЙ (Z: +18 .. +45)
       const y5_start = y4_end;
       const y5_end = zToY(45);
-      const swampGrad = trackCtx.createLinearGradient(0, y5_start - 25, 0, y5_end);
-      swampGrad.addColorStop(0, '#2c1709');
-      swampGrad.addColorStop(0.5, '#1a110a');
-      swampGrad.addColorStop(1, '#2c1709');
-      fillOrganicRoad(y5_start, y5_end, swampGrad);
+      const swampGrad = baseCtx.createLinearGradient(0, y5_start - 20, 0, y5_end);
+      swampGrad.addColorStop(0, '#583b28');
+      swampGrad.addColorStop(0.3, '#3b4a3e');
+      swampGrad.addColorStop(0.7, '#34493e');
+      swampGrad.addColorStop(1, '#6e4c30');
+      fillCozyRoad(y5_start, y5_end, swampGrad, phImages.mud, 0.34, 'soft-light');
 
-      // Округлая болотная гладь
-      trackCtx.fillStyle = '#0f1714';
+      // Изумрудно-бирюзовые озерца воды в болоте (вместо пугающей чёрной дыры)
       for (let w = 0; w < 14; w++) {
-        const wx = trackLeft + Math.random() * trackWidth;
-        const wy = y5_start + Math.random() * (y5_end - y5_start);
-        trackCtx.beginPath();
-        trackCtx.ellipse(wx, wy, 38, 20, Math.random() * Math.PI, 0, Math.PI * 2);
-        trackCtx.fill();
+        const wx = trackLeft + 40 + (w % 3) * (trackWidth * 0.32);
+        const wy = y5_start + 25 + (w / 14) * (y5_end - y5_start - 50);
+        baseCtx.fillStyle = 'rgba(42, 108, 102, 0.55)';
+        baseCtx.beginPath();
+        baseCtx.ellipse(wx, wy, 44, 24, (w * 0.7), 0, Math.PI * 2);
+        baseCtx.fill();
       }
 
-      // СЕКТОР 6: БРЕВЕНЧАТАЯ ГАТЬ (Z: +45 .. +58)
+      // СЕКТОР 6: БРЕВЕНЧАТАЯ ГАТЬ И ПОДХОД К МОСТУ (Z: +45 .. +58)
       const y6_start = y5_end;
       const y6_end = zToY(58);
-      trackCtx.fillStyle = '#2c1709';
-      fillOrganicRoad(y6_start, y6_end, trackCtx.fillStyle);
+      const bridgeApproachGrad = baseCtx.createLinearGradient(0, y6_start - 15, 0, y6_end);
+      bridgeApproachGrad.addColorStop(0, '#6e4c30');
+      bridgeApproachGrad.addColorStop(0.5, '#8c623e');
+      bridgeApproachGrad.addColorStop(1, '#948678');
+      fillCozyRoad(y6_start, y6_end, bridgeApproachGrad, phImages.wood, 0.32, 'overlay');
 
-      // СЕКТОР 7: СНЕЖНЫЙ ПЕРЕВАЛ "СЕВЕР" (Z: +58 .. +88)
+      // СЕКТОР 7: СОЛНЕЧНЫЙ СНЕЖНЫЙ ПЕРЕВАЛ (Z: +58 .. +88)
       const y7_start = y6_end;
       const y7_end = zToY(88);
-      const snowGrad = trackCtx.createLinearGradient(0, y7_start - 35, 0, y7_end);
-      snowGrad.addColorStop(0, '#2c1709');
-      snowGrad.addColorStop(0.2, '#7a8c9e');
-      snowGrad.addColorStop(0.5, '#d3e1ec');
-      snowGrad.addColorStop(0.8, '#f3f6fa');
+      const snowGrad = baseCtx.createLinearGradient(0, y7_start - 25, 0, y7_end);
+      snowGrad.addColorStop(0, '#948678');
+      snowGrad.addColorStop(0.18, '#b8cad8');
+      snowGrad.addColorStop(0.45, '#e6eff7');
+      snowGrad.addColorStop(0.8, '#f5f9fd');
       snowGrad.addColorStop(1, '#ffffff');
-      fillOrganicRoad(y7_start, y7_end, snowGrad);
+      fillCozyRoad(y7_start, y7_end, snowGrad, phImages.snow, 0.38, 'soft-light');
+
+      // Собираем итоговый холст: база + накопленные следы шин и разливы воды
+      trackCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+      trackCtx.drawImage(baseCanvas, 0, 0);
+      trackCtx.drawImage(rutLayerCanvas, 0, 0);
     }
     initPolygonTextures();
 
     const terrainTexture = new THREE.CanvasTexture(trackCanvas);
     terrainTexture.anisotropy = 8;
 
-    // --- 3. РЕЛЬЕФ ПОЛИГОНА (PLANE GEOMETRY 80x180м) ---
-    const SEGS_X = 90;
-    const SEGS_Z = 180;
+    // Асинхронная подгрузка настоящих кози-текстур Poly Haven из папки textures/
+    function loadCozyPolyHavenTextures() {
+      const assets = [
+        { key: 'grass',    url: 'textures/aerial_grass_rock.jpg' },
+        { key: 'concrete', url: 'textures/concrete_floor_painted.jpg' },
+        { key: 'forest',   url: 'textures/forrest_ground_01.jpg' },
+        { key: 'sand',     url: 'textures/coast_sand_01.jpg' },
+        { key: 'mud',      url: 'textures/brown_mud_02.jpg' },
+        { key: 'wood',     url: 'textures/fine_grained_wood.jpg' },
+        { key: 'bark',     url: 'textures/bark_willow_02.jpg' },
+        { key: 'snow',     url: 'textures/snow_02.jpg' }
+      ];
+      assets.forEach(a => {
+        const img = new Image();
+        img.onload = () => {
+          phImages[a.key] = img;
+          initPolygonTextures();
+          terrainTexture.needsUpdate = true;
+
+          // Применяем текстуру дерева и коры Poly Haven к брёвнам моста, лесовозу и соснам
+          if (a.key === 'wood' && typeof matWood !== 'undefined') {
+            const wTex = new THREE.Texture(img);
+            wTex.wrapS = wTex.wrapT = THREE.RepeatWrapping;
+            wTex.repeat.set(2, 1);
+            wTex.needsUpdate = true;
+            matWood.map = wTex;
+            matWood.color.setHex(0xd8a477);
+            matWood.needsUpdate = true;
+          }
+          if (a.key === 'bark') {
+            const bTex = new THREE.Texture(img);
+            bTex.wrapS = bTex.wrapT = THREE.RepeatWrapping;
+            bTex.repeat.set(1, 2);
+            bTex.needsUpdate = true;
+            if (typeof trunkMat !== 'undefined') {
+              trunkMat.map = bTex;
+              trunkMat.color.setHex(0x8c6244);
+              trunkMat.needsUpdate = true;
+            }
+            if (typeof postMat !== 'undefined') {
+              postMat.map = bTex;
+              postMat.color.setHex(0x9a6b48);
+              postMat.needsUpdate = true;
+            }
+            if (typeof cpPostMat !== 'undefined') {
+              cpPostMat.map = bTex;
+              cpPostMat.color.setHex(0x8c6244);
+              cpPostMat.needsUpdate = true;
+            }
+          }
+        };
+        img.src = a.url;
+      });
+    }
+    loadCozyPolyHavenTextures();
+
+    // --- 3. ГЛАДКИЙ РЕЛЬЕФ БЕЗ СТУПЕНЕК (SEGS 128x256, C1-SMOOTH, FLATSHADING: FALSE) ---
+    const SEGS_X = 128;
+    const SEGS_Z = 256;
     const terrainGeo = new THREE.PlaneGeometry(MAP_WIDTH, MAP_LENGTH, SEGS_X, SEGS_Z);
     terrainGeo.rotateX(-Math.PI / 2);
 
@@ -824,53 +924,76 @@
     const originalHeights = new Float32Array(vertexCount);
     const mudDepths = new Float32Array(vertexCount);
 
+    // Плавная колоколообразная функция перехода между секторами (0 резких ступеней!)
+    function smoothBand(z, zMin, zMax, fade = 5.5) {
+      if (z <= zMin - fade || z >= zMax + fade) return 0;
+      if (z < zMin + fade) {
+        const t = THREE.MathUtils.clamp((z - (zMin - fade)) / (2 * fade), 0, 1);
+        return 0.5 - 0.5 * Math.cos(t * Math.PI);
+      }
+      if (z > zMax - fade) {
+        const t = THREE.MathUtils.clamp(((zMax + fade) - z) / (2 * fade), 0, 1);
+        return 0.5 - 0.5 * Math.cos(t * Math.PI);
+      }
+      return 1.0;
+    }
+
     for (let i = 0; i < vertexCount; i++) {
       const vx = posAttr.getX(i);
       const vz = posAttr.getZ(i);
 
       let h = 0;
-      let mud = 0;
+      let mud = 0.05;
 
-      // Боковые защитные холмы полигона по краям (слева и справа)
+      // Плавные боковые холмы долины (слева и справа за пределами трассы)
       const edgeDist = Math.abs(vx);
-      if (edgeDist > 16) {
-        h += Math.pow((edgeDist - 16) / 24, 1.8) * 6.5;
+      if (edgeDist > 15.5) {
+        h += Math.pow((edgeDist - 15.5) / 24.5, 1.85) * 6.2;
       }
 
-      // СЕКТОР 1 (Бетон): идеально ровно
-      if (vz < -60) {
-        h += 0;
+      // Сектор 2 (Лес, Z: -60 .. -35): мягкие покатые холмики
+      const wForest = smoothBand(vz, -58, -35, 5.0);
+      if (wForest > 0) {
+        h += wForest * (Math.sin(vx * 0.22) * Math.cos(vz * 0.16) * 0.38);
+        mud = Math.max(mud, wForest * 0.25);
       }
-      // СЕКТОР 2 (Лес): легкие волны
-      else if (vz >= -60 && vz < -35) {
-        h += Math.sin(vx * 0.2) * Math.cos(vz * 0.15) * 0.6;
+
+      // Сектор 3 (Песчаный карьер, Z: -35 .. -10): плавные барханы
+      const wSand = smoothBand(vz, -34, -10, 5.0);
+      if (wSand > 0) {
+        h += wSand * (Math.sin(vz * 0.28 + vx * 0.08) * 0.45);
+        mud = Math.max(mud, wSand * 0.45);
       }
-      // СЕКТОР 3 (Песчаный карьер): дюны
-      else if (vz >= -35 && vz < -10) {
-        h += Math.sin(vz * 0.3) * 0.8;
+
+      // Сектор 4 (Вязкая глина, Z: -10 .. +18): плавное корытообразное углубление с мягкой колеёй
+      const wClay = smoothBand(vz, -9, 18, 5.5);
+      if (wClay > 0) {
+        const rutProfile = Math.exp(-Math.pow(Math.abs(vx) - 1.3, 2) * 1.2) * 0.18;
+        h -= wClay * (0.28 + rutProfile);
+        mud = Math.max(mud, wClay * 0.72);
       }
-      // СЕКТОР 4 (Глина и колея): углубление
-      else if (vz >= -10 && vz < 18) {
-        h -= 0.6;
-        mud = 0.45;
+
+      // Сектор 5 (Торфяное болото с водой, Z: +18 .. +45): плавная чаша (БЕЗ вертикального обрыва!)
+      const wSwamp = smoothBand(vz, 19, 43.5, 5.5);
+      if (wSwamp > 0) {
+        const centerFactor = Math.exp(-Math.pow(vx / 14, 2));
+        h -= wSwamp * centerFactor * 0.68;
+        mud = Math.max(mud, wSwamp * 0.98);
       }
-      // СЕКТОР 5 (Болото с водой): глубокая топь
-      else if (vz >= 18 && vz < 45) {
-        h -= 2.2;
-        mud = 0.95;
+
+      // Сектор 6 (Ложбина под бревенчатым мостом, Z: +46 .. +56): плавный ручей под мостом
+      const wRavine = smoothBand(vz, 46.5, 55.5, 3.2);
+      if (wRavine > 0) {
+        h -= wRavine * 1.15;
+        mud = Math.max(mud, wRavine * 0.85);
       }
-      // СЕКТОР 6 (Овраг под мостом): глубокий ров
-      else if (vz >= 45 && vz < 58) {
-        const ravineDist = Math.abs(vz - 51);
-        if (ravineDist < 6) {
-          h -= (1 - ravineDist / 6) * 3.2;
-          mud = 0.8;
-        }
-      }
-      // СЕКТОР 7 (Снежный перевал): высокий крутой подъем в гору!
-      else if (vz >= 58) {
-        const climb = (vz - 58) / 30; // 0..1
-        h += climb * 7.5; // Подъем на 7.5 метров в гору!
+
+      // Сектор 7 (Снежный перевал, Z: +58 .. +90): плавный красивый подъём в гору
+      if (vz > 55) {
+        const tClimb = THREE.MathUtils.clamp((vz - 55) / 33, 0, 1);
+        const smoothClimb = tClimb * tClimb * (3 - 2 * tClimb);
+        h += smoothClimb * 6.8;
+        mud = Math.max(mud, tClimb * 0.65);
       }
 
       posAttr.setY(i, h);
@@ -879,32 +1002,146 @@
     }
     terrainGeo.computeVertexNormals();
 
+    // ВАЖНО: flatShading: false убирает «криповые» угловатые ступеньки и делает ландшафт бархатным!
     const terrainMat = new THREE.MeshStandardMaterial({
       map: terrainTexture,
-      roughness: 0.65,
-      metalness: 0.05,
-      flatShading: true
+      roughness: 0.72,
+      metalness: 0.04,
+      flatShading: false
     });
     const terrainMesh = new THREE.Mesh(terrainGeo, terrainMat);
     terrainMesh.receiveShadow = true;
     scene.add(terrainMesh);
 
-    // Водное зеркало в болоте (Сектор 5)
-    const waterGeo = new THREE.PlaneGeometry(32, 28);
+    // --- 3B. ДИНАМИЧЕСКАЯ 3D-ВОДА В БОЛОТЕ (СМЕШИВАЕТСЯ С ГРЯЗЬЮ И ВЫПЛЕСКИВАЕТСЯ ИЗ КОЛЕИ) ---
+    const WATER_SEGS_X = 48;
+    const WATER_SEGS_Z = 48;
+    const WATER_W = 30;
+    const WATER_L = 29;
+    const waterCenterZ = 31.2;
+    const waterBaseY = -0.26;
+
+    const waterGeo = new THREE.PlaneGeometry(WATER_W, WATER_L, WATER_SEGS_X, WATER_SEGS_Z);
     waterGeo.rotateX(-Math.PI / 2);
+
+    const wPosAttr = waterGeo.attributes.position;
+    const wCount = wPosAttr.count;
+    const waterColors = new Float32Array(wCount * 3);
+    const waterMudMix = new Float32Array(wCount); // 0 = чистая бирюзовая вода, 1 = взбаламученная с грязью и пеной
+    const waterWaveVel = new Float32Array(wCount);
+    const waterWaveOffset = new Float32Array(wCount);
+
+    const colCleanWater = new THREE.Color(0x2a7b76); // Уютный бирюзово-озерный цвет Bruno Simon
+    const colMuddyWater = new THREE.Color(0x6e4726); // Смешанная с глиной мутная вода в колее
+    const colFoamWater  = new THREE.Color(0xdcf2ee); // Пена на гребне выплеска
+
+    for (let i = 0; i < wCount; i++) {
+      waterColors[i * 3]     = colCleanWater.r;
+      waterColors[i * 3 + 1] = colCleanWater.g;
+      waterColors[i * 3 + 2] = colCleanWater.b;
+    }
+    waterGeo.setAttribute('color', new THREE.BufferAttribute(waterColors, 3));
+
     const waterMat = new THREE.MeshStandardMaterial({
-      color: 0x161a14,
-      roughness: 0.05,
-      metalness: 0.88,
+      vertexColors: true,
+      roughness: 0.12,
+      metalness: 0.65,
       transparent: true,
-      opacity: 0.85
+      opacity: 0.84
     });
     const waterMesh = new THREE.Mesh(waterGeo, waterMat);
-    waterMesh.position.set(0, -0.95, 31.5);
+    waterMesh.position.set(0, waterBaseY, waterCenterZ);
     waterMesh.receiveShadow = true;
     scene.add(waterMesh);
 
-    // --- ФУНКЦИИ ВЫСОТЫ И ОПРЕДЕЛЕНИЯ СЕКТОРА ---
+    // Ручей под бревенчатым мостом в Секторе 6
+    const streamGeo = new THREE.PlaneGeometry(34, 10);
+    streamGeo.rotateX(-Math.PI / 2);
+    const streamMesh = new THREE.Mesh(streamGeo, new THREE.MeshStandardMaterial({
+      color: 0x2e8580,
+      roughness: 0.14,
+      metalness: 0.6,
+      transparent: true,
+      opacity: 0.82
+    }));
+    streamMesh.position.set(0, -0.78, 51.0);
+    scene.add(streamMesh);
+
+    // Возмущение 3D-воды колёсами: вода расступается в колее, смешивается с грязью и выплёскивается валиком!
+    let waterDirty = false;
+    function displaceAndMixWater(worldX, worldZ, speedMag, slip) {
+      if (worldZ < waterCenterZ - WATER_L / 2 - 1 || worldZ > waterCenterZ + WATER_L / 2 + 1) return;
+      if (Math.abs(worldX) > WATER_W / 2 + 1) return;
+
+      const localX = worldX;
+      const localZ = worldZ - waterCenterZ;
+      const gx = Math.round(((localX + WATER_W / 2) / WATER_W) * WATER_SEGS_X);
+      const gz = Math.round(((localZ + WATER_L / 2) / WATER_L) * WATER_SEGS_Z);
+
+      const rad = 3;
+      const intensity = Math.min(1.5, 0.35 + speedMag * 0.06 + slip * 0.75);
+
+      for (let dz = -rad; dz <= rad; dz++) {
+        for (let dx = -rad; dx <= rad; dx++) {
+          const cx = gx + dx;
+          const cz = gz + dz;
+          if (cx < 0 || cx > WATER_SEGS_X || cz < 0 || cz > WATER_SEGS_Z) continue;
+          const idx = cz * (WATER_SEGS_X + 1) + cx;
+          const vx = wPosAttr.getX(idx);
+          const vz = wPosAttr.getZ(idx);
+          const d = Math.hypot(vx - localX, vz - localZ);
+
+          if (d < 0.75) {
+            // Вдавливание воды под шиной + взбаламучивание грязи со дна
+            waterWaveOffset[idx] = Math.max(-0.22, waterWaveOffset[idx] - 0.06 * intensity);
+            waterMudMix[idx] = Math.min(1.0, waterMudMix[idx] + 0.35 * intensity);
+            waterDirty = true;
+          } else if (d < 1.85) {
+            // Выплёскивание волны по краям колеи наружу
+            const waveCrest = (1 - (d - 0.75) / 1.1) * 0.08 * intensity;
+            waterWaveOffset[idx] = Math.min(0.24, waterWaveOffset[idx] + waveCrest);
+            waterMudMix[idx] = Math.min(1.0, waterMudMix[idx] + 0.22 * intensity);
+            waterDirty = true;
+          }
+        }
+      }
+    }
+
+    function updateDynamicWater(delta, elapsedTime) {
+      const wColors = waterGeo.attributes.color.array;
+      const tempCol = new THREE.Color();
+
+      for (let i = 0; i < wCount; i++) {
+        const vx = wPosAttr.getX(i);
+        const vz = wPosAttr.getZ(i);
+
+        // Пружинное возвращение выплеснутой волны + мягкая рябь на воде
+        waterWaveVel[i] += (-waterWaveOffset[i] * 8.5) * delta;
+        waterWaveVel[i] *= Math.pow(0.92, delta * 60);
+        waterWaveOffset[i] += waterWaveVel[i] * delta;
+
+        const ripple = Math.sin(vx * 0.9 + elapsedTime * 2.4) * Math.cos(vz * 0.9 + elapsedTime * 2.0) * 0.025;
+        wPosAttr.setY(i, waterWaveOffset[i] + ripple);
+
+        // Постепенное оседание мути и смешивание цветов (бирюзовая вода <-> грязная жижа <-> белая пена на гребне)
+        if (waterMudMix[i] > 0.002) {
+          waterMudMix[i] = Math.max(0, waterMudMix[i] - delta * 0.045);
+        }
+        const mix = waterMudMix[i];
+        tempCol.copy(colCleanWater).lerp(colMuddyWater, Math.min(1, mix * 1.15));
+        if (waterWaveOffset[i] > 0.05) {
+          tempCol.lerp(colFoamWater, Math.min(0.65, (waterWaveOffset[i] - 0.05) * 4.5));
+        }
+        wColors[i * 3]     = tempCol.r;
+        wColors[i * 3 + 1] = tempCol.g;
+        wColors[i * 3 + 2] = tempCol.b;
+      }
+      wPosAttr.needsUpdate = true;
+      waterGeo.attributes.color.needsUpdate = true;
+      waterGeo.computeVertexNormals();
+    }
+
+    // --- ФУНКЦИИ ВЫСОТЫ (С ЧЕСТНОЙ КОЛЛИЗИЕЙ БРЕВЕНЧАТОГО МОСТА!) ---
     function worldToGrid(x, z) {
       const gx = Math.round(((x + MAP_WIDTH / 2) / MAP_WIDTH) * SEGS_X);
       const gz = Math.round(((z + MAP_LENGTH / 2) / MAP_LENGTH) * SEGS_Z);
@@ -914,13 +1151,35 @@
       };
     }
 
-    function getTerrainHeight(x, z) {
+    // Высота самой сетки грунта (для постановки деревьев, камней и опор моста)
+    function getGroundMeshHeight(x, z) {
       const { gx, gz } = worldToGrid(x, z);
       const idx = gz * (SEGS_X + 1) + gx;
       return posAttr.getY(idx) || 0;
     }
 
+    // Физическая высота поверхности под колёсами (учитывает настил бревенчатого моста в Секторе 6!)
+    function getTerrainHeight(x, z) {
+      const groundH = getGroundMeshHeight(x, z);
+
+      // Если автомобиль едет по бревенчатому мосту (Z: 44.5 .. 57.5, |X| < 3.95м):
+      if (z >= 44.5 && z <= 57.5 && Math.abs(x) < 3.95) {
+        let bridgeWeight = 1.0;
+        if (z < 46.0) bridgeWeight = (z - 44.5) / 1.5;
+        else if (z > 56.0) bridgeWeight = (57.5 - z) / 1.5;
+        bridgeWeight = THREE.MathUtils.clamp(bridgeWeight, 0, 1);
+
+        // Рельеф отдельных круглых брёвен настила моста
+        const logRipple = Math.cos((z - 45.5) * (Math.PI * 2 / 0.88)) * 0.035;
+        const deckH = 0.16 + logRipple;
+        return Math.max(groundH, THREE.MathUtils.lerp(groundH, deckH, bridgeWeight));
+      }
+
+      return groundH;
+    }
+
     function getMudFactor(x, z) {
+      if (z >= 45.0 && z <= 57.0 && Math.abs(x) < 3.95) return 0.02; // На брёвнах моста грязи нет
       const { gx, gz } = worldToGrid(x, z);
       const idx = gz * (SEGS_X + 1) + gx;
       return mudDepths[idx] || 0;
@@ -928,34 +1187,32 @@
 
     function getSectorData(x, z) {
       if (z < -60) {
-        return { type: 'concrete', drag: 0.85, slipMult: 0.3, label: 'СЕКТОР 1: БЕТОН / СТАРТ', color: '#2ec4b6' };
+        return { type: 'concrete', drag: 0.85, slipMult: 0.25, label: 'СЕКТОР 1: БЕТОН / СТАРТ', color: '#2ec4b6' };
       } else if (z < -35) {
-        return { type: 'forest', drag: 1.1, slipMult: 0.7, label: 'СЕКТОР 2: ЛЕСНАЯ ГРУНТОВКА', color: '#4ade80' };
+        return { type: 'forest', drag: 1.05, slipMult: 0.65, label: 'СЕКТОР 2: ЛЕСНАЯ ГРУНТОВКА', color: '#4ade80' };
       } else if (z < -10) {
-        return { type: 'sand', drag: 2.2, slipMult: 1.6, label: 'СЕКТОР 3: СЫПУЧИЙ ПЕСОК (ТЕСТ AWD)', color: '#fbbf24' };
+        return { type: 'sand', drag: 1.95, slipMult: 1.45, label: 'СЕКТОР 3: СЫПУЧИЙ ПЕСОК (ТЕСТ AWD)', color: '#fbbf24' };
       } else if (z < 18) {
-        return { type: 'clay', drag: 2.8, slipMult: 1.4, label: 'СЕКТОР 4: ВЯЗКАЯ ГЛИНА И КОЛЕЯ', color: '#f97316' };
+        return { type: 'clay', drag: 2.45, slipMult: 1.35, label: 'СЕКТОР 4: ВЯЗКАЯ ГЛИНА И КОЛЕЯ', color: '#f97316' };
       } else if (z < 45) {
-        return { type: 'swamp', drag: 4.8, slipMult: 2.3, label: 'СЕКТОР 5: ГИБЛОЕ БОЛОТО (ТОПЬ)', color: '#ef4444' };
+        return { type: 'swamp', drag: 3.85, slipMult: 1.95, label: 'СЕКТОР 5: ТОРФЯНОЕ БОЛОТО И ВОДА', color: '#ef4444' };
       } else if (z < 58) {
-        return { type: 'bridge', drag: 1.2, slipMult: 0.8, label: 'СЕКТОР 6: БРЕВЕНЧАТЫЙ МОСТ (ГАТЬ)', color: '#a855f7' };
+        return { type: 'bridge', drag: 1.05, slipMult: 0.55, label: 'СЕКТОР 6: БРЕВЕНЧАТЫЙ МОСТ (ГАТЬ)', color: '#a855f7' };
       } else {
-        return { type: 'snow', drag: 2.1, slipMult: 1.7, label: 'СЕКТОР 7: СНЕЖНЫЙ ПЕРЕВАЛ (СУГРОБЫ)', color: '#38bdf8' };
+        return { type: 'snow', drag: 1.95, slipMult: 1.55, label: 'СЕКТОР 7: СНЕЖНЫЙ ПЕРЕВАЛ (СУГРОБЫ)', color: '#38bdf8' };
       }
     }
 
     // --- 4. 3D ДОРОЖНЫЕ ЩИТЫ С ТАБЛИЧКАМИ СЕКТОРОВ НА ОБОЧИНАХ ---
     const signBoardMat = new THREE.MeshStandardMaterial({ color: 0x241d17, roughness: 0.8 });
-    const postMat = new THREE.MeshStandardMaterial({ color: 0x3d3024, roughness: 0.9 });
+    const postMat = new THREE.MeshStandardMaterial({ color: 0x5c3e26, roughness: 0.85 });
 
     function createRoadSign(z, titleText, descText, xOffset = -15) {
-      const y = getTerrainHeight(xOffset, z);
+      const y = getGroundMeshHeight(xOffset, z);
       const signGroup = new THREE.Group();
       signGroup.position.set(xOffset, y, z);
-      // Развернут строго к водителю (навстречу движению +Z) и немного к камере
       signGroup.rotation.y = Math.PI - 0.25;
 
-      // Два мощных деревянных столба
       const postGeo = new THREE.CylinderGeometry(0.14, 0.14, 4.0, 8);
       const post1 = new THREE.Mesh(postGeo, postMat);
       post1.position.set(-2.0, 2.0, 0);
@@ -967,38 +1224,32 @@
       post2.castShadow = true;
       signGroup.add(post2);
 
-      // Текстурный щит с четкими надписями
       const signCanvas = document.createElement('canvas');
       signCanvas.width = 512;
       signCanvas.height = 256;
       const sCtx = signCanvas.getContext('2d');
 
-      // Фон щита
-      sCtx.fillStyle = '#14110e';
+      sCtx.fillStyle = '#1b1612';
       sCtx.fillRect(0, 0, 512, 256);
       sCtx.strokeStyle = '#ff9f1c';
       sCtx.lineWidth = 12;
       sCtx.strokeRect(6, 6, 500, 244);
 
-      // Заголовок
       sCtx.fillStyle = '#ff9f1c';
       sCtx.font = 'bold 36px "Segoe UI", Arial, sans-serif';
       sCtx.textAlign = 'center';
       sCtx.fillText(titleText, 256, 75);
 
-      // Описание
       sCtx.fillStyle = '#ffffff';
       sCtx.font = 'bold 25px "Segoe UI", Arial, sans-serif';
       sCtx.fillText(descText, 256, 140);
 
-      // Стрелка въезда
       sCtx.fillStyle = '#2ec4b6';
       sCtx.font = 'bold 34px monospace';
       sCtx.fillText('▲ ▲ ▲  ВЪЕЗД В СЕКТОР  ▲ ▲ ▲', 256, 205);
 
       const signTex = new THREE.CanvasTexture(signCanvas);
       const boardGeo = new THREE.BoxGeometry(4.8, 2.4, 0.18);
-      // Материал с легким самосвечением для идеальной читаемости под любым углом солнца
       const boardMat = new THREE.MeshStandardMaterial({
         map: signTex,
         roughness: 0.4,
@@ -1014,7 +1265,6 @@
       scene.add(signGroup);
     }
 
-    // Устанавливаем дорожные щиты перед каждым сектором
     createRoadSign(-85, 'СЕКТОР 1: БЕТОН', 'СТАРТОВАЯ ПРЯМАЯ');
     createRoadSign(-58, 'СЕКТОР 2: ЛЕС', 'ГРУНТ И КАМНИ');
     createRoadSign(-33, 'СЕКТОР 3: ПЕСОК', 'СЫПУЧИЙ КАРЬЕР (AWD)');
@@ -1023,72 +1273,111 @@
     createRoadSign(45,  'СЕКТОР 6: МОСТ', 'УЗКАЯ БРЕВЕНЧАТАЯ ГАТЬ');
     createRoadSign(60,  'СЕКТОР 7: СНЕГ', 'СНЕЖНЫЙ ПЕРЕВАЛ');
 
-    // --- 5. ДИНАМИЧЕСКИЕ СЛЕДЫ КОЛЕС ПО БИОМАМ ---
+    // --- 5. ГЛУБОКАЯ 3D-КОЛЕЯ ЗА ГРУЗОВИКОМ + СМЕШИВАНИЕ И ВЫЛИВАНИЕ ВОДЫ ---
     let tracksUpdated = false;
 
-    function drawTireTrack(worldX, worldZ, heading, isSlipping, sector) {
+    function drawTireTrack(worldX, worldZ, heading, isSlipping, sector, tireWetness = 0) {
+      if (sector.type === 'bridge' && Math.abs(worldX) < 3.95) return; // На брёвнах моста грунтовая колея не роется
+
       const cx = ((worldX + MAP_WIDTH / 2) / MAP_WIDTH) * CANVAS_W;
       const cy = ((worldZ + MAP_LENGTH / 2) / MAP_LENGTH) * CANVAS_H;
 
       if (cx < 10 || cx > CANVAS_W - 10 || cy < 10 || cy > CANVAS_H - 10) return;
 
-      trackCtx.save();
-      trackCtx.translate(cx, cy);
-      trackCtx.rotate(-heading);
+      [rutLayerCtx, trackCtx].forEach(ctx => {
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(-heading);
 
-      let alpha = 0.32 + (isSlipping ? 0.35 : 0.05);
-      alpha = Math.min(0.95, alpha);
+        const wPx = 20;
+        const hPx = 18;
+        const isWetMud = (sector.type === 'swamp' || sector.type === 'clay' || tireWetness > 0.15);
 
-      // Цвет следа в зависимости от сектора
-      if (sector.type === 'snow') {
-        trackCtx.fillStyle = `rgba(40, 52, 68, ${0.5 + alpha * 0.45})`; // Темная колея на снегу
-      } else if (sector.type === 'sand') {
-        trackCtx.fillStyle = `rgba(135, 90, 50, ${0.4 + alpha * 0.4})`;
-      } else if (sector.type === 'swamp') {
-        trackCtx.fillStyle = `rgba(16, 9, 4, ${0.6 + alpha * 0.35})`;
-      } else if (sector.type === 'concrete') {
-        trackCtx.fillStyle = `rgba(30, 30, 30, ${0.2 + alpha * 0.25})`; // Черные полосы резины
-      } else {
-        trackCtx.fillStyle = `rgba(40, 30, 20, ${0.35 + alpha * 0.4})`;
-      }
-
-      // Протектор «ёлочка»
-      const wPx = 18;
-      const hPx = 14;
-      trackCtx.fillRect(-wPx / 2, -hPx / 2, wPx, hPx);
-
-      trackCtx.strokeStyle = sector.type === 'snow' ? 'rgba(25, 35, 48, 0.75)' : 'rgba(10, 6, 3, 0.8)';
-      trackCtx.lineWidth = 3;
-      trackCtx.beginPath();
-      trackCtx.moveTo(-wPx / 2, -hPx / 3);
-      trackCtx.lineTo(0, 0);
-      trackCtx.lineTo(-wPx / 2, hPx / 3);
-      trackCtx.moveTo(wPx / 2, -hPx / 3);
-      trackCtx.lineTo(0, 0);
-      trackCtx.lineTo(wPx / 2, hPx / 3);
-      trackCtx.stroke();
-
-      // Брызги
-      if (isSlipping) {
-        trackCtx.fillStyle = sector.type === 'snow' ? 'rgba(240, 245, 255, 0.85)' : 'rgba(25, 15, 8, 0.7)';
-        for (let s = 0; s < 4; s++) {
-          const sx = (Math.random() - 0.5) * 36;
-          const sy = (Math.random() - 0.5) * 28;
-          trackCtx.beginPath();
-          trackCtx.arc(sx, sy, 2 + Math.random() * 4, 0, Math.PI * 2);
-          trackCtx.fill();
+        // 1. Внешние выдавленные валики грязи / снега / воды по краям колеи (эффект объёмной траншеи)
+        if (sector.type !== 'concrete') {
+          if (sector.type === 'snow') {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.78)';
+          } else if (sector.type === 'sand') {
+            ctx.fillStyle = 'rgba(248, 210, 140, 0.55)';
+          } else if (isWetMud) {
+            ctx.fillStyle = 'rgba(125, 82, 46, 0.62)';
+          } else {
+            ctx.fillStyle = 'rgba(150, 105, 65, 0.45)';
+          }
+          ctx.fillRect(-wPx * 0.76, -hPx * 0.55, 5, hPx * 1.1);
+          ctx.fillRect(wPx * 0.76 - 5, -hPx * 0.55, 5, hPx * 1.1);
         }
-      }
 
-      trackCtx.restore();
+        // 2. Дно глубокой продавленной колеи
+        if (sector.type === 'snow') {
+          ctx.fillStyle = 'rgba(95, 118, 142, 0.72)';
+        } else if (sector.type === 'sand') {
+          ctx.fillStyle = 'rgba(175, 118, 56, 0.68)';
+        } else if (sector.type === 'swamp') {
+          ctx.fillStyle = 'rgba(42, 28, 16, 0.82)';
+        } else if (sector.type === 'clay') {
+          ctx.fillStyle = 'rgba(68, 38, 18, 0.78)';
+        } else if (sector.type === 'concrete') {
+          ctx.fillStyle = tireWetness > 0.1 ? 'rgba(55, 78, 76, 0.38)' : 'rgba(50, 52, 56, 0.22)';
+        } else {
+          ctx.fillStyle = 'rgba(92, 60, 34, 0.65)';
+        }
+        ctx.fillRect(-wPx / 2, -hPx / 2, wPx, hPx);
+
+        // 3. Смешивание воды с грязью внутри колеи и перелив (выливание) через края валиков!
+        if (isWetMud) {
+          // Бирюзово-бурая вода заполняет продавленную колею и смешивается с глиной
+          const waterGrad = ctx.createLinearGradient(-wPx * 0.5, 0, wPx * 0.5, 0);
+          waterGrad.addColorStop(0, 'rgba(68, 44, 24, 0.75)');
+          waterGrad.addColorStop(0.5, 'rgba(44, 118, 112, 0.78)');
+          waterGrad.addColorStop(1, 'rgba(68, 44, 24, 0.75)');
+          ctx.fillStyle = waterGrad;
+          ctx.fillRect(-wPx * 0.42, -hPx * 0.48, wPx * 0.84, hPx * 0.96);
+
+          // Ручейки и языки выплеснутой воды, выливающейся из колеи в стороны при движении
+          if (isSlipping || sector.type === 'swamp' || tireWetness > 0.25) {
+            for (let side = -1; side <= 1; side += 2) {
+              const spillDist = 11 + Math.random() * 14;
+              ctx.fillStyle = Math.random() > 0.4 ? 'rgba(46, 124, 118, 0.52)' : 'rgba(92, 60, 34, 0.55)';
+              ctx.beginPath();
+              ctx.ellipse(side * spillDist, (Math.random() - 0.5) * 8, 5 + Math.random() * 5, 3 + Math.random() * 3, side * 0.4, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            // Белая пена от перемешивания воды и грязи протектором
+            ctx.fillStyle = 'rgba(218, 242, 238, 0.48)';
+            ctx.beginPath();
+            ctx.arc((Math.random() - 0.5) * 8, (Math.random() - 0.5) * 6, 2.5 + Math.random() * 2.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+
+        // 4. Чёткий отпечаток внедорожного протектора «ёлочка»
+        ctx.strokeStyle = sector.type === 'snow' ? 'rgba(68, 88, 112, 0.75)' : 'rgba(32, 18, 9, 0.78)';
+        ctx.lineWidth = 2.8;
+        ctx.beginPath();
+        ctx.moveTo(-wPx * 0.46, -hPx * 0.32);
+        ctx.lineTo(0, 0);
+        ctx.lineTo(-wPx * 0.46, hPx * 0.32);
+        ctx.moveTo(wPx * 0.46, -hPx * 0.32);
+        ctx.lineTo(0, 0);
+        ctx.lineTo(wPx * 0.46, hPx * 0.32);
+        ctx.stroke();
+
+        ctx.restore();
+      });
+
       tracksUpdated = true;
     }
 
-    // 3D вдавливание грязи/снега в сетку
-    function deformGround(worldX, worldZ, power, radius = 0.9) {
+    // Честное 3D-продавливание глубокой колеи под колесом + выдавливание боковых валиков грунта по краям!
+    function deformGround(worldX, worldZ, power, radius = 0.95) {
+      if (worldZ >= 44.5 && worldZ <= 57.5 && Math.abs(worldX) < 4.1) return false; // Не деформируем брёвна моста
+
       const { gx, gz } = worldToGrid(worldX, worldZ);
-      const radCells = 2;
+      const radCells = 3;
       let deformed = false;
+      const innerR = radius * 0.68;
+      const outerR = radius * 1.45;
 
       for (let dz = -radCells; dz <= radCells; dz++) {
         for (let dx = -radCells; dx <= radCells; dx++) {
@@ -1100,16 +1389,26 @@
           const vx = posAttr.getX(idx);
           const vz = posAttr.getZ(idx);
           const dist = Math.hypot(vx - worldX, vz - worldZ);
+          const mud = mudDepths[idx];
 
-          if (dist < radius) {
-            const mud = mudDepths[idx];
-            const isSnow = vz > 58;
-            if (mud > 0.08 || isSnow) {
-              const falloff = 1 - (dist / radius);
-              const drop = (0.015 + mud * 0.04) * power * falloff;
-              const curY = posAttr.getY(idx);
-              if (curY > originalHeights[idx] - 0.75) {
-                posAttr.setY(idx, curY - drop);
+          if (mud > 0.12 || vz > 56) {
+            const curY = posAttr.getY(idx);
+            const origY = originalHeights[idx];
+
+            if (dist < innerR) {
+              // Продавливаем траншею колеи вниз под колесом
+              const falloff = Math.cos((dist / innerR) * (Math.PI * 0.5));
+              const drop = (0.024 + mud * 0.055) * power * falloff;
+              if (curY > origY - 0.42) {
+                posAttr.setY(idx, Math.max(origY - 0.42, curY - drop));
+                deformed = true;
+              }
+            } else if (dist < outerR) {
+              // Выдавливаем боковой валик грязи/снега по краям шины вверх!
+              const bermT = Math.sin(((dist - innerR) / (outerR - innerR)) * Math.PI);
+              const lift = (0.010 + mud * 0.022) * power * bermT;
+              if (curY < origY + 0.16) {
+                posAttr.setY(idx, Math.min(origY + 0.16, curY + lift));
                 deformed = true;
               }
             }
@@ -1149,45 +1448,93 @@
     const matTailLight  = new THREE.MeshStandardMaterial({ color: 0xd90429, emissive: 0x8a0014, emissiveIntensity: 0.65, roughness: 0.2 });
     const matAmber      = new THREE.MeshStandardMaterial({ color: 0xffb703, emissive: 0xc47b00, emissiveIntensity: 0.55, roughness: 0.2 });
 
-    // Универсальный генератор стилизованного колеса
+    // Универсальный генератор детализированного 3D-колеса с грунтозацепами в стиле Bruno Simon
     function createWheelMesh(radius, width, rimRadius, hubStyle = 'truck') {
       const g = new THREE.Group();
+      const spinGroup = new THREE.Group();
+      g.add(spinGroup);
 
-      // Резиновая шина
-      const tireGeo = new THREE.CylinderGeometry(radius, radius, width, 18);
+      // Основная резиновая шина со скруглёнными плечами
+      const tireGeo = new THREE.CylinderGeometry(radius * 0.97, radius * 0.97, width, 24);
       tireGeo.rotateZ(Math.PI / 2);
       const tire = new THREE.Mesh(tireGeo, matRubber);
       tire.castShadow = true;
-      g.add(tire);
+      tire.receiveShadow = true;
+      spinGroup.add(tire);
 
-      // Обод / Диск
-      const rimGeo = new THREE.CylinderGeometry(rimRadius, rimRadius, width + 0.02, 14);
-      rimGeo.rotateZ(Math.PI / 2);
-      const rim = new THREE.Mesh(rimGeo, hubStyle === 'beadlock' ? matDarkMetal : (hubStyle === 'chrome_cap' ? matDarkMetal : matRimDark));
-      g.add(rim);
-
-      // Ступица / Колпак
-      if (hubStyle === 'chrome_cap') {
-        for (let s = -1; s <= 1; s += 2) {
-          const cap = new THREE.Mesh(new THREE.SphereGeometry(rimRadius * 0.72, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), matChrome);
-          cap.rotation.z = s * Math.PI / 2;
-          cap.position.x = s * (width * 0.51);
-          g.add(cap);
-        }
-      } else if (hubStyle === 'beadlock') {
-        const hub = new THREE.Mesh(new THREE.CylinderGeometry(rimRadius * 0.42, rimRadius * 0.42, width + 0.05, 10), matChrome);
-        hub.rotateZ(Math.PI / 2);
-        g.add(hub);
-        const ring = new THREE.Mesh(new THREE.TorusGeometry(rimRadius * 0.82, 0.03, 6, 16), matChrome);
-        ring.rotation.y = Math.PI / 2;
-        g.add(ring);
-      } else {
-        const hub = new THREE.Mesh(new THREE.CylinderGeometry(rimRadius * 0.48, rimRadius * 0.48, width + 0.06, 8), matChrome);
-        hub.rotateZ(Math.PI / 2);
-        g.add(hub);
+      // Боковые скруглённые кольца профиля шины (делают колесо пухлым и уютным, как у Bruno Simon)
+      for (let side = -1; side <= 1; side += 2) {
+        const shoulder = new THREE.Mesh(
+          new THREE.TorusGeometry(radius * 0.80, radius * 0.17, 10, 24),
+          matRubber
+        );
+        shoulder.rotation.y = Math.PI / 2;
+        shoulder.position.x = side * (width * 0.34);
+        spinGroup.add(shoulder);
       }
 
-      return { group: g, tireMesh: tire };
+      // 3D грунтозацепы (протектор «ёлочка» / Mud-Terrain) по окружности колеса
+      const lugCount = hubStyle === 'chrome_cap' ? 12 : 14;
+      const lugHeight = hubStyle === 'chrome_cap' ? radius * 0.045 : radius * 0.085;
+      const lugGeo = new THREE.BoxGeometry(width * 0.44, lugHeight, radius * 0.16);
+      for (let i = 0; i < lugCount; i++) {
+        const angle = (i / lugCount) * Math.PI * 2;
+        for (let side = -1; side <= 1; side += 2) {
+          const lug = new THREE.Mesh(lugGeo, matRubber);
+          const halfAngle = angle + (side > 0 ? 0.11 : 0);
+          lug.position.set(
+            side * (width * 0.24),
+            Math.cos(halfAngle) * (radius * 0.96),
+            Math.sin(halfAngle) * (radius * 0.96)
+          );
+          lug.rotation.x = -halfAngle;
+          lug.rotation.y = side * 0.28; // Скос грунтозацепов «ёлочкой»
+          lug.castShadow = true;
+          spinGroup.add(lug);
+        }
+      }
+
+      // Колёсный диск (обод) в тёплом фирменном цвете
+      const rimMat = hubStyle === 'truck'
+        ? new THREE.MeshStandardMaterial({ color: 0xfaf3e0, roughness: 0.35, metalness: 0.25 })
+        : (hubStyle === 'beadlock' ? matDarkMetal : matRimDark);
+      const rimGeo = new THREE.CylinderGeometry(rimRadius, rimRadius, width + 0.03, 18);
+      rimGeo.rotateZ(Math.PI / 2);
+      const rim = new THREE.Mesh(rimGeo, rimMat);
+      spinGroup.add(rim);
+
+      // Ступица, бедлок и колёсные гайки
+      if (hubStyle === 'chrome_cap') {
+        for (let s = -1; s <= 1; s += 2) {
+          const cap = new THREE.Mesh(new THREE.SphereGeometry(rimRadius * 0.72, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2), matChrome);
+          cap.rotation.z = s * Math.PI / 2;
+          cap.position.x = s * (width * 0.51);
+          spinGroup.add(cap);
+        }
+      } else {
+        const hubMat = hubStyle === 'truck'
+          ? new THREE.MeshStandardMaterial({ color: 0xe76f51, roughness: 0.32, metalness: 0.2 })
+          : matChrome;
+        const hub = new THREE.Mesh(new THREE.CylinderGeometry(rimRadius * 0.44, rimRadius * 0.44, width + 0.07, 12), hubMat);
+        hub.rotateZ(Math.PI / 2);
+        spinGroup.add(hub);
+
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(rimRadius * 0.82, 0.032, 8, 20), matDarkMetal);
+        ring.rotation.y = Math.PI / 2;
+        spinGroup.add(ring);
+
+        // 6 хромированных шпилек/болтов вокруг ступицы
+        const boltGeo = new THREE.CylinderGeometry(0.025, 0.025, width + 0.08, 6);
+        boltGeo.rotateZ(Math.PI / 2);
+        for (let b = 0; b < 6; b++) {
+          const ba = (b / 6) * Math.PI * 2;
+          const bolt = new THREE.Mesh(boltGeo, matChrome);
+          bolt.position.set(0, Math.cos(ba) * (rimRadius * 0.64), Math.sin(ba) * (rimRadius * 0.64));
+          spinGroup.add(bolt);
+        }
+      }
+
+      return { group: g, tireMesh: spinGroup };
     }
 
     // 1. МОДЕЛЬ: ТЯГАЧ 6x6 ("Тайга-6x6")
@@ -1987,7 +2334,7 @@
       showPopup('ВЫБРАН: ' + currentVehicleConfig.name.toUpperCase());
     }
 
-    // --- ИНТЕГРАЦИЯ 3D-МОДЕЛЕЙ ИЗ ОТКРЫТЫХ БИБЛИОТЕК (GLTF / GLB) ---
+    // --- ИНТЕГРАЦИЯ ВЫСОКОДЕТАЛИЗИРОВАННЫХ 3D-МОДЕЛЕЙ В КОЗИ-СТИЛЕ BRUNO SIMON (GLTF / GLB + DRACO) ---
     function loadVehicleGLTFModels() {
       if (typeof THREE === 'undefined' || typeof THREE.GLTFLoader === 'undefined') {
         console.warn('GLTFLoader не доступен — работают процедурные модели');
@@ -1995,8 +2342,24 @@
       }
 
       const loader = new THREE.GLTFLoader();
+      if (typeof THREE.DRACOLoader !== 'undefined') {
+        try {
+          const dracoLoader = new THREE.DRACOLoader();
+          dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.4.1/');
+          loader.setDRACOLoader(dracoLoader);
+        } catch (e) {}
+      }
 
-      // 1. SUV (Quaternius 4x4)
+      // 1. Тягач 6x6 "Тайга": загружаем 122-сеточную детализированную 6x6 модель fire-truck.glb (вместо угловатого dump-truck.glb)
+      loader.load('models/fire-truck.glb', (gltf) => {
+        try {
+          applyGLTFToTruck(gltf);
+        } catch (e) {
+          console.error('Ошибка применения fire-truck.glb:', e);
+        }
+      }, undefined, (e) => console.log('fire-truck.glb fallback active'));
+
+      // 2. Джип 4x4 "Следопыт" (SUV + экспедиционный обвес в стиле Bruno Simon)
       loader.load('models/suv.glb', (gltf) => {
         try {
           applyGLTFToJeep(gltf);
@@ -2005,7 +2368,7 @@
         }
       }, undefined, (e) => console.log('suv.glb fallback active'));
 
-      // 2. Sedan (Quaternius Car)
+      // 3. Седан "Классика"
       loader.load('models/car.glb', (gltf) => {
         try {
           applyGLTFToSedan(gltf);
@@ -2014,25 +2377,7 @@
         }
       }, undefined, (e) => console.log('car.glb fallback active'));
 
-      // 3. Sports Car (Quaternius Racer)
-      loader.load('models/sports-car.glb', (gltf) => {
-        try {
-          applyGLTFToRacer(gltf);
-        } catch (e) {
-          console.error('Ошибка применения sports-car.glb:', e);
-        }
-      }, undefined, (e) => console.log('sports-car.glb fallback active'));
-
-      // 4. Dump Truck (Тягач "Тайга")
-      loader.load('models/dump-truck.glb', (gltf) => {
-        try {
-          applyGLTFToTruck(gltf);
-        } catch (e) {
-          console.error('Ошибка применения dump-truck.glb:', e);
-        }
-      }, undefined, (e) => console.log('dump-truck.glb fallback active'));
-
-      // 5. Retro Bus (Автобус)
+      // 4. Ретро-Автобус
       loader.load('models/bus.glb', (gltf) => {
         try {
           applyGLTFToBus(gltf);
@@ -2040,6 +2385,15 @@
           console.error('Ошибка применения bus.glb:', e);
         }
       }, undefined, (e) => console.log('bus.glb fallback active'));
+
+      // 5. Спорткупе "Racer GT"
+      loader.load('models/sports-car.glb', (gltf) => {
+        try {
+          applyGLTFToRacer(gltf);
+        } catch (e) {
+          console.error('Ошибка применения sports-car.glb:', e);
+        }
+      }, undefined, (e) => console.log('sports-car.glb fallback active'));
     }
 
     // Удаление статичных (запечённых) колёс из односеточных GLB-моделей через поиск связных компонент
@@ -2094,8 +2448,22 @@
           }
         }
         geom.setIndex(newIndices);
+        geom.computeVertexNormals();
         c.geometry = geom;
       });
+    }
+
+    // Применение кози-шейдинга Bruno Simon к материалам GLTF-моделей
+    function applyCozyMaterialStyle(mesh, primaryHex = null) {
+      if (!mesh.material) return;
+      mesh.material = mesh.material.clone();
+      mesh.material.flatShading = false;
+      mesh.material.roughness = 0.30;
+      mesh.material.metalness = 0.12;
+      if (primaryHex !== null && mesh.material.name && (mesh.material.name.includes('Main') || mesh.material.name.includes('Body') || mesh.material.name.includes('Red') || mesh.material.name.includes('Blue'))) {
+        mesh.material.color.setHex(primaryHex);
+      }
+      mesh.material.needsUpdate = true;
     }
 
     function applyGLTFToJeep(gltf) {
@@ -2107,10 +2475,8 @@
         if (c.isMesh) {
           c.castShadow = true;
           c.receiveShadow = true;
-          if (c.material) {
-            c.material.roughness = 0.35;
-            c.material.metalness = 0.15;
-          }
+          if (c.geometry) c.geometry.computeVertexNormals();
+          applyCozyMaterialStyle(c, 0xd95338); // Тёплый кораллово-терракотовый цвет Bruno Simon
         }
       });
 
@@ -2118,64 +2484,63 @@
       const flWheelGroup = root.getObjectByName('SUV_FrontLeftWheel_Cylinder010');
       const frWheelGroup = root.getObjectByName('SUV_FrontRightWheel_Cylinder005');
       const backWheelsGroup = root.getObjectByName('SUV_BackWheels_Cylinder009');
+      if (flWheelGroup) flWheelGroup.visible = false;
+      if (frWheelGroup) frWheelGroup.visible = false;
       if (backWheelsGroup) backWheelsGroup.visible = false;
 
-      const scale = 1.15;
+      const scale = 1.22;
       const subGroup = new THREE.Group();
       subGroup.scale.set(scale, scale, scale);
+      subGroup.position.y = 0.08;
       if (bodyGroup) subGroup.add(bodyGroup);
 
-      // Экспедиционный багажник: ящик с инструментами и канистра
-      const crate = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.28, 0.42), matBoxGreen);
-      crate.position.set(0.1, 1.48, 0.1);
+      // Экспедиционный багажник Bruno Simon: ящик с инструментами, канистра и запаска на двери
+      const rack = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.07, 1.35), matDarkMetal);
+      rack.position.set(0, 1.38, -0.15);
+      subGroup.add(rack);
+
+      const crate = new THREE.Mesh(new THREE.BoxGeometry(0.50, 0.26, 0.42), matBoxGreen);
+      crate.position.set(0.16, 1.52, 0.08);
       crate.castShadow = true;
       subGroup.add(crate);
 
-      const can = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.34, 0.38), matJerryCan);
-      can.position.set(-0.32, 1.51, -0.4);
+      const can = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.34, 0.36), matJerryCan);
+      can.position.set(-0.30, 1.54, -0.35);
       can.castShadow = true;
       subGroup.add(can);
 
+      const spareWheel = createWheelMesh(0.34, 0.24, 0.20, 'beadlock');
+      spareWheel.group.rotation.z = Math.PI / 2;
+      spareWheel.group.position.set(0, 0.86, -1.92);
+      subGroup.add(spareWheel.group);
+
       modelJeep.group.add(subGroup);
 
+      // 4 зубастых внедорожных колеса с 3D-протектором и бедлоками
       const wheelDefs = [
-        { source: flWheelGroup, cx:  0.773, cy: 0.309, cz:  1.317, isFront: true,  isDriven: true },
-        { source: frWheelGroup, cx: -0.762, cy: 0.309, cz:  1.317, isFront: true,  isDriven: true },
-        { source: flWheelGroup, cx:  0.773, cy: 0.309, cz: -1.251, isFront: false, isDriven: true },
-        { source: frWheelGroup, cx: -0.762, cy: 0.309, cz: -1.251, isFront: false, isDriven: true }
+        { lx:  0.96, ly: 0.46, lz:  1.56, isFront: true,  isDriven: true },
+        { lx: -0.96, ly: 0.46, lz:  1.56, isFront: true,  isDriven: true },
+        { lx:  0.96, ly: 0.46, lz: -1.48, isFront: false, isDriven: true },
+        { lx: -0.96, ly: 0.46, lz: -1.48, isFront: false, isDriven: true }
       ];
 
       wheelDefs.forEach(wp => {
-        const lx = wp.cx * scale;
-        const ly = wp.cy * scale;
-        const lz = wp.cz * scale;
-
-        const wg = new THREE.Group();
-        wg.position.set(lx, ly, lz);
-
-        const spinAnchor = new THREE.Group();
-        spinAnchor.scale.set(scale, scale, scale);
-        wg.add(spinAnchor);
-
-        if (wp.source) {
-          const meshClone = wp.source.clone(true);
-          meshClone.position.set(-wp.cx, -wp.cy, -1.317);
-          spinAnchor.add(meshClone);
-        }
-
-        modelJeep.group.add(wg);
+        const wInfo = createWheelMesh(0.46, 0.38, 0.26, 'beadlock');
+        wInfo.group.position.set(wp.lx, wp.ly, wp.lz);
+        modelJeep.group.add(wInfo.group);
 
         modelJeep.wheelsData.push({
-          group: wg,
-          tireMesh: spinAnchor,
-          localX: lx,
-          localZ: lz,
-          hubY: ly,
-          radius: 0.327 * scale,
+          group: wInfo.group,
+          tireMesh: wInfo.tireMesh,
+          localX: wp.lx,
+          localZ: wp.lz,
+          hubY: wp.ly,
+          radius: 0.46,
           isFront: wp.isFront,
           isDriven: wp.isDriven,
           lastDrawPos: new THREE.Vector2(0, 0),
-          slipRatio: 0
+          slipRatio: 0,
+          wetness: 0
         });
       });
 
@@ -2193,10 +2558,8 @@
         if (c.isMesh) {
           c.castShadow = true;
           c.receiveShadow = true;
-          if (c.material) {
-            c.material.roughness = 0.32;
-            c.material.metalness = 0.18;
-          }
+          if (c.geometry) c.geometry.computeVertexNormals();
+          applyCozyMaterialStyle(c, 0x2a9d8f);
         }
       });
 
@@ -2204,52 +2567,41 @@
       const flWheel = root.getObjectByName('NormalCar1_FrontLeftWheel_Cube007');
       const frWheel = root.getObjectByName('NormalCar1_FrontRightWheel_Cube008');
       const backWheels = root.getObjectByName('NormalCar1_BackWheels_Cube011');
+      if (flWheel) flWheel.visible = false;
+      if (frWheel) frWheel.visible = false;
       if (backWheels) backWheels.visible = false;
 
-      const scale = 1.15;
+      const scale = 1.20;
       const subGroup = new THREE.Group();
       subGroup.scale.set(scale, scale, scale);
+      subGroup.position.y = 0.05;
       if (bodyGroup) subGroup.add(bodyGroup);
       modelSedan.group.add(subGroup);
 
       const wheelDefs = [
-        { source: flWheel, cx:  0.691, cy: 0.268, cz:  1.196, isFront: true,  isDriven: false },
-        { source: frWheel, cx: -0.689, cy: 0.268, cz:  1.196, isFront: true,  isDriven: false },
-        { source: flWheel, cx:  0.691, cy: 0.268, cz: -1.243, isFront: false, isDriven: true  },
-        { source: frWheel, cx: -0.689, cy: 0.268, cz: -1.243, isFront: false, isDriven: true  }
+        { lx:  0.84, ly: 0.36, lz:  1.43, isFront: true,  isDriven: false },
+        { lx: -0.84, ly: 0.36, lz:  1.43, isFront: true,  isDriven: false },
+        { lx:  0.84, ly: 0.36, lz: -1.49, isFront: false, isDriven: true  },
+        { lx: -0.84, ly: 0.36, lz: -1.49, isFront: false, isDriven: true  }
       ];
 
       wheelDefs.forEach(wp => {
-        const lx = wp.cx * scale;
-        const ly = wp.cy * scale;
-        const lz = wp.cz * scale;
-
-        const wg = new THREE.Group();
-        wg.position.set(lx, ly, lz);
-
-        const spinAnchor = new THREE.Group();
-        spinAnchor.scale.set(scale, scale, scale);
-        wg.add(spinAnchor);
-
-        if (wp.source) {
-          const meshClone = wp.source.clone(true);
-          meshClone.position.set(-wp.cx, -wp.cy, -1.196);
-          spinAnchor.add(meshClone);
-        }
-
-        modelSedan.group.add(wg);
+        const wInfo = createWheelMesh(0.36, 0.28, 0.22, 'chrome_cap');
+        wInfo.group.position.set(wp.lx, wp.ly, wp.lz);
+        modelSedan.group.add(wInfo.group);
 
         modelSedan.wheelsData.push({
-          group: wg,
-          tireMesh: spinAnchor,
-          localX: lx,
-          localZ: lz,
-          hubY: ly,
-          radius: 0.262 * scale,
+          group: wInfo.group,
+          tireMesh: wInfo.tireMesh,
+          localX: wp.lx,
+          localZ: wp.lz,
+          hubY: wp.ly,
+          radius: 0.36,
           isFront: wp.isFront,
           isDriven: wp.isDriven,
           lastDrawPos: new THREE.Vector2(0, 0),
-          slipRatio: 0
+          slipRatio: 0,
+          wetness: 0
         });
       });
 
@@ -2267,10 +2619,8 @@
         if (c.isMesh) {
           c.castShadow = true;
           c.receiveShadow = true;
-          if (c.material) {
-            c.material.roughness = 0.28;
-            c.material.metalness = 0.25;
-          }
+          if (c.geometry) c.geometry.computeVertexNormals();
+          applyCozyMaterialStyle(c, 0xf4a261);
         }
       });
 
@@ -2278,52 +2628,41 @@
       const flWheel = root.getObjectByName('SportsCar2_FrontLeftWheel_Cylinder017');
       const frWheel = root.getObjectByName('SportsCar2_FrontRightWheel_Cylinder018');
       const backWheels = root.getObjectByName('SportsCar2_BackWheels_Cylinder002');
+      if (flWheel) flWheel.visible = false;
+      if (frWheel) frWheel.visible = false;
       if (backWheels) backWheels.visible = false;
 
-      const scale = 1.15;
+      const scale = 1.20;
       const subGroup = new THREE.Group();
       subGroup.scale.set(scale, scale, scale);
+      subGroup.position.y = 0.04;
       if (bodyGroup) subGroup.add(bodyGroup);
       modelRacer.group.add(subGroup);
 
       const wheelDefs = [
-        { source: flWheel, cx:  0.726, cy: 0.265, cz:  1.186, isFront: true,  isDriven: false },
-        { source: frWheel, cx: -0.724, cy: 0.265, cz:  1.186, isFront: true,  isDriven: false },
-        { source: flWheel, cx:  0.726, cy: 0.265, cz: -1.321, isFront: false, isDriven: true  },
-        { source: frWheel, cx: -0.724, cy: 0.265, cz: -1.321, isFront: false, isDriven: true  }
+        { lx:  0.88, ly: 0.35, lz:  1.42, isFront: true,  isDriven: false },
+        { lx: -0.88, ly: 0.35, lz:  1.42, isFront: true,  isDriven: false },
+        { lx:  0.88, ly: 0.35, lz: -1.58, isFront: false, isDriven: true  },
+        { lx: -0.88, ly: 0.35, lz: -1.58, isFront: false, isDriven: true  }
       ];
 
       wheelDefs.forEach(wp => {
-        const lx = wp.cx * scale;
-        const ly = wp.cy * scale;
-        const lz = wp.cz * scale;
-
-        const wg = new THREE.Group();
-        wg.position.set(lx, ly, lz);
-
-        const spinAnchor = new THREE.Group();
-        spinAnchor.scale.set(scale, scale, scale);
-        wg.add(spinAnchor);
-
-        if (wp.source) {
-          const meshClone = wp.source.clone(true);
-          meshClone.position.set(-wp.cx, -wp.cy, -1.186);
-          spinAnchor.add(meshClone);
-        }
-
-        modelRacer.group.add(wg);
+        const wInfo = createWheelMesh(0.35, 0.30, 0.22, 'beadlock');
+        wInfo.group.position.set(wp.lx, wp.ly, wp.lz);
+        modelRacer.group.add(wInfo.group);
 
         modelRacer.wheelsData.push({
-          group: wg,
-          tireMesh: spinAnchor,
-          localX: lx,
-          localZ: lz,
-          hubY: ly,
-          radius: 0.280 * scale,
+          group: wInfo.group,
+          tireMesh: wInfo.tireMesh,
+          localX: wp.lx,
+          localZ: wp.lz,
+          hubY: wp.ly,
+          radius: 0.35,
           isFront: wp.isFront,
           isDriven: wp.isDriven,
           lastDrawPos: new THREE.Vector2(0, 0),
-          slipRatio: 0
+          slipRatio: 0,
+          wetness: 0
         });
       });
 
@@ -2332,21 +2671,59 @@
       }
     }
 
+    // 122-сеточный 6x6 тягач из fire-truck.glb, перекрашенный в кози-экспедиционную палитру Bruno Simon + брёвна Poly Haven
     function applyGLTFToTruck(gltf) {
       const root = gltf.scene;
-      const dt = root.getObjectByName('Dumptruck_01_Cube');
-      if (!dt) return;
+      if (!root) return;
 
-      // Удаляем запечённые статичные колёса из геометрии грузовика, сохраняя кузов, зеркала и решётку
-      stripWheelIslands(dt, 1.85, 1.80, 0.25);
-
+      // Скрываем 12 статичных запечённых колёс/дисков (у всех них minY < -0.215 в локальных координатах модели)
+      // и перекрашиваем 110 деталей кузова, кабины, дуг и решётки в уютные цвета Bruno Simon!
       root.traverse(c => {
-        if (c.isMesh) {
+        if (c.isMesh && c.geometry) {
+          c.geometry.computeBoundingBox();
+          const bb = c.geometry.boundingBox;
+          if (bb && bb.min.y < -0.215) {
+            c.visible = false;
+            return;
+          }
+          c.geometry.computeVertexNormals();
           c.castShadow = true;
           c.receiveShadow = true;
+
           if (c.material) {
-            c.material.roughness = 0.36;
-            c.material.metalness = 0.18;
+            c.material = c.material.clone();
+            c.material.flatShading = false;
+            const mName = c.material.name || '';
+            if (mName === 'mat8') {
+              // Основной кузов и кабина: тёплый терракотово-апельсиновый Bruno Simon
+              c.material.color.setHex(0xe06d44);
+              c.material.roughness = 0.32;
+              c.material.metalness = 0.12;
+            } else if (mName === 'mat21') {
+              // Полосы, крыша и акценты: уютный тёплый кремовый
+              c.material.color.setHex(0xfaf3e0);
+              c.material.roughness = 0.36;
+              c.material.metalness = 0.08;
+            } else if (mName === 'mat17' || mName === 'mat15') {
+              // Шасси, бампер, силовой каркас: тёплый графит
+              c.material.color.setHex(0x28231f);
+              c.material.roughness = 0.48;
+              c.material.metalness = 0.65;
+            } else if (mName === 'mat22' || mName === 'mat16') {
+              // Решётка радиатора, зеркала, поручни: мягкий сатиновый хром
+              c.material.color.setHex(0xe2e8f0);
+              c.material.roughness = 0.22;
+              c.material.metalness = 0.85;
+            } else if (mName === 'mat25') {
+              // Остекление кабины
+              c.material.color.setHex(0x1e293b);
+              c.material.roughness = 0.08;
+              c.material.metalness = 0.85;
+            } else if (mName === 'mat10' || mName === 'mat11') {
+              // Экспедиционные ящики и оборудование: оливковый хаки
+              c.material.color.setHex(0x526b44);
+              c.material.roughness = 0.45;
+            }
           }
         }
       });
@@ -2354,39 +2731,41 @@
       modelTruck.group.clear();
       modelTruck.wheelsData.length = 0;
 
-      const dtGroup = new THREE.Group();
-      dtGroup.scale.set(0.55, 0.55, 0.55);
-      dtGroup.rotation.y = Math.PI; // Поворачиваем кабиной вперёд (+Z)
-      dtGroup.position.set(0, 0.52, 0.25);
-      dtGroup.add(dt);
-      modelTruck.group.add(dtGroup);
+      const ftGroup = new THREE.Group();
+      const scale = 6.2;
+      ftGroup.scale.set(scale, scale, scale);
+      // В fire-truck.glb кабина смотрит вдоль +X, поворачиваем на -90°, чтобы смотрела вдоль +Z (вперёд)
+      ftGroup.rotation.y = -Math.PI / 2;
+      ftGroup.position.set(0, 1.82, -0.15);
+      ftGroup.add(root);
+      modelTruck.group.add(ftGroup);
 
-      // Брёвна в кузове тягача (аккуратно внутри кузова без пересечений с кабиной)
-      const logGeo = new THREE.CylinderGeometry(0.24, 0.26, 2.8, 8);
+      // Экспедиционный груз брёвен с текстурой дерева Poly Haven на задней платформе тягача
+      const logGeo = new THREE.CylinderGeometry(0.22, 0.24, 2.55, 12);
       logGeo.rotateX(Math.PI / 2);
       for (let row = 0; row < 2; row++) {
         for (let col = -1; col <= 1; col++) {
           const logMesh = new THREE.Mesh(logGeo, matWood);
-          logMesh.position.set(col * 0.44, 1.72 + row * 0.40, -1.05);
+          logMesh.position.set(col * 0.42, 2.25 + row * 0.36, -1.55);
           logMesh.castShadow = true;
           logMesh.receiveShadow = true;
           modelTruck.group.add(logMesh);
         }
       }
 
-      // 6 независимых вращающихся внедорожных колёс 6x6
+      // 6 независимых вращающихся внедорожных колёс 6x6 с 3D-грунтозацепами точно в колёсных арках
       const wSetup = [
-        { x: -1.28, z:  1.76, isFront: true  },
-        { x:  1.28, z:  1.76, isFront: true  },
-        { x: -1.28, z: -0.98, isFront: false },
-        { x:  1.28, z: -0.98, isFront: false },
-        { x: -1.28, z: -2.18, isFront: false },
-        { x:  1.28, z: -2.18, isFront: false }
+        { x: -1.18, z:  1.68, isFront: true  },
+        { x:  1.18, z:  1.68, isFront: true  },
+        { x: -1.18, z: -1.07, isFront: false },
+        { x:  1.18, z: -1.07, isFront: false },
+        { x: -1.18, z: -2.26, isFront: false },
+        { x:  1.18, z: -2.26, isFront: false }
       ];
 
       wSetup.forEach(wp => {
-        const wInfo = createWheelMesh(0.62, 0.48, 0.36, 'truck');
-        wInfo.group.position.set(wp.x, 0.62, wp.z);
+        const wInfo = createWheelMesh(0.64, 0.50, 0.36, 'truck');
+        wInfo.group.position.set(wp.x, 0.64, wp.z);
         modelTruck.group.add(wInfo.group);
 
         modelTruck.wheelsData.push({
@@ -2394,12 +2773,13 @@
           tireMesh: wInfo.tireMesh,
           localX: wp.x,
           localZ: wp.z,
-          hubY: 0.62,
-          radius: 0.62,
+          hubY: 0.64,
+          radius: 0.64,
           isFront: wp.isFront,
           isDriven: true,
           lastDrawPos: new THREE.Vector2(0, 0),
-          slipRatio: 0
+          slipRatio: 0,
+          wetness: 0
         });
       });
 
@@ -2421,7 +2801,9 @@
           c.castShadow = true;
           c.receiveShadow = true;
           if (c.material) {
-            c.material.roughness = 0.34;
+            c.material = c.material.clone();
+            c.material.flatShading = false;
+            c.material.roughness = 0.32;
             c.material.metalness = 0.12;
           }
         }
@@ -2436,17 +2818,17 @@
       busGroup.add(busMesh);
       modelBus.group.add(busGroup);
 
-      // Анимированные колёса точно в колёсных арках автобуса (Z = +1.80 и Z = -2.19)
+      // Анимированные 3D-колёса точно в колёсных арках автобуса (Z = +1.80 и Z = -2.19)
       const wSetup = [
-        { x: -0.88, z:  1.80, isFront: true,  isDriven: false },
-        { x:  0.88, z:  1.80, isFront: true,  isDriven: false },
-        { x: -0.88, z: -2.19, isFront: false, isDriven: true  },
-        { x:  0.88, z: -2.19, isFront: false, isDriven: true  }
+        { x: -0.90, z:  1.80, isFront: true,  isDriven: false },
+        { x:  0.90, z:  1.80, isFront: true,  isDriven: false },
+        { x: -0.90, z: -2.19, isFront: false, isDriven: true  },
+        { x:  0.90, z: -2.19, isFront: false, isDriven: true  }
       ];
 
       wSetup.forEach(wp => {
-        const wInfo = createWheelMesh(0.45, 0.32, 0.28, 'chrome_cap');
-        wInfo.group.position.set(wp.x, 0.45, wp.z);
+        const wInfo = createWheelMesh(0.46, 0.34, 0.28, 'chrome_cap');
+        wInfo.group.position.set(wp.x, 0.46, wp.z);
         modelBus.group.add(wInfo.group);
 
         modelBus.wheelsData.push({
@@ -2454,12 +2836,13 @@
           tireMesh: wInfo.tireMesh,
           localX: wp.x,
           localZ: wp.z,
-          hubY: 0.45,
-          radius: 0.45,
+          hubY: 0.46,
+          radius: 0.46,
           isFront: wp.isFront,
           isDriven: wp.isDriven,
           lastDrawPos: new THREE.Vector2(0, 0),
-          slipRatio: 0
+          slipRatio: 0,
+          wetness: 0
         });
       });
 
@@ -2487,17 +2870,17 @@
     truck.position.copy(truckPos);
     truck.rotation.y = truckHeading;
 
-    // --- 7. ДЕРЕВЬЯ, СКАЛЫ И БРЕВЕНЧАТЫЙ МОСТ ---
+    // --- 7. ДЕРЕВЬЯ, СКАЛЫ И НАДЁЖНЫЙ БРЕВЕНЧАТЫЙ МОСТ С ОПОРАМИ ---
     const trees = [];
-    const trunkGeo = new THREE.CylinderGeometry(0.24, 0.4, 3.8, 6);
-    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x332214, roughness: 0.9 });
-    const foliageMat = new THREE.MeshStandardMaterial({ color: 0x1b2d18, roughness: 0.85 });
-    const foliageMat2 = new THREE.MeshStandardMaterial({ color: 0x22381e, roughness: 0.85 });
-    const snowFoliageMat = new THREE.MeshStandardMaterial({ color: 0x1a261b, roughness: 0.85 });
-    const snowCapMat = new THREE.MeshStandardMaterial({ color: 0xedf2f7, roughness: 0.65 });
+    const trunkGeo = new THREE.CylinderGeometry(0.24, 0.40, 3.8, 10);
+    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6e4a30, roughness: 0.85 });
+    const foliageMat = new THREE.MeshStandardMaterial({ color: 0x3b6036, roughness: 0.78 });
+    const foliageMat2 = new THREE.MeshStandardMaterial({ color: 0x4b7342, roughness: 0.78 });
+    const snowFoliageMat = new THREE.MeshStandardMaterial({ color: 0x34543b, roughness: 0.78 });
+    const snowCapMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.55 });
 
     function plantPine(x, z, scale = 1.0) {
-      const y = getTerrainHeight(x, z);
+      const y = getGroundMeshHeight(x, z);
       const isSnowy = (z > 58);
       const group = new THREE.Group();
       group.position.set(x, y, z);
@@ -2512,13 +2895,13 @@
       const fMat = isSnowy ? snowFoliageMat : (Math.random() > 0.5 ? foliageMat : foliageMat2);
 
       for (let t = 0; t < 3; t++) {
-        const cone = new THREE.Mesh(new THREE.ConeGeometry(2.5 - t * 0.45, 3.0, 8), fMat);
+        const cone = new THREE.Mesh(new THREE.ConeGeometry(2.5 - t * 0.45, 3.0, 12), fMat);
         cone.position.y = 3.5 + t * 1.7;
         cone.castShadow = true;
         group.add(cone);
 
         if (isSnowy) {
-          const snowCap = new THREE.Mesh(new THREE.ConeGeometry(2.3 - t * 0.45, 1.1, 8), snowCapMat);
+          const snowCap = new THREE.Mesh(new THREE.ConeGeometry(2.3 - t * 0.45, 1.15, 12), snowCapMat);
           snowCap.position.y = 4.2 + t * 1.7;
           group.add(snowCap);
         }
@@ -2529,7 +2912,6 @@
 
     // Естественные таежные рощи по холмам вдоль трассы
     for (let z = -84; z <= 86; z += 6.5) {
-      // Левая сторона
       const xL = -18 - Math.random() * 14;
       const sL = 0.7 + Math.random() * 0.65;
       plantPine(xL, z + (Math.random() - 0.5) * 5, sL);
@@ -2537,7 +2919,6 @@
         plantPine(xL - 4 - Math.random() * 6, z + (Math.random() - 0.5) * 4, sL * 0.85);
       }
 
-      // Правая сторона
       const xR = 18 + Math.random() * 14;
       const sR = 0.7 + Math.random() * 0.65;
       plantPine(xR, z + (Math.random() - 0.5) * 5, sR);
@@ -2546,15 +2927,15 @@
       }
     }
 
-    // Природные валуны и замшелые камни по обочинам
-    const rockMat = new THREE.MeshStandardMaterial({ color: 0x58524b, roughness: 0.9, flatShading: true });
-    const snowRockMat = new THREE.MeshStandardMaterial({ color: 0x7c858d, roughness: 0.8, flatShading: true });
+    // Природные валуны по обочинам (в тёплых тонах Bruno Simon)
+    const rockMat = new THREE.MeshStandardMaterial({ color: 0x8a7968, roughness: 0.82 });
+    const snowRockMat = new THREE.MeshStandardMaterial({ color: 0x9aa6b2, roughness: 0.75 });
     const rockGeo = new THREE.DodecahedronGeometry(0.85, 1);
     for (let r = 0; r < 36; r++) {
       const rz = -82 + Math.random() * 168;
       const side = Math.random() > 0.5 ? 1 : -1;
       const rx = side * (16 + Math.random() * 9);
-      const ry = getTerrainHeight(rx, rz);
+      const ry = getGroundMeshHeight(rx, rz);
       const rock = new THREE.Mesh(rockGeo, rz > 58 ? snowRockMat : rockMat);
       const sc = 0.5 + Math.random() * 1.0;
       rock.scale.set(sc * (0.8 + Math.random() * 0.4), sc * 0.6, sc * (0.8 + Math.random() * 0.4));
@@ -2565,18 +2946,39 @@
       scene.add(rock);
     }
 
-    // Мост из бревен над оврагом (Сектор 6, Z: +46 .. +56)
-    const bridgeLogGeo = new THREE.CylinderGeometry(0.32, 0.35, 7.5, 8);
+    // Настоящий бревенчатый мост на сваях через ручей (Сектор 6, Z: +45.4 .. +56.6)
+    const bridgeLogGeo = new THREE.CylinderGeometry(0.30, 0.32, 7.8, 12);
     bridgeLogGeo.rotateZ(Math.PI / 2);
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 14; i++) {
       const bLog = new THREE.Mesh(bridgeLogGeo, woodMat);
-      const bz = 46 + i * 0.95;
-      const by = getTerrainHeight(0, bz) + 0.15;
+      const bz = 45.4 + i * 0.86;
+      // Верхняя точка бревна находится на высоте ~0.16м (ровно вровень с коллизией моста getTerrainHeight!)
+      const by = -0.14 + Math.cos(i * 0.7) * 0.012;
       bLog.position.set(0, by, bz);
       bLog.castShadow = true;
       bLog.receiveShadow = true;
       scene.add(bLog);
     }
+    // Боковые отбойные брёвна (колесоотбойники вдоль краёв моста)
+    const curbLogGeo = new THREE.CylinderGeometry(0.18, 0.18, 11.8, 10);
+    curbLogGeo.rotateX(Math.PI / 2);
+    for (let side = -1; side <= 1; side += 2) {
+      const curb = new THREE.Mesh(curbLogGeo, woodMat);
+      curb.position.set(side * 3.65, 0.26, 51.0);
+      curb.castShadow = true;
+      curb.receiveShadow = true;
+      scene.add(curb);
+    }
+    // Вертикальные деревянные сваи-опоры под мостом, уходящие в русло ручья
+    const pileGeo = new THREE.CylinderGeometry(0.22, 0.24, 1.8, 10);
+    [46.5, 49.5, 52.5, 55.5].forEach(pz => {
+      for (let side = -1; side <= 1; side += 2) {
+        const pile = new THREE.Mesh(pileGeo, postMat);
+        pile.position.set(side * 3.1, -0.75, pz);
+        pile.castShadow = true;
+        scene.add(pile);
+      }
+    });
 
     // --- 7B. КОНТРОЛЬНЫЕ ВОРОТА (ЧЕКПОИНТЫ) И ФИНИШНАЯ АРКА ЭКСПЕДИЦИИ ---
     const checkpoints = [];
@@ -3125,10 +3527,10 @@
       s.velY = 2.2 + Math.random();
     }
 
-    const MAX_MUD_CHUNKS = 80;
+    const MAX_MUD_CHUNKS = 110;
     const mudPool = [];
     const chunkGeo = new THREE.DodecahedronGeometry(0.14, 0);
-    const chunkMat = new THREE.MeshStandardMaterial({ color: 0x1f140b, roughness: 0.95 });
+    const chunkMat = new THREE.MeshStandardMaterial({ color: 0x1f140b, roughness: 0.90 });
 
     for (let i = 0; i < MAX_MUD_CHUNKS; i++) {
       const cm = new THREE.Mesh(chunkGeo, chunkMat.clone());
@@ -3143,26 +3545,55 @@
       if (!c) return;
       c.mesh.visible = true;
       c.mesh.position.copy(pos);
-      c.mesh.scale.setScalar(0.7 + Math.random() * 0.8);
+      c.mesh.scale.setScalar(0.65 + Math.random() * 0.75);
 
-      // Цвет брызг соответствует текущему грунту (снег, песок, вода болота или глина)
+      // Цвет брызг соответствует текущему грунту (снег, песок, смешанная с грязью вода болота или глина)
       if (sectorType === 'snow') {
         c.mesh.material.color.setHex(0xf1f5f9);
+        c.mesh.material.roughness = 0.65;
       } else if (sectorType === 'sand') {
-        c.mesh.material.color.setHex(0xd4a359);
+        c.mesh.material.color.setHex(0xe0ad63);
+        c.mesh.material.roughness = 0.85;
       } else if (sectorType === 'swamp') {
-        c.mesh.material.color.setHex(0x2b3d28);
+        const r = Math.random();
+        c.mesh.material.color.setHex(r < 0.45 ? 0x2e8580 : (r < 0.80 ? 0x6e4726 : 0xdcf2ee));
+        c.mesh.material.roughness = 0.22;
       } else {
-        c.mesh.material.color.setHex(0x24170c);
+        c.mesh.material.color.setHex(0x52341c);
+        c.mesh.material.roughness = 0.88;
       }
 
       c.vel.set(
         -dir.x * power * 3.5 + (Math.random() - 0.5) * 2,
-        2.5 + Math.random() * 3.0 * power,
+        2.4 + Math.random() * 2.8 * power,
         -dir.z * power * 3.5 + (Math.random() - 0.5) * 2
       );
       c.life = 0;
       c.maxLife = 0.6 + Math.random() * 0.4;
+    }
+
+    // Выплёскивание струй воды и мутной жижи из колеи в стороны при проезде по болоту/воде
+    function spawnWaterSpill(pos, rightVec, sideSign, intensity) {
+      const c = mudPool.find(item => !item.mesh.visible);
+      if (!c) return;
+      c.mesh.visible = true;
+      c.mesh.position.copy(pos);
+      c.mesh.position.y += 0.12;
+      c.mesh.scale.setScalar(0.55 + Math.random() * 0.65);
+
+      const r = Math.random();
+      // Смешивание бирюзовой воды, взбаламученной бурой грязи и белой пены
+      c.mesh.material.color.setHex(r < 0.48 ? 0x348f88 : (r < 0.82 ? 0x734b28 : 0xe2f7f4));
+      c.mesh.material.roughness = 0.15;
+
+      const outSpeed = (1.8 + Math.random() * 2.4) * intensity;
+      c.vel.set(
+        rightVec.x * sideSign * outSpeed + (Math.random() - 0.5) * 1.2,
+        1.4 + Math.random() * 1.8 * intensity,
+        rightVec.z * sideSign * outSpeed + (Math.random() - 0.5) * 1.2
+      );
+      c.life = 0;
+      c.maxLife = 0.5 + Math.random() * 0.35;
     }
 
     // Трос лебедки
@@ -3383,7 +3814,7 @@
       showPopup(currentVehicleConfig.name + ' НА СТАРТЕ ПОЛИГОНА (СЕКТОР 1)');
     }
 
-    // --- 11. ФИЗИЧЕСКИЙ ЦИКЛ ОБНОВЛЕНИЯ (ЧЕСТНАЯ ПОСАДКА НА ГРУНТ) ---
+    // --- 11. ФИЗИЧЕСКИЙ ЦИКЛ ОБНОВЛЕНИЯ (ЧЕСТНАЯ ПОСАДКА НА ГРУНТ, КОЛЕЯ И ДИНАМИЧЕСКАЯ ВОДА) ---
     const clock = new THREE.Clock();
     let steerAngle = 0;
     let trackThrottleTimer = 0;
@@ -3413,14 +3844,14 @@
 
       // Погружение в жижу/снег с учетом типа авто
       let sinkDepth = 0;
-      if (sector.type === 'swamp') sinkDepth = 0.52 * cfg.sinkFactor;
-      else if (sector.type === 'clay') sinkDepth = 0.28 * cfg.sinkFactor;
-      else if (sector.type === 'snow') sinkDepth = 0.22 * cfg.sinkFactor;
-      else if (sector.type === 'sand') sinkDepth = 0.15 * cfg.sinkFactor;
+      if (sector.type === 'swamp') sinkDepth = 0.42 * cfg.sinkFactor;
+      else if (sector.type === 'clay') sinkDepth = 0.24 * cfg.sinkFactor;
+      else if (sector.type === 'snow') sinkDepth = 0.20 * cfg.sinkFactor;
+      else if (sector.type === 'sand') sinkDepth = 0.14 * cfg.sinkFactor;
 
       // Сопротивление движению: если сел на брюхо (глубина погружения > клиренса)
       const bellyDrop = Math.max(0, sinkDepth - cfg.clearance);
-      let totalDrag = sector.drag + (groundMud * 3.2) + (bellyDrop * 12.0);
+      let totalDrag = sector.drag + (groundMud * 3.0) + (bellyDrop * 10.5);
       if (isLowGear) totalDrag *= 0.5;
 
       // Тяга двигателя
@@ -3470,10 +3901,12 @@
       truckSpeed += (power / totalDrag) * delta;
       truckSpeed *= Math.pow(0.91, delta * 60 / totalDrag);
 
-      // Пробуксовка и рисование следов
+      // Пробуксовка, продавливание глубокой 3D-колеи, смешивание и выливание воды
       let totalSlip = 0;
       let meshDeformed = false;
       const forwardVec = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), truckHeading);
+      const rightVec   = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), truckHeading);
+      const speedAbs   = Math.abs(truckSpeed);
 
       activeWheels.forEach(w => {
         w.group.getWorldPosition(tempWheelWorldPos);
@@ -3492,27 +3925,50 @@
         w.slipRatio = slip;
         totalSlip += slip;
 
-        // Вращение колеса (с учетом радиуса)
+        // Намокание колеса в болоте/воде и плавное высыхание на суше (мокрый след тянется за машиной!)
+        if (wSector.type === 'swamp' || (wPos.z > 17 && wPos.z < 45)) {
+          w.wetness = Math.min(1.0, (w.wetness || 0) + delta * 3.0);
+          if (speedAbs > 0.15 || slip > 0.15) {
+            displaceAndMixWater(wPos.x, wPos.z, speedAbs, slip);
+          }
+        } else if (wSector.type === 'clay') {
+          w.wetness = Math.min(0.65, Math.max(w.wetness || 0, 0.35));
+        } else {
+          w.wetness = Math.max(0, (w.wetness || 0) - delta * 0.16);
+        }
+
+        // Вращение 3D-колеса с грунтозацепами
         const spin = ((truckSpeed / w.radius) + (slip * Math.sign(power) * 17)) * delta;
         w.tireMesh.rotation.x += spin;
 
-        // Следы шин на холсте
+        // Рисование следа колеи, смешивания воды и продавливание 3D-траншеи с боковыми валиками
         const distFromLast = w.lastDrawPos.distanceTo(new THREE.Vector2(wPos.x, wPos.z));
-        if (distFromLast > 0.35 || (slip > 0.3 && Math.random() < 0.3)) {
-          drawTireTrack(wPos.x, wPos.z, truckHeading + (w.isFront ? steerAngle : 0), slip > 0.25, wSector);
+        if (distFromLast > 0.28 || (slip > 0.28 && Math.random() < 0.35)) {
+          drawTireTrack(wPos.x, wPos.z, truckHeading + (w.isFront ? steerAngle : 0), slip > 0.22, wSector, w.wetness || 0);
           w.lastDrawPos.set(wPos.x, wPos.z);
 
-          if (wSector.type === 'clay' || wSector.type === 'swamp' || wSector.type === 'snow') {
-            const def = deformGround(wPos.x, wPos.z, 0.9 + slip * 1.8, 0.85);
+          if (wSector.type !== 'concrete' && wSector.type !== 'bridge') {
+            const def = deformGround(wPos.x, wPos.z, 0.95 + slip * 1.85, w.radius * 1.45);
             if (def) meshDeformed = true;
           }
         }
 
-        // Брызги из-под колёс
-        if (slip > 0.3 && Math.random() < 0.55) {
+        // Выплёскивание струй воды, смешанной с грязью и пеной, из колеи в стороны
+        if ((wSector.type === 'swamp' || (w.wetness || 0) > 0.38) && (speedAbs > 0.8 || slip > 0.22)) {
+          if (Math.random() < 0.55) {
+            const sideSign = w.localX < 0 ? -1 : 1;
+            spawnWaterSpill(wPos, rightVec, sideSign, Math.min(1.6, 0.45 + speedAbs * 0.06 + slip * 0.7));
+          }
+        }
+
+        // Вылет комьев грязи/снега/песка из-под грунтозацепов
+        if (slip > 0.28 && Math.random() < 0.55) {
           spawnMudChunk(wPos, forwardVec, slip * 1.6, wSector.type);
         }
       });
+
+      // Обновление 3D-поверхности воды в болоте (волны, смешивание с грязью и пена)
+      updateDynamicWater(delta, expeditionTime);
 
       trackThrottleTimer += delta;
       if (tracksUpdated && trackThrottleTimer > 0.035) {
@@ -3569,35 +4025,38 @@
         }
       });
 
-      // --- ТОЧНЕЙШАЯ ПОСАДКА КУЗОВА НА ЗЕМЛЮ (АНТИ-ЗАВИСАНИЕ ДЛЯ ВСЕХ АВТО) ---
+      // --- ТОЧНЕЙШАЯ МНОГОТОЧЕЧНАЯ ПОСАДКА КУЗОВА НА ГРУНТ И МОСТ (БЕЗ ПРОВАЛОВ И ВРЕЗАНИЙ) ---
       const fwd = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), truckHeading);
       const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), truckHeading);
 
-      // Центры передней оси и задней оси/тележки
+      // Центры передней оси, средней точки, задней тележки и переднего бампера
       const frontAxleWorld = truckPos.clone().add(fwd.clone().multiplyScalar(cfg.frontAxleZ));
       const rearAxleWorld  = truckPos.clone().add(fwd.clone().multiplyScalar(cfg.rearAxleZ));
       const bumperWorld    = truckPos.clone().add(fwd.clone().multiplyScalar(cfg.bumperZ));
 
       let hFront = getTerrainHeight(frontAxleWorld.x, frontAxleWorld.z);
       const hRear  = getTerrainHeight(rearAxleWorld.x, rearAxleWorld.z);
+      const hCenter = getTerrainHeight(truckPos.x, truckPos.z);
       const hBumper = getTerrainHeight(bumperWorld.x, bumperWorld.z);
 
-      if (hBumper > hFront + 0.22) {
-        hFront += (hBumper - (hFront + 0.22)) * 0.75;
+      if (hBumper > hFront + 0.18) {
+        hFront += (hBumper - (hFront + 0.18)) * 0.85;
       }
 
       const wheelbase = cfg.frontAxleZ - cfg.rearAxleZ;
-      const targetPitch = -Math.atan2(hFront - hRear, wheelbase);
-      const groundAtCenter = hRear + (hFront - hRear) * (-cfg.rearAxleZ / wheelbase);
+      const targetPitch = THREE.MathUtils.clamp(-Math.atan2(hFront - hRear, wheelbase), -0.48, 0.48);
+      let groundAtCenter = hRear + (hFront - hRear) * (-cfg.rearAxleZ / wheelbase);
+      // Защита от провала брюхом на перегибах рельефа и въезде на мост
+      groundAtCenter = Math.max(groundAtCenter, hCenter - 0.06);
 
       const leftWorld  = truckPos.clone().add(right.clone().multiplyScalar(-cfg.trackHalfWidth));
       const rightWorld = truckPos.clone().add(right.clone().multiplyScalar(cfg.trackHalfWidth));
       const hL = getTerrainHeight(leftWorld.x, leftWorld.z);
       const hR = getTerrainHeight(rightWorld.x, rightWorld.z);
-      const targetRoll = -Math.atan2(hL - hR, cfg.trackHalfWidth * 2) - (steerAngle * truckSpeed * 0.02);
+      const targetRoll = THREE.MathUtils.clamp(-Math.atan2(hL - hR, cfg.trackHalfWidth * 2) - (steerAngle * truckSpeed * 0.02), -0.45, 0.45);
 
       // Корректная высота кузова
-      truckPos.y = THREE.MathUtils.lerp(truckPos.y, groundAtCenter - sinkDepth, delta * 16);
+      truckPos.y = THREE.MathUtils.lerp(truckPos.y, groundAtCenter - sinkDepth, delta * 18);
       truckPitch = THREE.MathUtils.lerp(truckPitch, targetPitch, delta * 14);
       truckRoll  = THREE.MathUtils.lerp(truckRoll, targetRoll, delta * 14);
 
@@ -3612,7 +4071,7 @@
         const hubWorld = new THREE.Vector3(w.localX, w.hubY, w.localZ).applyMatrix4(truck.matrixWorld);
         const hTerrainUnderTire = getTerrainHeight(hubWorld.x, hubWorld.z) - sinkDepth;
         const gap = hTerrainUnderTire - (hubWorld.y - w.radius);
-        const targetSuspensionY = w.hubY + THREE.MathUtils.clamp(gap, -0.22, 0.22);
+        const targetSuspensionY = w.hubY + THREE.MathUtils.clamp(gap, -0.24, 0.24);
         w.group.position.y = THREE.MathUtils.lerp(w.group.position.y, targetSuspensionY, delta * 18);
       });
 
