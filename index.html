@@ -329,7 +329,7 @@
     /* Всплывающее уведомление */
     #hud-alert {
       position: absolute;
-      top: 20%;
+      top: 22%;
       left: 50%;
       transform: translate(-50%, -50%);
       background: rgba(18, 15, 12, 0.95);
@@ -347,6 +347,92 @@
       text-shadow: 0 2px 8px #000;
       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
     }
+
+    /* Прогресс экспедиции по 7 секторам */
+    #expedition-bar {
+      position: absolute;
+      top: 78px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 15;
+      background: rgba(16, 14, 12, 0.88);
+      border: 1px solid #4a3e30;
+      border-radius: 20px;
+      padding: 6px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55);
+      font-size: 12px;
+      font-weight: 800;
+      pointer-events: none;
+    }
+    .cp-dots {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .cp-dot {
+      width: 18px;
+      height: 8px;
+      border-radius: 4px;
+      background: #2e261d;
+      border: 1px solid #524332;
+      transition: all 0.25s ease;
+    }
+    .cp-dot.passed {
+      background: #2ec4b6;
+      border-color: #64dfdf;
+      box-shadow: 0 0 8px rgba(46, 196, 182, 0.65);
+    }
+    .cp-dot.current {
+      background: #ff9f1c;
+      border-color: #ffd166;
+      box-shadow: 0 0 8px rgba(255, 159, 28, 0.7);
+    }
+    .exp-timer {
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      color: #ff9f1c;
+      letter-spacing: 0.5px;
+    }
+
+    /* Креноскоп (тангаж и крен в стиле SnowRunner) */
+    .clino-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid #33291e;
+      font-size: 11px;
+      font-weight: 800;
+      color: #b5aa99;
+    }
+    .clino-dial {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .clino-circle {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 1.5px solid #5a4835;
+      background: #14110e;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .clino-bar {
+      width: 18px;
+      height: 3px;
+      background: #ff9f1c;
+      border-radius: 2px;
+      transition: transform 0.05s linear;
+    }
   </style>
   <!-- Three.js (r128) & GLTFLoader -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -362,7 +448,7 @@
 
   <div id="header-bar">
     <h1>Полигон "Тайга" <span class="badge-tag">SNOWRUNNER</span></h1>
-    <div class="subtitle">7 секторов грунта &bull; 5 единиц техники &bull; 3D модели Quaternius & GLTF</div>
+    <div class="subtitle">7 секторов грунта &bull; 5 3D авто &bull; Диорама в стиле Bruno Simon</div>
   </div>
 
   <!-- Выбор техники в стиле Bruno Simon -->
@@ -404,7 +490,23 @@
     </button>
   </div>
 
+  <!-- Шкала чекпоинтов экспедиции -->
+  <div id="expedition-bar">
+    <span id="cp-text">🏁 ЧЕКПОИНТ: 0 / 7</span>
+    <div class="cp-dots" id="cp-dots">
+      <div class="cp-dot current" id="cp-dot-0" title="Сектор 1: Бетон"></div>
+      <div class="cp-dot" id="cp-dot-1" title="Сектор 2: Лес"></div>
+      <div class="cp-dot" id="cp-dot-2" title="Сектор 3: Песок"></div>
+      <div class="cp-dot" id="cp-dot-3" title="Сектор 4: Глина"></div>
+      <div class="cp-dot" id="cp-dot-4" title="Сектор 5: Болото"></div>
+      <div class="cp-dot" id="cp-dot-5" title="Сектор 6: Бревенчатый мост"></div>
+      <div class="cp-dot" id="cp-dot-6" title="Сектор 7: Вершина перевала"></div>
+    </div>
+    <span class="exp-timer" id="exp-timer">00:00</span>
+  </div>
+
   <div id="top-right-controls">
+    <button class="hud-btn" id="btn-lights" onclick="toggleHeadlights()">💡 Фары [L]: <span id="lights-state">ВКЛ</span></button>
     <button class="hud-btn" id="btn-audio" onclick="toggleAudio()">🔊 Звук: <span id="audio-state">ВКЛ (Клик)</span></button>
     <button class="hud-btn" onclick="cycleCamera()">📷 Камера [C]</button>
     <button class="hud-btn" onclick="resetTruck()">🔄 На Старт [V]</button>
@@ -413,18 +515,17 @@
   <div id="tips-panel">
     <div class="tip-title">
       <span>ПОЛИГОН ТЕСТА ГРУНТОВ</span>
-      <span style="color:#8c7e6c;">v4.0</span>
+      <span style="color:#8c7e6c;">v5.0 FINAL</span>
     </div>
-    <div style="color:#ff9f1c; margin-bottom: 6px;"><span class="key">1 / 2 / 3 / 4</span> &mdash; Смена авто (Тягач, Джип, Седан, Автобус)</div>
+    <div style="color:#ff9f1c; margin-bottom: 6px;"><span class="key">1 - 5</span> &mdash; Выбор 3D авто (Тягач, Джип, Седан, Автобус, Спорткар)</div>
     <div><span class="key">W / S</span> &mdash; Газ / Тормоз / Задний ход</div>
     <div><span class="key">A / D</span> &mdash; Рулевое управление</div>
-    <div><span class="key">Пробел</span> &mdash; Ручной/пневмотормоз</div>
-    <div><span class="key">Q</span> &mdash; Полный привод (AWD)</div>
-    <div><span class="key">E</span> &mdash; Блокировка дифференциала</div>
-    <div><span class="key">R</span> &mdash; Пониженная передача (Low Gear)</div>
-    <div><span class="key">F</span> &mdash; Лебёдка (зацепиться за дерево/скалу)</div>
+    <div><span class="key">Пробел</span> &mdash; Ручной / пневмотормоз</div>
+    <div><span class="key">Q / E / R</span> &mdash; Полный привод / Дифф-лок / Понижайка</div>
+    <div><span class="key">F</span> &mdash; Лебёдка &bull; <span class="key">L</span> &mdash; Ближний/дальний свет фар</div>
+    <div><span class="key">Мышь + Колесо</span> &mdash; Вращение камеры и зум</div>
     <div style="margin-top: 8px; font-size: 11px; color:#ff9f1c;">
-      🏁 <b>Маршрут полигона:</b> Двигайтесь прямо по секторам: <b>Бетон &rarr; Лес &rarr; Песок &rarr; Глина &rarr; Болото &rarr; Мост &rarr; Снежный перевал</b>.
+      🏁 <b>Цель экспедиции:</b> Пройдите все 7 контрольных ворот от старта до вершины <b>Снежного перевала</b>!
     </div>
   </div>
 
@@ -444,7 +545,7 @@
 
     <div class="controls-grid">
       <div class="ctrl-badge active" id="badge-awd" onclick="toggleAWD()">
-        <span class="key-label">[Q] AWD 6x6</span>
+        <span class="key-label">[Q] AWD ПРИВОД</span>
         <span class="state-label" id="state-awd">АКТИВЕН</span>
       </div>
       <div class="ctrl-badge warn" id="badge-diff" onclick="toggleDiffLock()">
@@ -458,6 +559,18 @@
       <div class="ctrl-badge alert" id="badge-winch" onclick="toggleWinch()">
         <span class="key-label">[F] ЛЕБЁДКА</span>
         <span class="state-label" id="state-winch">ГОТОВА</span>
+      </div>
+    </div>
+
+    <!-- Креноскоп кузова -->
+    <div class="clino-row">
+      <div class="clino-dial">
+        <div class="clino-circle"><div class="clino-bar" id="clino-roll-bar"></div></div>
+        <span>КРЕН: <b id="roll-val" style="color:#fff;">0°</b></span>
+      </div>
+      <div class="clino-dial">
+        <div class="clino-circle"><div class="clino-bar" id="clino-pitch-bar"></div></div>
+        <span>УКЛОН: <b id="pitch-val" style="color:#fff;">0°</b></span>
       </div>
     </div>
 
@@ -1929,6 +2042,62 @@
       }, undefined, (e) => console.log('bus.glb fallback active'));
     }
 
+    // Удаление статичных (запечённых) колёс из односеточных GLB-моделей через поиск связных компонент
+    function stripWheelIslands(rootNode, maxIslandY, minIslandX, maxIslandMinY) {
+      rootNode.traverse(c => {
+        if (!c.isMesh || !c.geometry || !c.geometry.attributes.position || !c.geometry.index) return;
+        const geom = c.geometry.clone();
+        const pos = geom.attributes.position;
+        const idx = geom.index.array;
+        const vCount = pos.count;
+
+        const parent = new Int32Array(vCount);
+        for (let i = 0; i < vCount; i++) parent[i] = i;
+        function find(x) {
+          let r = x;
+          while (parent[r] !== r) r = parent[r];
+          let curr = x;
+          while (curr !== r) {
+            const nxt = parent[curr];
+            parent[curr] = r;
+            curr = nxt;
+          }
+          return r;
+        }
+        for (let i = 0; i < idx.length; i += 3) {
+          const r0 = find(idx[i]);
+          const r1 = find(idx[i + 1]);
+          const r2 = find(idx[i + 2]);
+          if (r0 !== r1) parent[r0] = r1;
+          if (find(r1) !== r2) parent[find(r1)] = r2;
+        }
+
+        const compMinX = new Float32Array(vCount).fill(99999);
+        const compMinY = new Float32Array(vCount).fill(99999);
+        const compMaxY = new Float32Array(vCount).fill(-99999);
+
+        for (let i = 0; i < vCount; i++) {
+          const r = find(i);
+          const ax = Math.abs(pos.getX(i));
+          const y = pos.getY(i);
+          if (ax < compMinX[r]) compMinX[r] = ax;
+          if (y < compMinY[r]) compMinY[r] = y;
+          if (y > compMaxY[r]) compMaxY[r] = y;
+        }
+
+        const newIndices = [];
+        for (let i = 0; i < idx.length; i += 3) {
+          const r = find(idx[i]);
+          const isWheelIsland = (compMaxY[r] < maxIslandY) && (compMinX[r] > minIslandX) && (compMinY[r] < maxIslandMinY);
+          if (!isWheelIsland) {
+            newIndices.push(idx[i], idx[i + 1], idx[i + 2]);
+          }
+        }
+        geom.setIndex(newIndices);
+        c.geometry = geom;
+      });
+    }
+
     function applyGLTFToJeep(gltf) {
       const root = gltf.scene;
       modelJeep.group.clear();
@@ -1967,6 +2136,8 @@
       can.castShadow = true;
       subGroup.add(can);
 
+      modelJeep.group.add(subGroup);
+
       const wheelDefs = [
         { source: flWheelGroup, cx:  0.773, cy: 0.309, cz:  1.317, isFront: true,  isDriven: true },
         { source: frWheelGroup, cx: -0.762, cy: 0.309, cz:  1.317, isFront: true,  isDriven: true },
@@ -1975,10 +2146,15 @@
       ];
 
       wheelDefs.forEach(wp => {
+        const lx = wp.cx * scale;
+        const ly = wp.cy * scale;
+        const lz = wp.cz * scale;
+
         const wg = new THREE.Group();
-        wg.position.set(wp.cx, wp.cy, wp.cz);
+        wg.position.set(lx, ly, lz);
 
         const spinAnchor = new THREE.Group();
+        spinAnchor.scale.set(scale, scale, scale);
         wg.add(spinAnchor);
 
         if (wp.source) {
@@ -1987,14 +2163,14 @@
           spinAnchor.add(meshClone);
         }
 
-        subGroup.add(wg);
+        modelJeep.group.add(wg);
 
         modelJeep.wheelsData.push({
           group: wg,
           tireMesh: spinAnchor,
-          localX: wp.cx * scale,
-          localZ: wp.cz * scale,
-          hubY: wp.cy * scale,
+          localX: lx,
+          localZ: lz,
+          hubY: ly,
           radius: 0.327 * scale,
           isFront: wp.isFront,
           isDriven: wp.isDriven,
@@ -2003,7 +2179,6 @@
         });
       });
 
-      modelJeep.group.add(subGroup);
       if (currentVehicleIndex === 1) {
         activeWheels = modelJeep.wheelsData;
       }
@@ -2035,6 +2210,7 @@
       const subGroup = new THREE.Group();
       subGroup.scale.set(scale, scale, scale);
       if (bodyGroup) subGroup.add(bodyGroup);
+      modelSedan.group.add(subGroup);
 
       const wheelDefs = [
         { source: flWheel, cx:  0.691, cy: 0.268, cz:  1.196, isFront: true,  isDriven: false },
@@ -2044,10 +2220,15 @@
       ];
 
       wheelDefs.forEach(wp => {
+        const lx = wp.cx * scale;
+        const ly = wp.cy * scale;
+        const lz = wp.cz * scale;
+
         const wg = new THREE.Group();
-        wg.position.set(wp.cx, wp.cy, wp.cz);
+        wg.position.set(lx, ly, lz);
 
         const spinAnchor = new THREE.Group();
+        spinAnchor.scale.set(scale, scale, scale);
         wg.add(spinAnchor);
 
         if (wp.source) {
@@ -2056,14 +2237,14 @@
           spinAnchor.add(meshClone);
         }
 
-        subGroup.add(wg);
+        modelSedan.group.add(wg);
 
         modelSedan.wheelsData.push({
           group: wg,
           tireMesh: spinAnchor,
-          localX: wp.cx * scale,
-          localZ: wp.cz * scale,
-          hubY: wp.cy * scale,
+          localX: lx,
+          localZ: lz,
+          hubY: ly,
           radius: 0.262 * scale,
           isFront: wp.isFront,
           isDriven: wp.isDriven,
@@ -2072,7 +2253,6 @@
         });
       });
 
-      modelSedan.group.add(subGroup);
       if (currentVehicleIndex === 2) {
         activeWheels = modelSedan.wheelsData;
       }
@@ -2104,6 +2284,7 @@
       const subGroup = new THREE.Group();
       subGroup.scale.set(scale, scale, scale);
       if (bodyGroup) subGroup.add(bodyGroup);
+      modelRacer.group.add(subGroup);
 
       const wheelDefs = [
         { source: flWheel, cx:  0.726, cy: 0.265, cz:  1.186, isFront: true,  isDriven: false },
@@ -2113,10 +2294,15 @@
       ];
 
       wheelDefs.forEach(wp => {
+        const lx = wp.cx * scale;
+        const ly = wp.cy * scale;
+        const lz = wp.cz * scale;
+
         const wg = new THREE.Group();
-        wg.position.set(wp.cx, wp.cy, wp.cz);
+        wg.position.set(lx, ly, lz);
 
         const spinAnchor = new THREE.Group();
+        spinAnchor.scale.set(scale, scale, scale);
         wg.add(spinAnchor);
 
         if (wp.source) {
@@ -2125,14 +2311,14 @@
           spinAnchor.add(meshClone);
         }
 
-        subGroup.add(wg);
+        modelRacer.group.add(wg);
 
         modelRacer.wheelsData.push({
           group: wg,
           tireMesh: spinAnchor,
-          localX: wp.cx * scale,
-          localZ: wp.cz * scale,
-          hubY: wp.cy * scale,
+          localX: lx,
+          localZ: lz,
+          hubY: ly,
           radius: 0.280 * scale,
           isFront: wp.isFront,
           isDriven: wp.isDriven,
@@ -2141,7 +2327,6 @@
         });
       });
 
-      modelRacer.group.add(subGroup);
       if (currentVehicleIndex === 4) {
         activeWheels = modelRacer.wheelsData;
       }
@@ -2152,28 +2337,75 @@
       const dt = root.getObjectByName('Dumptruck_01_Cube');
       if (!dt) return;
 
+      // Удаляем запечённые статичные колёса из геометрии грузовика, сохраняя кузов, зеркала и решётку
+      stripWheelIslands(dt, 1.85, 1.80, 0.25);
+
       root.traverse(c => {
         if (c.isMesh) {
           c.castShadow = true;
           c.receiveShadow = true;
-          if (c.name.includes('_2') || (c.material && c.material.name === '1A1A1A')) {
-            c.visible = false;
+          if (c.material) {
+            c.material.roughness = 0.36;
+            c.material.metalness = 0.18;
           }
         }
       });
 
-      const dtGroup = new THREE.Group();
-      dtGroup.scale.set(0.48, 0.48, 0.48);
-      dtGroup.position.set(0, 0.65, 0.35);
-      dtGroup.add(dt);
+      modelTruck.group.clear();
+      modelTruck.wheelsData.length = 0;
 
-      modelTruck.group.children.forEach(c => {
-        if (c.geometry && c.geometry.type === 'BoxGeometry' && c.position.y > 1.2 && c.position.z > 1.0) {
-          c.visible = false;
+      const dtGroup = new THREE.Group();
+      dtGroup.scale.set(0.55, 0.55, 0.55);
+      dtGroup.rotation.y = Math.PI; // Поворачиваем кабиной вперёд (+Z)
+      dtGroup.position.set(0, 0.52, 0.25);
+      dtGroup.add(dt);
+      modelTruck.group.add(dtGroup);
+
+      // Брёвна в кузове тягача (аккуратно внутри кузова без пересечений с кабиной)
+      const logGeo = new THREE.CylinderGeometry(0.24, 0.26, 2.8, 8);
+      logGeo.rotateX(Math.PI / 2);
+      for (let row = 0; row < 2; row++) {
+        for (let col = -1; col <= 1; col++) {
+          const logMesh = new THREE.Mesh(logGeo, matWood);
+          logMesh.position.set(col * 0.44, 1.72 + row * 0.40, -1.05);
+          logMesh.castShadow = true;
+          logMesh.receiveShadow = true;
+          modelTruck.group.add(logMesh);
         }
+      }
+
+      // 6 независимых вращающихся внедорожных колёс 6x6
+      const wSetup = [
+        { x: -1.28, z:  1.76, isFront: true  },
+        { x:  1.28, z:  1.76, isFront: true  },
+        { x: -1.28, z: -0.98, isFront: false },
+        { x:  1.28, z: -0.98, isFront: false },
+        { x: -1.28, z: -2.18, isFront: false },
+        { x:  1.28, z: -2.18, isFront: false }
+      ];
+
+      wSetup.forEach(wp => {
+        const wInfo = createWheelMesh(0.62, 0.48, 0.36, 'truck');
+        wInfo.group.position.set(wp.x, 0.62, wp.z);
+        modelTruck.group.add(wInfo.group);
+
+        modelTruck.wheelsData.push({
+          group: wInfo.group,
+          tireMesh: wInfo.tireMesh,
+          localX: wp.x,
+          localZ: wp.z,
+          hubY: 0.62,
+          radius: 0.62,
+          isFront: wp.isFront,
+          isDriven: true,
+          lastDrawPos: new THREE.Vector2(0, 0),
+          slipRatio: 0
+        });
       });
 
-      modelTruck.group.add(dtGroup);
+      if (currentVehicleIndex === 0) {
+        activeWheels = modelTruck.wheelsData;
+      }
     }
 
     function applyGLTFToBus(gltf) {
@@ -2181,24 +2413,59 @@
       const busMesh = root.getObjectByName('Bus');
       if (!busMesh) return;
 
+      // Удаляем 4 статичных колеса из геометрии автобуса (острова с maxY < 14.2)
+      stripWheelIslands(busMesh, 14.2, 14.0, 1.0);
+
       root.traverse(c => {
         if (c.isMesh) {
           c.castShadow = true;
           c.receiveShadow = true;
+          if (c.material) {
+            c.material.roughness = 0.34;
+            c.material.metalness = 0.12;
+          }
         }
       });
+
+      modelBus.group.clear();
+      modelBus.wheelsData.length = 0;
 
       const busGroup = new THREE.Group();
       busGroup.scale.set(0.046, 0.046, 0.046);
-      busGroup.position.set(0, 0.22, 0);
+      busGroup.position.set(0, 0.18, 0);
       busGroup.add(busMesh);
-
-      modelBus.group.children.forEach(c => {
-        if (!c.children || !c.children[0] || !c.children[0].geometry || c.children[0].geometry.type !== 'CylinderGeometry') {
-          c.visible = false;
-        }
-      });
       modelBus.group.add(busGroup);
+
+      // Анимированные колёса точно в колёсных арках автобуса (Z = +1.80 и Z = -2.19)
+      const wSetup = [
+        { x: -0.88, z:  1.80, isFront: true,  isDriven: false },
+        { x:  0.88, z:  1.80, isFront: true,  isDriven: false },
+        { x: -0.88, z: -2.19, isFront: false, isDriven: true  },
+        { x:  0.88, z: -2.19, isFront: false, isDriven: true  }
+      ];
+
+      wSetup.forEach(wp => {
+        const wInfo = createWheelMesh(0.45, 0.32, 0.28, 'chrome_cap');
+        wInfo.group.position.set(wp.x, 0.45, wp.z);
+        modelBus.group.add(wInfo.group);
+
+        modelBus.wheelsData.push({
+          group: wInfo.group,
+          tireMesh: wInfo.tireMesh,
+          localX: wp.x,
+          localZ: wp.z,
+          hubY: 0.45,
+          radius: 0.45,
+          isFront: wp.isFront,
+          isDriven: wp.isDriven,
+          lastDrawPos: new THREE.Vector2(0, 0),
+          slipRatio: 0
+        });
+      });
+
+      if (currentVehicleIndex === 3) {
+        activeWheels = modelBus.wheelsData;
+      }
     }
 
     // Запуск асинхронной загрузки 3D-моделей
@@ -2310,6 +2577,160 @@
       bLog.receiveShadow = true;
       scene.add(bLog);
     }
+
+    // --- 7B. КОНТРОЛЬНЫЕ ВОРОТА (ЧЕКПОИНТЫ) И ФИНИШНАЯ АРКА ЭКСПЕДИЦИИ ---
+    const checkpoints = [];
+    const cpDefs = [
+      { z: -64, title: 'КП-1: СТАРТ БЕТОН',    isFinish: false },
+      { z: -40, title: 'КП-2: ТАЁЖНЫЙ ЛЕС',    isFinish: false },
+      { z: -15, title: 'КП-3: ПЕСЧАНЫЙ КАРЬЕР',isFinish: false },
+      { z:  12, title: 'КП-4: ГЛИНЯНАЯ КОЛЕЯ', isFinish: false },
+      { z:  36, title: 'КП-5: ТОРФЯНОЕ БОЛОТО',isFinish: false },
+      { z:  55, title: 'КП-6: БРЕВЕНЧАТЫЙ МОСТ',isFinish: false },
+      { z:  80, title: '🏁 ФИНИШ: ВЕРШИНА ПЕРЕВАЛА', isFinish: true }
+    ];
+
+    const cpPostGeo = new THREE.CylinderGeometry(0.22, 0.26, 5.2, 8);
+    const cpBeamGeo = new THREE.BoxGeometry(11.6, 0.65, 0.45);
+    const cpPostMat = new THREE.MeshStandardMaterial({ color: 0x3b2818, roughness: 0.85 });
+
+    cpDefs.forEach((def, idx) => {
+      const cpGroup = new THREE.Group();
+      const baseY = getTerrainHeight(0, def.z);
+      cpGroup.position.set(0, baseY, def.z);
+
+      const halfSpan = 5.4;
+      for (let side = -1; side <= 1; side += 2) {
+        const post = new THREE.Mesh(cpPostGeo, cpPostMat);
+        post.position.set(side * halfSpan, 2.5, 0);
+        post.castShadow = true;
+        cpGroup.add(post);
+      }
+
+      // Баннер на перекладине арки
+      const bCanv = document.createElement('canvas');
+      bCanv.width = 512;
+      bCanv.height = 64;
+      const bCtx = bCanv.getContext('2d');
+      bCtx.fillStyle = def.isFinish ? '#d90429' : '#1f1914';
+      bCtx.fillRect(0, 0, 512, 64);
+      bCtx.strokeStyle = '#ff9f1c';
+      bCtx.lineWidth = 6;
+      bCtx.strokeRect(3, 3, 506, 58);
+      bCtx.fillStyle = '#ffffff';
+      bCtx.font = '900 26px "Segoe UI", sans-serif';
+      bCtx.textAlign = 'center';
+      bCtx.textBaseline = 'middle';
+      bCtx.fillText(def.title, 256, 33);
+
+      const bTex = new THREE.CanvasTexture(bCanv);
+      const beamMat = new THREE.MeshStandardMaterial({ map: bTex, roughness: 0.4 });
+      const beam = new THREE.Mesh(cpBeamGeo, beamMat);
+      beam.position.set(0, 4.85, 0);
+      beam.castShadow = true;
+      cpGroup.add(beam);
+
+      // Светящиеся маячки на вершинах столбов
+      const beaconMat = new THREE.MeshStandardMaterial({
+        color: def.isFinish ? 0xe71d36 : 0xff9f1c,
+        emissive: def.isFinish ? 0xe71d36 : 0xff9f1c,
+        emissiveIntensity: 0.9,
+        roughness: 0.2
+      });
+      const bGeo = new THREE.SphereGeometry(0.34, 12, 12);
+      const bL = new THREE.Mesh(bGeo, beaconMat);
+      bL.position.set(-halfSpan, 5.3, 0);
+      const bR = new THREE.Mesh(bGeo, beaconMat);
+      bR.position.set(halfSpan, 5.3, 0);
+      cpGroup.add(bL, bR);
+
+      scene.add(cpGroup);
+      checkpoints.push({
+        index: idx,
+        z: def.z,
+        title: def.title,
+        isFinish: def.isFinish,
+        passed: false,
+        beaconMat,
+        group: cpGroup
+      });
+    });
+
+    let passedCount = 0;
+    let expeditionTime = 0;
+    let expeditionFinished = false;
+
+    // --- 7C. РАБОЧИЕ ФАРЫ [L] И СТОП-СИГНАЛЫ НА АВТОМОБИЛЕ ---
+    let headlightsOn = true;
+    const headlightsGroup = new THREE.Group();
+    truck.add(headlightsGroup);
+
+    // Реальный луч прожектора фар, освещающий дорогу и лес впереди
+    const mainSpotLight = new THREE.SpotLight(0xfff5d6, 2.2, 42, Math.PI / 4.2, 0.45, 1.2);
+    mainSpotLight.position.set(0, 1.35, 2.4);
+    const spotTarget = new THREE.Object3D();
+    spotTarget.position.set(0, 0.2, 16.0);
+    headlightsGroup.add(mainSpotLight);
+    headlightsGroup.add(spotTarget);
+    mainSpotLight.target = spotTarget;
+
+    // Объемные полупрозрачные конусы света фар в стиле Bruno Simon
+    const beamConeGeo = new THREE.ConeGeometry(2.1, 9.5, 16, 1, true);
+    beamConeGeo.translate(0, -4.75, 0);
+    beamConeGeo.rotateX(-Math.PI / 2);
+    const beamConeMat = new THREE.MeshBasicMaterial({
+      color: 0xfff3c4,
+      transparent: true,
+      opacity: 0.13,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    const leftBeamCone = new THREE.Mesh(beamConeGeo, beamConeMat);
+    leftBeamCone.position.set(-0.65, 0.95, 2.3);
+    const rightBeamCone = new THREE.Mesh(beamConeGeo, beamConeMat);
+    rightBeamCone.position.set(0.65, 0.95, 2.3);
+    headlightsGroup.add(leftBeamCone, rightBeamCone);
+
+    // Динамические задние стоп-сигналы
+    const brakeLightMat = new THREE.MeshStandardMaterial({
+      color: 0xff1e27,
+      emissive: 0xff0a14,
+      emissiveIntensity: 0.3,
+      roughness: 0.2
+    });
+    const brakeGlowL = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 8), brakeLightMat);
+    const brakeGlowR = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 8), brakeLightMat);
+    brakeGlowL.position.set(-0.72, 0.78, -2.15);
+    brakeGlowR.position.set(0.72, 0.78, -2.15);
+    truck.add(brakeGlowL, brakeGlowR);
+
+    function toggleHeadlights() {
+      headlightsOn = !headlightsOn;
+      headlightsGroup.visible = headlightsOn;
+      matHeadlight.emissiveIntensity = headlightsOn ? 1.1 : 0.1;
+      const st = document.getElementById('lights-state');
+      if (st) st.textContent = headlightsOn ? 'ВКЛ' : 'ВЫКЛ';
+      showPopup(headlightsOn ? '💡 ФАРЫ ДАЛЬНЕГО СВЕТА ВКЛЮЧЕНЫ' : 'ФАРЫ ВЫКЛЮЧЕНЫ');
+    }
+
+    // --- 7D. АТМОСФЕРНЫЙ СНЕГОПАД НА СНЕЖНОМ ПЕРЕВАЛЕ (СЕКТОР 7) ---
+    const SNOW_COUNT = 260;
+    const snowGeo = new THREE.BufferGeometry();
+    const snowPositions = new Float32Array(SNOW_COUNT * 3);
+    for (let i = 0; i < SNOW_COUNT; i++) {
+      snowPositions[i * 3]     = (Math.random() - 0.5) * 56;
+      snowPositions[i * 3 + 1] = Math.random() * 18 + 1;
+      snowPositions[i * 3 + 2] = 42 + Math.random() * 48; // Z: +42 .. +90
+    }
+    snowGeo.setAttribute('position', new THREE.BufferAttribute(snowPositions, 3));
+    const snowParticlesMat = new THREE.PointsMaterial({
+      color: 0xffffff,
+      size: 0.32,
+      transparent: true,
+      opacity: 0.82
+    });
+    const snowPoints = new THREE.Points(snowGeo, snowParticlesMat);
+    scene.add(snowPoints);
 
     // --- 8. НАСТОЯЩИЙ ЗВУК ДИЗЕЛЯ ЯМЗ-238 (СТУК ЦИЛИНДРОВ + ТУРБИНА + ПНЕВМОТОРМОЗ) ---
     let audioCtx = null;
@@ -2462,6 +2883,26 @@
           cGain.connect(audioCtx.destination);
           cOsc.start(audioCtx.currentTime + t);
           cOsc.stop(audioCtx.currentTime + t + 0.13);
+        });
+      } catch (e) {}
+    }
+
+    function playCheckpointChime(isFinish = false) {
+      if (!audioCtx || !audioEnabled) return;
+      try {
+        const notes = isFinish ? [523.25, 659.25, 783.99, 1046.5] : [587.33, 880.0];
+        notes.forEach((freq, i) => {
+          const osc = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          const t = audioCtx.currentTime + i * 0.09;
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, t);
+          g.gain.setValueAtTime(0.18, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+          osc.connect(g);
+          g.connect(audioCtx.destination);
+          osc.start(t);
+          osc.stop(t + 0.29);
         });
       } catch (e) {}
     }
@@ -2635,6 +3076,15 @@
         dieselDroneOsc.frequency.setTargetAtTime(freq, audioCtx.currentTime, 0.04);
         dieselDroneOsc2.frequency.setTargetAtTime(freq * 2.0, audioCtx.currentTime, 0.04);
         if (turboGain) turboGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.06);
+      } else if (cfg.soundType === 'sport') {
+        // Высокооборотистый спортивный мотор купе Racer GT + турбо-свист
+        const rate = Math.max(1.1, rpm / 520);
+        dieselClatterNode.playbackRate.setTargetAtTime(rate * 1.65, audioCtx.currentTime, 0.03);
+        const freq = Math.max(68, (rpm / 60) * 4.5);
+        dieselDroneOsc.frequency.setTargetAtTime(freq, audioCtx.currentTime, 0.03);
+        dieselDroneOsc2.frequency.setTargetAtTime(freq * 2.0, audioCtx.currentTime, 0.03);
+        turboOsc.frequency.setTargetAtTime(680 + (rpm / 3000) * 1450, audioCtx.currentTime, 0.05);
+        if (turboGain) turboGain.gain.setTargetAtTime(0.015 + (rpm / 3000) * 0.045, audioCtx.currentTime, 0.05);
       } else if (cfg.soundType === 'bus') {
         // Тяжелый автобусный двигатель
         const rate = Math.max(0.62, rpm / 780);
@@ -2648,7 +3098,7 @@
       mudNoiseGain.gain.setTargetAtTime(Math.min(0.32, slip * 0.28), audioCtx.currentTime, 0.06);
     }
 
-    // --- 9. ЧАСТИЦЫ: ДЫМ ВЫХЛОПА И ГРЯЗЬ ---
+    // --- 9. ЧАСТИЦЫ: ДЫМ ВЫХЛОПА И БРЫЗГИ ПО БИОМАМ ---
     const MAX_SMOKE = 35;
     const smokePool = [];
     const smokeGeo = new THREE.SphereGeometry(0.2, 7, 7);
@@ -2681,19 +3131,31 @@
     const chunkMat = new THREE.MeshStandardMaterial({ color: 0x1f140b, roughness: 0.95 });
 
     for (let i = 0; i < MAX_MUD_CHUNKS; i++) {
-      const cm = new THREE.Mesh(chunkGeo, chunkMat);
+      const cm = new THREE.Mesh(chunkGeo, chunkMat.clone());
       cm.visible = false;
       cm.castShadow = true;
       scene.add(cm);
       mudPool.push({ mesh: cm, vel: new THREE.Vector3(), life: 0, maxLife: 1 });
     }
 
-    function spawnMudChunk(pos, dir, power) {
+    function spawnMudChunk(pos, dir, power, sectorType = 'clay') {
       const c = mudPool.find(item => !item.mesh.visible);
       if (!c) return;
       c.mesh.visible = true;
       c.mesh.position.copy(pos);
       c.mesh.scale.setScalar(0.7 + Math.random() * 0.8);
+
+      // Цвет брызг соответствует текущему грунту (снег, песок, вода болота или глина)
+      if (sectorType === 'snow') {
+        c.mesh.material.color.setHex(0xf1f5f9);
+      } else if (sectorType === 'sand') {
+        c.mesh.material.color.setHex(0xd4a359);
+      } else if (sectorType === 'swamp') {
+        c.mesh.material.color.setHex(0x2b3d28);
+      } else {
+        c.mesh.material.color.setHex(0x24170c);
+      }
+
       c.vel.set(
         -dir.x * power * 3.5 + (Math.random() - 0.5) * 2,
         2.5 + Math.random() * 3.0 * power,
@@ -2713,12 +3175,44 @@
     winchLine.visible = false;
     scene.add(winchLine);
 
-    // --- 10. УПРАВЛЕНИЕ И СИСТЕМЫ ---
+    // --- 10. УПРАВЛЕНИЕ, ИНТЕРАКТИВНАЯ КАМЕРА И СИСТЕМЫ ---
     const keys = { forward: false, backward: false, left: false, right: false, handbrake: false };
     let isAWD = true;
     let isDiffLock = false;
     let isLowGear = false;
     let cameraMode = 0;
+
+    // Интерактивное вращение камеры мышью и зум колесом
+    let camOrbitYaw = 0;
+    let camOrbitPitch = 0;
+    let camZoom = 1.0;
+    let isDraggingCam = false;
+    let prevMouseX = 0;
+    let prevMouseY = 0;
+
+    container.addEventListener('pointerdown', e => {
+      isDraggingCam = true;
+      prevMouseX = e.clientX;
+      prevMouseY = e.clientY;
+    });
+    window.addEventListener('pointermove', e => {
+      if (!isDraggingCam) return;
+      const dx = e.clientX - prevMouseX;
+      const dy = e.clientY - prevMouseY;
+      prevMouseX = e.clientX;
+      prevMouseY = e.clientY;
+      camOrbitYaw -= dx * 0.007;
+      camOrbitPitch = THREE.MathUtils.clamp(camOrbitPitch + dy * 0.005, -0.35, 0.65);
+    });
+    window.addEventListener('pointerup', () => { isDraggingCam = false; });
+    container.addEventListener('dblclick', () => {
+      camOrbitYaw = 0;
+      camOrbitPitch = 0;
+      camZoom = 1.0;
+    });
+    window.addEventListener('wheel', e => {
+      camZoom = THREE.MathUtils.clamp(camZoom + (e.deltaY > 0 ? 0.08 : -0.08), 0.55, 1.65);
+    }, { passive: true });
 
     window.addEventListener('keydown', e => {
       if (!audioCtx) initAudio();
@@ -2737,6 +3231,7 @@
         case 'KeyE': toggleDiffLock(); break;
         case 'KeyR': toggleLowGear(); break;
         case 'KeyF': toggleWinch(); break;
+        case 'KeyL': toggleHeadlights(); break;
         case 'KeyC': cycleCamera(); break;
         case 'KeyV': resetTruck(); break;
         case 'KeyM': toggleAudio(); break;
@@ -2757,7 +3252,7 @@
       const el = document.getElementById('hud-alert');
       el.textContent = text;
       el.style.opacity = '1';
-      setTimeout(() => { el.style.opacity = '0'; }, 2200);
+      setTimeout(() => { el.style.opacity = '0'; }, 2400);
     }
 
     function toggleAWD() {
@@ -2854,6 +3349,8 @@
 
     function cycleCamera() {
       cameraMode = (cameraMode + 1) % 3;
+      camOrbitYaw = 0;
+      camOrbitPitch = 0;
       const names = ['ИЗОМЕТРИЯ (Bruno Simon)', 'ВИД СЗАДИ (Экшен)', 'ВИД СВЕРХУ (Карта)'];
       showPopup('РЕЖИМ КАМЕРЫ: ' + names[cameraMode]);
     }
@@ -2865,6 +3362,24 @@
       truckPitch = 0;
       truckRoll = 0;
       if (winchActive) toggleWinch();
+
+      // Сброс чекпоинтов экспедиции
+      passedCount = 0;
+      expeditionTime = 0;
+      expeditionFinished = false;
+      checkpoints.forEach((cp, idx) => {
+        cp.passed = false;
+        const cHex = cp.isFinish ? 0xe71d36 : 0xff9f1c;
+        cp.beaconMat.color.setHex(cHex);
+        cp.beaconMat.emissive.setHex(cHex);
+        const dot = document.getElementById('cp-dot-' + idx);
+        if (dot) {
+          dot.classList.remove('passed');
+          if (idx === 0) dot.classList.add('current');
+          else dot.classList.remove('current');
+        }
+      });
+      document.getElementById('cp-text').textContent = '🏁 ЧЕКПОИНТ: 0 / 7';
       showPopup(currentVehicleConfig.name + ' НА СТАРТЕ ПОЛИГОНА (СЕКТОР 1)');
     }
 
@@ -2872,12 +3387,18 @@
     const clock = new THREE.Clock();
     let steerAngle = 0;
     let trackThrottleTimer = 0;
+    const tempWheelWorldPos = new THREE.Vector3();
 
     function animate() {
       requestAnimationFrame(animate);
 
       const delta = Math.min(clock.getDelta(), 0.05);
       const cfg = currentVehicleConfig;
+
+      // Таймер экспедиции
+      if (!expeditionFinished && (passedCount > 0 || Math.abs(truckSpeed) > 0.2)) {
+        expeditionTime += delta;
+      }
 
       // Руль
       const targetSteer = (keys.left ? 0.52 : 0) - (keys.right ? 0.52 : 0);
@@ -2903,7 +3424,6 @@
       if (isLowGear) totalDrag *= 0.5;
 
       // Тяга двигателя
-      const maxSpeed = isLowGear ? cfg.lowMaxSpeed : cfg.maxSpeed;
       const torque = isLowGear ? cfg.torqueMult : 1.0;
       let power = 0;
 
@@ -2918,6 +3438,12 @@
         power = 0;
         truckSpeed = THREE.MathUtils.lerp(truckSpeed, 0, delta * 14);
       }
+
+      // Стоп-сигналы при торможении или заднем ходе
+      const isBraking = keys.backward || keys.handbrake;
+      brakeLightMat.emissiveIntensity = isBraking ? 2.4 : 0.25;
+      brakeGlowL.scale.setScalar(isBraking ? 1.35 : 0.9);
+      brakeGlowR.scale.setScalar(isBraking ? 1.35 : 0.9);
 
       // Лебедка
       if (winchActive && winchAnchor) {
@@ -2950,7 +3476,8 @@
       const forwardVec = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), truckHeading);
 
       activeWheels.forEach(w => {
-        const wPos = w.group.position.clone().applyMatrix4(truck.matrixWorld);
+        w.group.getWorldPosition(tempWheelWorldPos);
+        const wPos = tempWheelWorldPos;
         const wSector = getSectorData(wPos.x, wPos.z);
         const isDriven = w.isDriven && (!w.isFront || isAWD);
 
@@ -2981,9 +3508,9 @@
           }
         }
 
-        // Брызги
+        // Брызги из-под колёс
         if (slip > 0.3 && Math.random() < 0.55) {
-          spawnMudChunk(wPos, forwardVec, slip * 1.6);
+          spawnMudChunk(wPos, forwardVec, slip * 1.6, wSector.type);
         }
       });
 
@@ -3008,6 +3535,39 @@
 
       truckPos.x = THREE.MathUtils.clamp(truckPos.x, -36, 36);
       truckPos.z = THREE.MathUtils.clamp(truckPos.z, -86, 86);
+
+      // Проверка прохождения контрольных ворот (чекпоинтов)
+      checkpoints.forEach((cp, idx) => {
+        if (!cp.passed && Math.abs(truckPos.z - cp.z) < 3.6 && Math.abs(truckPos.x) < 6.8) {
+          cp.passed = true;
+          passedCount++;
+          cp.beaconMat.color.setHex(0x2ec4b6);
+          cp.beaconMat.emissive.setHex(0x2ec4b6);
+
+          const dot = document.getElementById('cp-dot-' + idx);
+          if (dot) {
+            dot.classList.remove('current');
+            dot.classList.add('passed');
+          }
+          const nextDot = document.getElementById('cp-dot-' + (idx + 1));
+          if (nextDot && !nextDot.classList.contains('passed')) {
+            nextDot.classList.add('current');
+          }
+
+          document.getElementById('cp-text').textContent = `🏁 ЧЕКПОИНТ: ${passedCount} / ${checkpoints.length}`;
+
+          if (cp.isFinish || passedCount === checkpoints.length) {
+            expeditionFinished = true;
+            playCheckpointChime(true);
+            const mins = String(Math.floor(expeditionTime / 60)).padStart(2, '0');
+            const secs = String(Math.floor(expeditionTime % 60)).padStart(2, '0');
+            showPopup(`🏆 ПОЛИГОН ПРОЙДЕН НА ${cfg.name.toUpperCase()}! ВРЕМЯ: ${mins}:${secs}`);
+          } else {
+            playCheckpointChime(false);
+            showPopup(`✅ ПРОЙДЕН ${cp.title} (${passedCount}/${checkpoints.length})`);
+          }
+        }
+      });
 
       // --- ТОЧНЕЙШАЯ ПОСАДКА КУЗОВА НА ЗЕМЛЮ (АНТИ-ЗАВИСАНИЕ ДЛЯ ВСЕХ АВТО) ---
       const fwd = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), truckHeading);
@@ -3055,6 +3615,17 @@
         const targetSuspensionY = w.hubY + THREE.MathUtils.clamp(gap, -0.22, 0.22);
         w.group.position.y = THREE.MathUtils.lerp(w.group.position.y, targetSuspensionY, delta * 18);
       });
+
+      // Анимация снегопада на перевале
+      const sPos = snowGeo.attributes.position.array;
+      for (let i = 0; i < SNOW_COUNT; i++) {
+        sPos[i * 3 + 1] -= (2.2 + (i % 5) * 0.3) * delta;
+        sPos[i * 3] += Math.sin(expeditionTime * 1.5 + i) * 0.6 * delta;
+        if (sPos[i * 3 + 1] < 0) {
+          sPos[i * 3 + 1] = 18;
+        }
+      }
+      snowGeo.attributes.position.needsUpdate = true;
 
       // Выхлопной дым
       if (Math.abs(power) > 1 || Math.random() < 0.12) {
@@ -3107,20 +3678,21 @@
 
     function updateCameraView(delta) {
       if (cameraMode === 0) {
-        // Изометрия Бруно Симона
-        const offset = new THREE.Vector3(-22, 19, 22);
-        const camTarget = truckPos.clone().add(offset);
-        camera.position.lerp(camTarget, delta * 4);
+        // Изометрия Бруно Симона + орбитальное вращение мышью и зум
+        const baseOffset = new THREE.Vector3(-22, 19 + camOrbitPitch * 14, 22).multiplyScalar(camZoom);
+        baseOffset.applyAxisAngle(new THREE.Vector3(0, 1, 0), camOrbitYaw);
+        const camTarget = truckPos.clone().add(baseOffset);
+        camera.position.lerp(camTarget, delta * 5);
         camera.lookAt(truckPos.x, truckPos.y + 1.2, truckPos.z);
       } else if (cameraMode === 1) {
-        // Вид сзади (Экшен)
-        const back = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), truckHeading);
-        const camTarget = truckPos.clone().add(back.multiplyScalar(9.5)).add(new THREE.Vector3(0, 3.8, 0));
+        // Вид сзади (Экшен) + поворот мышью
+        const back = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), truckHeading + camOrbitYaw);
+        const camTarget = truckPos.clone().add(back.multiplyScalar(9.5 * camZoom)).add(new THREE.Vector3(0, (3.8 + camOrbitPitch * 5) * camZoom, 0));
         camera.position.lerp(camTarget, delta * 6);
         camera.lookAt(truckPos.x, truckPos.y + 1.4, truckPos.z);
       } else {
         // Вид сверху (Карта)
-        const camTarget = truckPos.clone().add(new THREE.Vector3(0, 34, 0.1));
+        const camTarget = truckPos.clone().add(new THREE.Vector3(0, 34 * camZoom, 0.1));
         camera.position.lerp(camTarget, delta * 5);
         camera.lookAt(truckPos.x, truckPos.y, truckPos.z);
       }
@@ -3134,6 +3706,8 @@
       if (keys.backward) g = 'R';
       else if (isLowGear) g = 'L';
       else if (spd === 0) g = 'N';
+      else if (spd > 32) g = '3';
+      else if (spd > 16) g = '2';
       document.getElementById('gear-display').textContent = g;
 
       const rPct = Math.min(100, Math.max(0, ((engineRPM - 800) / 2500) * 100));
@@ -3142,6 +3716,19 @@
       const sEl = document.getElementById('surface-display');
       sEl.textContent = sector.label + ' • ' + currentVehicleConfig.name;
       sEl.style.color = sector.color;
+
+      // Обновление таймера экспедиции
+      const mins = String(Math.floor(expeditionTime / 60)).padStart(2, '0');
+      const secs = String(Math.floor(expeditionTime % 60)).padStart(2, '0');
+      document.getElementById('exp-timer').textContent = `${mins}:${secs}`;
+
+      // Обновление креноскопа (крен и уклон в градусах)
+      const rollDeg = Math.round(THREE.MathUtils.radToDeg(truckRoll));
+      const pitchDeg = Math.round(THREE.MathUtils.radToDeg(-truckPitch));
+      document.getElementById('roll-val').textContent = `${rollDeg}°`;
+      document.getElementById('pitch-val').textContent = `${pitchDeg}°`;
+      document.getElementById('clino-roll-bar').style.transform = `rotate(${rollDeg}deg)`;
+      document.getElementById('clino-pitch-bar').style.transform = `rotate(${pitchDeg}deg)`;
     }
 
     window.addEventListener('resize', () => {
