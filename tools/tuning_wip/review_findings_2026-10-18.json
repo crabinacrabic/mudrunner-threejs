@@ -1,0 +1,211 @@
+{
+ "summary": "Read-only review of js/soil.js, the physics/pose/HUD/particle blocks of index.html, terrain_deform.js, mud_visuals.js and look.js. I made no edits to the game folder. Experiments used a scratch copy in scratchpad/B on port 8794 and CDP port 9362, and I stopped the server and Chrome afterwards. No crash is reachable through normal UI today: a fuzz run of 290 random key, switch, teleport and toggle events over 24 s gave 0 JS errors, 0 non-finite values and 0 bad soil cells. The real defects are mostly latent robustness, stale state and minor behavioural issues. Eleven findings were reproduced in the headless browser; the rest are from reading the code. ?nolook, ?nopost, WebGL1, no OES_texture_float_linear, maxVertexTextures=0, no float textures and file:// all ran without errors. Per-frame soil cost is about 0.9 ms (relax 0.53 ms with 268 active tiles, flushDirty 0.23 ms), so there is no real performance problem.",
+ "findings": [
+  {
+   "rank": 1,
+   "severity": "crash (latent)",
+   "reproduced": true,
+   "file": "index.html (animate, pose block) + js/soil.js",
+   "code": "const mH = sumH / nW, mZ = sumZ / nW ...; let planeAtOrigin = mH - slopeZ*mZ - ...; truckPos.y = THREE.MathUtils.lerp(truckPos.y, groundAtCenter, delta*18); ... soilV.accelPrev (never reset)",
+   "problem": "With an empty wheel list, nW=0 gives mH=NaN. The NaN spreads to groundAtCenter, then truckPos.y, bellyAmount, soilV.belly, truckSpeed, soilV.accelPrev and truckPos.x/z. It does not heal when wheels return. contact() then throws 'Cannot read properties of undefined (reading biteSens)' at soil.js:285 every frame, animate throws before render and the screen freezes. resetTruck (V) does not recover it, because soilV.accelPrev, rutVLat and bellyAmount are not reset.",
+   "scenario": "In the page I set activeWheels=[] for one frame and restored it. truckPos.y, truckRoll and truckSpeed became NaN permanently, and after resetTruck() x/z/speed were still NaN. Not reachable from the UI today, because switchVehicle blocks pending and failed models. It becomes reachable if a spec has wheels:[] or the wheel list is empty for any other reason.",
+   "fix": "In animate: `const simWheels = prepareWheelSet(activeWheels); if (!simWheels.length) { renderFrameOnly(); return; }` (still render). After vehicleStep: `if (!Number.isFinite(soilStepOut.speed)) { truckSpeed = 0; soilV.accelPrev = 0; bellyAmount = 0; rutVLat = 0; }`. In resetTruck add `soilV.accelPrev = 0; rutVLat = 0; bellyAmount = 0; throttleState = 0;` and reset every wheel state."
+  },
+  {
+   "rank": 2,
+   "severity": "crash (latent)",
+   "reproduced": true,
+   "file": "js/soil.js",
+   "code": "SoilSim.makeStepOut = ... axCap: new Float64Array(8), axCnt: new Int32Array(8), axMin: new Float64Array(8) ... const each = axDemand / axCnt[ax];",
+   "problem": "The axle id comes from prepareWheelSet as the index of the distinct 0.2 m z-buckets. At 9 or more buckets, writes to typed-array index 8 or higher are silently ignored. axCnt[ax] is then undefined, so each, thrust and speed are NaN, with the same unrecoverable poisoning as finding 1.",
+   "scenario": "A synthetic vehicleStep with 9 axle groups returned out.speed = NaN. With 8 groups it was fine. The current vehicles have at most 3 axles, but any future spec with 8 or more wheels at different z, or jittery localZ, would hit it.",
+   "fix": "In prepareWheelSet use `axle: Math.min(7, zs.indexOf(...))`, or make the arrays grow: in vehicleStep `if (out.axCap.length <= maxAx) { out.axCap = new Float64Array(maxAx+1); out.axCnt = new Int32Array(maxAx+1); out.axMin = new Float64Array(maxAx+1); }`."
+  },
+  {
+   "rank": 3,
+   "severity": "wrong behaviour",
+   "reproduced": true,
+   "file": "js/soil.js SoilSim.relax",
+   "code": "var pr = P[tm[c]]; if (!pr.deform) continue; ... if (ch > 0.001) { d[q+3] = ch - ch*Math.min(0.3, dtS*(pr.deform ? 0.02 : 0.01)); ... }",
+   "problem": "Non-deformable cells (concrete, bridge) are skipped before the churn and wetness decay. The `pr.deform ? 0.02 : 0.01` branch is dead code. Mud smear (stamp writes churn on hard ground) and wet footprints (stamp writes wet when inWater) therefore never fade on the start pad or the bridge. Clods landing via splat() use ttl 0, so tiles that are not active never relax either.",
+   "scenario": "I set churn=0.8 and wet=0.9 on a concrete cell, marked its tile active with ttl 900 and waited 3 s. Churn stayed 0.8 and wet stayed 0.9 (ttl still 596). A muddy truck leaves permanent smears on the start pad, and wet footprints near water stay on the bridge deck.",
+   "fix": "In relax, move the `!pr.deform` test below the churn and wet decay, so non-deform cells skip only the slump/settle part: `var deform = pr.deform; if (deform) { ...slump/settle... } ...churn/wet decay for all...`. For wetness on hard ground use `bw = pr.baseWet` (0)."
+  },
+  {
+   "rank": 4,
+   "severity": "perf / wrong behaviour (minor)",
+   "reproduced": true,
+   "file": "index.html resetTruck() / switchVehicle() + js/soil.js stamp()",
+   "code": "function resetTruck() { truckPos.set(0,0,-75); ... } // wheel states keep hasLast/lastX/lastZ; stamp(): if (ws.hasLast) { dist = hypot(x-lx, z-lz); steps = min(14, max(1, ceil(dist/0.07))); }",
+   "problem": "V and switching back to a vehicle used earlier keep the old wheel state, so the first stamp runs from the stale position to the new one. That makes 14 isolated stamps along a 100+ m line and one huge min/max dirty rectangle. throttleState, rutVLat, soilV.accelPrev, bellyAmount and tyre mud are also not reset by resetTruck.",
+   "scenario": "I set truckPos to (20,0,60), waited 1.5 s and called resetTruck(). The first frame marked 1137 dirty tiles, made 84 texSubImage2D calls and left 1146 active tiles for several seconds, then about 170 dirty tiles per frame. The ghost stamps themselves were only 0.2 mm deep, so the effect is a hitch, not visible marks.",
+   "fix": "In stamp: `if (ws.hasLast && Math.hypot(x-ws.lastX, z-ws.lastZ) > 3) ws.hasLast = false;`. Also in resetTruck and switchVehicle: `for (const w of activeWheels) if (w.s) { w.s.hasLast = false; w.s.mud = 0; w.s.dig = 0; }`."
+  },
+  {
+   "rank": 5,
+   "severity": "wrong behaviour (visual)",
+   "reproduced": true,
+   "file": "index.html refreshVehicleDirtPatches / applyGLTFToTruck, Jeep, Sedan, Bus, Racer",
+   "code": "if (!vehicleDirtWheels[i] && m.wheelsData.length && typeof setDirtWheels === 'function') { ... setDirtWheels(...); vehicleDirtWheels[i] = true; }",
+   "problem": "The first refresh (end of the script) binds the dirt-shader wheel slots to the procedural wheels and sets the flag. When the async GLB replaces wheelsData in place (applyGLTFTo*), the flag stays true and setDirtWheels is never re-run. The body-dirt splash bias then sits at the wrong wheel positions, and the old 6 slots remain.",
+   "scenario": "After load, the bus uniform wheel slots were [-1.08,2.4], [1.08,2.4], [-0.98,-1.8], [-1.26,-1.8], [0.98,-1.8], [1.26,-1.8], but the actual GLB wheels are [-0.9,1.8], [0.9,1.8], [-0.9,-2.19], [0.9,-2.19]. vehicleDirtWheels was true for all 10 vehicles.",
+   "fix": "At the end of each applyGLTFTo*: `vehicleDirtWheels[currentIdxOfThatModel] = false; refreshVehicleDirtPatches();`. Or in refresh, store the wheelsData length and ref of the first wheel and redo setDirtWheels when it changes."
+  },
+  {
+   "rank": 6,
+   "severity": "wrong behaviour (minor)",
+   "reproduced": false,
+   "file": "js/soil.js relax()/_markTile (tileTTL), stamp ttl",
+   "code": "this.tileTTL[t] = ttl > 4 ? ttl - 4 : 0; // processed every 4th frame -> TTL counts frames; ttl: swamp/clay 900, sand 240",
+   "problem": "Tile lifetime is measured in frames. At 144 Hz the swamp or clay ruts keep sloughing and settling for 6 s and then freeze permanently half-healed; at 60 Hz it is 15 s; at 30 Hz it is 30 s. The `(a + frame) & 3` slot uses the index in the active list, which shifts as the list is compacted. A tile can therefore be processed twice within 2 frames or skipped for 7, while dtS = 4*dt assumes exactly every 4th frame.",
+   "scenario": "Same swamp rut on a 144 Hz monitor versus a 60 Hz one: about 27% versus 53% healed when the tile deactivates. Static analysis; I did not time it.",
+   "fix": "Make tileTTL a Float32Array in seconds: `this.tileTTL[t] -= dtS` when processed, with ttl values in seconds (900 frames at 60 Hz is 15 s). Keep a per-tile `lastFrame` or `nextFrame = frame + 4` instead of `(a+frame)&3`."
+  },
+  {
+   "rank": 7,
+   "severity": "minor visual (shimmer)",
+   "reproduced": true,
+   "file": "index.html animate (sun/shadow follow)",
+   "code": "const snap = 0.5; sunLight.target.position.set(Math.round(truckPos.x / snap) * snap, 0, Math.round(truckPos.z / snap) * snap);",
+   "problem": "The snap is 0.5 m along world X and Z, but the shadow texel is 136/2048 = 0.0664 m in light-space axes. Each snap step moves the shadow-map phase by 4.43/6.09 (right axis) and 2.86/2.08 (up axis) texels, which are never whole numbers. Shadow edges shimmer every time the truck crosses a 0.5 m boundary (up to 20 times per second at 10 m/s).",
+   "scenario": "Numbers computed in the page from sunDirection (0.714, 0.469, -0.519).",
+   "fix": "Snap in light space: `const f = sunDirection.clone().negate(); const r = new THREE.Vector3().crossVectors(f, UP).normalize(); const u = new THREE.Vector3().crossVectors(r, f); const texel = 2*shadowD/2048; const pr = Math.round(truckPos.dot(r)/texel)*texel, pu = Math.round(truckPos.dot(u)/texel)*texel, pf = truckPos.dot(f); sunLight.target.position.copy(r.multiplyScalar(pr).addScaledVector(u, pu).addScaledVector(f, pf)); target.y is then derived (not forced to 0)`. Allocate the vectors once."
+  },
+  {
+   "rank": 8,
+   "severity": "wrong behaviour (minor)",
+   "reproduced": true,
+   "file": "js/soil.js rutPush + index.html",
+   "code": "return { lat: sumF / mass, yaw: (nF ? sumFront / nF : 0) - (nR ? sumRear / nR : 0) }; ... truckHeading += THREE.MathUtils.clamp(rut.yaw, -3, 3) * 0.05 * rutGate * delta;",
+   "problem": "lat is divided by mass but yaw is a force in newtons (no mass or inertia normalisation). The ±3 clamp saturates for any front/rear difference above 3 N, so the heading nudge is bang-bang at ±0.15 rad/s instead of proportional.",
+   "scenario": "Sampled rut.yaw values while driving a jeep through its own rut were 2.8, 11, 27.8, -36.5, 43.3 N. Measured heading drift over 2.5 s stayed 0.005 rad or less, because the sign alternates, so the real effect is small. The sign of the guidance is correct: offset +0.3 gives lat -0.283 and offset -0.3 gives lat +0.248, both toward the rut centre. Steering, pitch and roll signs were also verified.",
+   "fix": "Normalise: `yaw: ((nF?sumFront/nF:0)-(nR?sumRear/nR:0)) / mass` and drop the ±3 clamp, or use `clamp(rut.yaw/mass, -0.6, 0.6)`."
+  },
+  {
+   "rank": 9,
+   "severity": "minor visual",
+   "reproduced": true,
+   "file": "js/terrain_deform.js soilVertexHeight (uVertexFilter 1.5, 5x5 taps) vs index.html getTerrainHeight/footprintDH",
+   "code": "vec2 o = uMeshCell * ( 0.5 * uVertexFilter ); ... h += w * soilAt( xz + vec2( a*o.x, b*o.y ) ).x;",
+   "problem": "The prefiltered vertex displacement is much shallower than the physical dh under the wheels. Tyres are therefore placed about 2.4 cm below the rendered mesh at the bottom of a rut and clip into it.",
+   "scenario": "After driving the jeep on clay, at the wheel line physDH was -0.061 and -0.057, footprintDH -0.048 and -0.045, but the mesh-filtered DH was -0.022 and -0.024.",
+   "fix": "Lower uVertexFilter (for example 0.75). Or use the min of the taps instead of the weighted mean for negative dh. Or feed the same filtered value to physics: `getTerrainHeight` samples footprintDH like the shader."
+  },
+  {
+   "rank": 10,
+   "severity": "perf (minor)",
+   "reproduced": true,
+   "file": "js/soil.js stamp()",
+   "code": "if (i < minI) minI = i; ... if (maxI >= 0) this._markRect(minI, minJ, maxI, maxJ, pr.ttl || 30);",
+   "problem": "The rectangle is marked dirty (and the tiles kept active for 30 frames) whenever a footprint touches any cell, even when nothing was written, as on concrete with no mud. A parked truck uploads tiles every frame forever.",
+   "scenario": "Truck idle on the start pad: 6 dirty tiles and 3 texSubImage2D calls per frame, with activeCount constant at 6.",
+   "fix": "Track `wrote` and only update minI/maxI when a value changed: on hard ground only when smearAmt > 0 or inWater > 0.01; also skip `_markRect` when dist == 0 and no cell changed."
+  },
+  {
+   "rank": 11,
+   "severity": "minor (robustness)",
+   "reproduced": false,
+   "file": "index.html registerSpecVehicle / buildSpecVehicle",
+   "code": "model.pending = true; ... try { buildSpecVehicle(...) } catch (e) { console.error(...) }  // pending set false only at the end of buildSpecVehicle; `if (typeof THREE.GLTFLoader === 'undefined') { console.warn(...); return; }`",
+   "problem": "If buildSpecVehicle throws midway, or GLTFLoader is missing, pending stays true forever. switchVehicle shows 'МОДЕЛЬ ЕЩЁ ЗАГРУЖАЕТСЯ...' permanently and the button is not dimmed like the failed case. A partially built model stays in the scene with group.visible false.",
+   "scenario": "A malformed GLB with a missing node, or a failed script load. Static analysis; the blocking guard itself is sound, with no way to select a half-built model.",
+   "fix": "In the catch block: `model.failed = true; model.pending = false; if (model.button) model.button.style.opacity = '0.35';`. Do the same in the GLTFLoader-undefined path."
+  },
+  {
+   "rank": 12,
+   "severity": "minor (graceful degradation)",
+   "reproduced": false,
+   "file": "js/terrain_deform.js + index.html",
+   "code": "for a,b in -2..2: soilAt(...)  // 25 taps/vertex x 131k vertices; fragment: ~13 soilAt per pixel; each is x4 fetches when !SOIL_LINEAR",
+   "problem": "The terrain soil shader cannot be disabled or reduced. ?nolook and ?nopost do not touch it. On GPUs without OES_texture_float_linear (many mobile parts) the cost is about 100 fetches per vertex and 50 or more per pixel. Compilation and correctness were fine in every fallback tested; I measured no timings on weak hardware.",
+   "scenario": "Integrated or mobile GPUs.",
+   "fix": "Expose the existing opts: `?nosoil` skips patchTerrainWithSoil and createSoilTexture; `?lowsoil` passes {shadowSteps:0, meshSegX/Z} and sets uVertexFilter=0 and uDisplace=1 with a 3x3 filter."
+  },
+  {
+   "rank": 13,
+   "severity": "minor (perf)",
+   "reproduced": false,
+   "file": "index.html resize handler + js/look.js postFX.setSize",
+   "code": "window.addEventListener('resize', () => { ... if (postFX) postFX.setSize(innerWidth, innerHeight, renderer.getPixelRatio()); });  // allocate(): disposeTargets + new MSAA half-float RT + 2x levels",
+   "problem": "Every resize event whose size changes disposes and recreates the MSAA half-float scene target and the bloom chain, with no debounce. Dragging a window edge does dozens of allocations per second.",
+   "scenario": "Window drag on a high-DPI display.",
+   "fix": "Debounce 100 ms (`clearTimeout(t); t = setTimeout(...)`), or in setSize only mark `needsAlloc` and allocate lazily at render."
+  },
+  {
+   "rank": 14,
+   "severity": "minor (wrong behaviour)",
+   "reproduced": false,
+   "file": "index.html animate wheel loop",
+   "code": "const inSwamp = wSector.type === 'swamp' || (e.z > 17 && e.z < 45);",
+   "problem": "The test ignores x. Since soilTypeAt makes |x| > 15.5 grass, a wheel on the dry grass slope beside the swamp is still 'in swamp': wetness goes to 1 and water-spill clods are spawned on dry ground.",
+   "scenario": "Drive along x = 20 at z = 30.",
+   "fix": "`const inSwamp = SOIL.typeAtXZ(e.x, e.z) === SoilSim.TYPE.swamp;` (typeAtXZ already exists)."
+  },
+  {
+   "rank": 15,
+   "severity": "minor (cosmetic)",
+   "reproduced": false,
+   "file": "index.html animate",
+   "code": "if (soilUniforms && soilUniforms.uTime) soilUniforms.uTime.value = expeditionTime; ... shell.update(s.mud, color, s.wet, expeditionTime)",
+   "problem": "expeditionTime only advances once a checkpoint is passed or the truck moves above 0.2 m/s, and it stops after the finish. Puddle ripples and mud-shell animation freeze whenever the truck is parked at the start or finished. terrain_deform.js documents clock.elapsedTime.",
+   "scenario": "Idle at the start pad next to water.",
+   "fix": "Use a separate `animTime += delta` for uTime and the shell."
+  },
+  {
+   "rank": 16,
+   "severity": "minor (pre-existing, not from the upgrade)",
+   "reproduced": false,
+   "file": "index.html winch / key handlers",
+   "code": "truckHeading = THREE.MathUtils.lerp(truckHeading, a, delta * 2.2); // a = atan2 in [-pi, pi]; truckHeading is unbounded. keydown has no e.repeat guard and there is no blur/visibilitychange handler.",
+   "problem": "The winch pull makes the truck spin through whole turns when the accumulated heading is outside ±pi. Holding Q/E/R/F/C/V and digit keys auto-repeats the toggles. Alt-tab with W held leaves keys.forward stuck.",
+   "scenario": "Winch after a few circles. baseline_index.html has the identical lines (checked).",
+   "fix": "`let d = a - truckHeading; d = Math.atan2(Math.sin(d), Math.cos(d)); truckHeading += d * Math.min(1, delta*2.2);`. Add `if (e.repeat) return;` for toggle keys and `window.addEventListener('blur', () => Object.keys(keys).forEach(k => keys[k] = false));`."
+  },
+  {
+   "rank": 17,
+   "severity": "minor",
+   "reproduced": false,
+   "file": "index.html prepareWheelSet",
+   "code": "const zs = [...new Set(wheels.map(w => Math.round(w.localZ * 5) / 5))].sort(...); axle: zs.indexOf(Math.round(w.localZ * 5) / 5)",
+   "problem": "Axle grouping is by 0.2 m buckets. Two wheels of one axle that straddle a bucket boundary (z = 1.099 and 1.101) become two axles, so the open-diff 'weakest wheel' logic is lost for that axle. Math.round also rounds -x.5 up, unlike +x.5. All current specs are symmetric and safe.",
+   "scenario": "A spec with slightly different left and right wheel z.",
+   "fix": "Cluster instead: sort the unique z values and start a new axle only when the gap to the previous value is greater than 0.25 m."
+  },
+  {
+   "rank": 18,
+   "severity": "minor (leak/perf)",
+   "reproduced": true,
+   "file": "index.html applyGLTFTo* + js/mud_visuals.js createMudShell",
+   "code": "modelTruck.group.clear(); modelTruck.wheelsData.length = 0;  // old wheel groups, mud shells, materials are not disposed",
+   "problem": "When a procedural vehicle is swapped for its GLB, the old wheel groups, mud shells (each with its own material) and geometry are dropped without dispose(). MudVisuals.stats.shellsCreated was 68 where about 42 live wheels exist. mudPool also still creates 110 hidden meshes with cloned materials although mudFling replaces them.",
+   "scenario": "Page load.",
+   "fix": "Traverse the cleared children and dispose geometry and materials. Skip building mudPool when createMudFling exists."
+  },
+  {
+   "rank": 19,
+   "severity": "verified OK (no action)",
+   "reproduced": true,
+   "file": "all reviewed files",
+   "code": "-",
+   "problem": "Checked and found sound: (a) a 3 s main-thread stall and a forced dt=0 gave finite state; with dt clamped to 0.05 all lerp factors stay below 1, the stamp sub-step cap of 14 still covers the footprint up to 64 m/s, and the relax rate is clamped. (b) The bermIdx 1024 buffer is guarded by nB<1000, and the dirty/active lists cannot overflow because of the per-tile flags. (c) All cell index paths clamp at the map edges; driving into the corner (35.5, 85.5) produced no errors and no NaN. (d) Typed-array strides and the UNPACK_ROW_LENGTH uploads are correct. (e) There is no TDZ problem: getTerrainHeight is first called at line 3941, after `const SOIL`. (f) Rut guidance, slope, steering and pitch/roll signs are consistent. (g) patchVehicleDirt is idempotent: 30 refreshes changed no stats or programs and cost 0.72 ms for 1258 nodes. (h) WebGL1 (copyTextureToTexture path), no OES_texture_float_linear, maxVertexTextures=0, no float textures and ?nolook/?nopost all start without JS or shader errors. (i) Under file:// the game runs and the five spec GLBs fail gracefully; canvas not tainted. (j) A GLB swap of an active vehicle rebuilds the wheel set safely through the ref check in prepareWheelSet.",
+   "scenario": "-",
+   "fix": "-"
+  }
+ ],
+ "notes": [
+  "Not reproducible via the UI today: findings 1, 2 and 11 are latent; both NaN cases were forced from the console.",
+  "Finding 4 hurts only as a one-frame hitch (1137 dirty tiles / 84 uploads); the ghost stamps are about 0.2 mm deep and invisible.",
+  "The pose block divides by nW with no guard, so one empty frame is enough to poison truckPos.y/roll/speed; V does not clear it.",
+  "Heading unwrapping, key-repeat and blur issues also exist in baseline_index.html, so they predate the new integration.",
+  "Not verified: render timings on weak GPUs, long real-time sessions beyond 24 s, an actual 144 Hz display, and visual quality of the NEAREST fallback (I only confirmed it compiles and draws without errors).",
+  "My experiment server and Chrome (port 8794, CDP 9362) are stopped; the lead's 8765 server and 9333 Chrome were not touched. git status of the game folder shows only the lead's own modifications (README.md, index.html, js/look.js, js/mud_visuals.js, js/soil.js)."
+ ],
+ "files": [
+  "C:/Users/MSI/.gemini/antigravity/scratch/mudrunner-threejs/js/soil.js",
+  "C:/Users/MSI/.gemini/antigravity/scratch/mudrunner-threejs/index.html",
+  "C:/Users/MSI/.gemini/antigravity/scratch/mudrunner-threejs/js/terrain_deform.js",
+  "C:/Users/MSI/.gemini/antigravity/scratch/mudrunner-threejs/js/mud_visuals.js",
+  "C:/Users/MSI/.gemini/antigravity/scratch/mudrunner-threejs/js/look.js",
+  "C:/Users/MSI/AppData/Local/Temp/claude/C--Recompiles-VivaPinata-xbox360/781ff099-b484-454d-82c9-d5af23d04196/scratchpad/B/index.html"
+ ]
+}

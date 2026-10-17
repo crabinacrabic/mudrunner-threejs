@@ -8,3 +8,9 @@ desktop.ini
 .temp/
 node_modules/
 package-lock.json
+
+# Тяжёлые исходные модели Sketchfab и генерируемые данные пайплайна
+source_models/
+tools/blender/out/
+tools/blender/j40/cache/
+__pycache__/
