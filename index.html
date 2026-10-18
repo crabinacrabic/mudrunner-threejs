@@ -662,6 +662,11 @@
     scene.add(sunLight.target);
     const sunDirection = new THREE.Vector3(48, 75, -35).normalize();
     const SUN_SHADOW_DIST = 96;
+    // Оси света для привязки центра теневой карты к сетке текселей в системе света (привязка по осям мира даёт мерцание краёв теней)
+    const sunAxF = sunDirection.clone().negate();                              // направление света
+    const sunAxR = new THREE.Vector3().crossVectors(sunAxF, new THREE.Vector3(0, 1, 0)).normalize();
+    const sunAxU = new THREE.Vector3().crossVectors(sunAxR, sunAxF);
+    const sunShadowTexel = 2 * shadowD / sunLight.shadow.mapSize.width;
 
     // --- 1B. СТИЛЬ «OVER THE HILL»: градиентное небо с горами, тёплая дымка, золотой час с холодными тенями, свечение и цветокоррекция ---
     // Параметры в URL: ?nolook — прежний вид, ?nopost — без пост-обработки (для слабых видеокарт)
@@ -787,6 +792,21 @@
     // Границы секторов (м): -60 | -35 | -10 | 18 | 45 | 58  (как в getSectorData)
     // ------------------------------------------------------------------------
     const OVH_B = [-60, -35, -10, 18, 45, 58];
+
+    // Лужи глиняного сектора: настоящие чаши в рельефе + поверхность воды (см. блок 3A).
+    // x, z — центр; a, b — полуоси по уровню воды (м); ang — поворот; depth — глубина чаши (м).
+    // Уровень воды = плоскость площадки − PUD_FILL·depth, радиус всей чаши = PUD_K·(a, b).
+    const PUD_K = 1.6, PUD_FILL = 0.372;
+    const PUDDLES = (() => {
+      const r = ovhRng(4177), out = [];
+      for (let guard = 0; out.length < 8 && guard < 800; guard++) {
+        const x = (r() * 2 - 1) * 8.5, z = -4.5 + r() * 17.5;
+        const a = 1.3 + r() * 0.9, b = a * (0.7 + r() * 0.25), ang = (r() - 0.5) * 0.9, depth = 0.12 + r() * 0.10;
+        if (out.some(p => Math.hypot(p.x - x, (p.z - z) * 0.85) < (p.a + a) * 1.45)) continue;
+        out.push({ x, z, a, b, ang, depth, cos: Math.cos(ang), sin: Math.sin(ang), plane: 0, wl: 0 });
+      }
+      return out;
+    })();
     const OVH_FW = 512, OVH_FH = 1024; // поле цвета в половинном разрешении (апскейл билинейный)
     let ovhBaseCache = null;           // готовый холст 1024x2048 (рисуется один раз)
 
@@ -1132,15 +1152,19 @@
         cx.fillStyle = 'rgba(214,130,88,0.09)';
         cx.fillRect(U(side * 0.45) - 4, y4a + 20, 8, y4b - y4a - 40);
       }
-      for (let i = 0; i < 6; i++) { // небольшие лужи, отражающие небо (настоящая вода собирается в колеях сама)
-        const u = U(-10 + rng() * 20), v = y4a + 24 + rng() * (y4b - y4a - 48);
-        const rx = 9 + rng() * 16, ry = 4 + rng() * 6, an = (rng() - 0.5) * 0.5;
-        cx.fillStyle = 'rgba(70,32,24,0.38)';
-        cx.beginPath(); cx.ellipse(u, v + 1.5, rx + 2.5, ry + 1.8, an, 0, 6.283); cx.fill();
-        const gr = cx.createLinearGradient(u, v - ry, u, v + ry);
-        gr.addColorStop(0, 'rgba(176,172,214,0.50)'); gr.addColorStop(1, 'rgba(124,126,178,0.46)');
-        cx.fillStyle = gr;
-        cx.beginPath(); cx.ellipse(u, v, rx, ry, an, 0, 6.283); cx.fill();
+      // Лужи объёмные (чаша в рельефе + водная поверхность, блок 3A): на холсте только тёмное мокрое дно и влажная кайма
+      for (const p of PUDDLES) {
+        cx.save();
+        cx.translate(U(p.x), zToY(p.z));
+        cx.scale(CANVAS_W / MAP_WIDTH, CANVAS_H / MAP_LENGTH); // дальше рисуем в метрах
+        cx.rotate(p.ang);
+        const g = cx.createRadialGradient(0, 0, 0, 0, 0, 1);
+        g.addColorStop(0, 'rgba(58,28,20,0.62)'); g.addColorStop(0.55, 'rgba(70,34,24,0.50)');
+        g.addColorStop(0.80, 'rgba(96,50,34,0.28)'); g.addColorStop(1, 'rgba(120,64,44,0)');
+        cx.fillStyle = g;
+        cx.scale(p.a * 1.75, p.b * 1.75);
+        cx.beginPath(); cx.arc(0, 0, 1, 0, 6.283); cx.fill();
+        cx.restore();
       }
       for (let i = 0; i < 40; i++) { // трещины подсохшей глины по краям
         const side = rng() < 0.5 ? -1 : 1;
@@ -1335,10 +1359,9 @@
       return 1.0;
     }
 
-    for (let i = 0; i < vertexCount; i++) {
-      const vx = posAttr.getX(i);
-      const vz = posAttr.getZ(i);
-
+    // Базовый рельеф секторов без луж: возвращает высоту, «грязность» кладёт в terrMud
+    let terrMud = 0.05;
+    function ovhBaseTerrain(vx, vz) {
       let h = 0;
       let mud = 0.05;
 
@@ -1393,9 +1416,44 @@
         mud = Math.max(mud, tClimb * 0.65);
       }
 
+      terrMud = mud;
+      return h;
+    }
+
+    // Лужи: площадка выравнивается в горизонтальную плоскость (чтобы береговая линия была ровной, а не «на склоне»),
+    // в ней вырезается гладкая чаша (1−t²)², по краю остаётся низкий валик вымытой глины.
+    for (const p of PUDDLES) {
+      p.plane = ovhBaseTerrain(p.x, p.z);
+      p.wl = p.plane - p.depth * PUD_FILL;
+    }
+    function puddleCarve(vx, vz, h) {
+      for (let k = 0; k < PUDDLES.length; k++) {
+        const p = PUDDLES[k];
+        const dx = vx - p.x, dz = vz - p.z;
+        const reach = p.a * PUD_K;
+        if (dx > reach || dx < -reach || dz > reach || dz < -reach) continue;
+        const u = (dx * p.cos + dz * p.sin) / p.a, v = (-dx * p.sin + dz * p.cos) / p.b;
+        const t = Math.sqrt(u * u + v * v);      // t = 1 — береговая линия
+        const tt = t / PUD_K;
+        if (tt >= 1) continue;
+        const f = (1 - tt * tt) * (1 - tt * tt);
+        let w = 1;
+        if (tt > 0.72) { const s = 1 - (tt - 0.72) / 0.28; w = s * s * (3 - 2 * s); }
+        h += w * ((p.plane - p.depth * f) - h);
+        h += w * 0.02 * Math.exp(-Math.pow((t - 1.16) / 0.13, 2));
+        terrMud = Math.max(terrMud, 0.9 * w);
+      }
+      return h;
+    }
+
+    for (let i = 0; i < vertexCount; i++) {
+      const vx = posAttr.getX(i);
+      const vz = posAttr.getZ(i);
+      let h = ovhBaseTerrain(vx, vz);
+      h = puddleCarve(vx, vz, h);
       posAttr.setY(i, h);
       originalHeights[i] = h;
-      mudDepths[i] = mud;
+      mudDepths[i] = terrMud;
     }
     terrainGeo.computeVertexNormals();
 
@@ -1409,6 +1467,141 @@
     const terrainMesh = new THREE.Mesh(terrainGeo, terrainMat);
     terrainMesh.receiveShadow = true;
     scene.add(terrainMesh);
+
+    // --- 3A. ОБЪЁМНЫЕ ЛУЖИ ГЛИНЯНОГО СЕКТОРА ---
+    // Чаши уже вырезаны в рельефе (puddleCarve), здесь — поверхность воды на уровне p.wl. Береговую линию даёт
+    // само пересечение воды с рельефом (тест глубины), глубина воды в вершине (aPudDepth) задаёт цвет и прозрачность.
+    // Круги от колёс: до 16 одновременных колец (uPudRip), отражение неба — «золотой час» (сиреневый зенит, персиковый горизонт).
+    // RMAX < 1.152: вода не выходит за гарантированно ровную площадку чаши (за ней рельеф возвращается к колее |x|=1.3 и уходил бы ниже уровня воды)
+    const PUD_RINGS = 16, PUD_SEGS = 48, PUD_RMAX = 1.15;
+    const PUD_VERTS = 1 + PUD_RINGS * PUD_SEGS;
+    const pudPos = new Float32Array(PUDDLES.length * PUD_VERTS * 3);
+    const pudNrm = new Float32Array(PUDDLES.length * PUD_VERTS * 3);
+    const pudDepth = new Float32Array(PUDDLES.length * PUD_VERTS);
+    const pudIdx = [];
+    PUDDLES.forEach((p, pi) => {
+      let vi = pi * PUD_VERTS;
+      const base = vi;
+      const put = (x, z) => {
+        pudPos[vi * 3] = x; pudPos[vi * 3 + 1] = p.wl; pudPos[vi * 3 + 2] = z;
+        pudNrm[vi * 3 + 1] = 1;
+        pudDepth[vi] = p.wl - getGroundMeshHeight(x, z);
+        vi++;
+      };
+      put(p.x, p.z);
+      for (let ring = 1; ring <= PUD_RINGS; ring++) {
+        const rr = (ring / PUD_RINGS) * PUD_RMAX;
+        for (let s = 0; s < PUD_SEGS; s++) {
+          const ph = (s / PUD_SEGS) * Math.PI * 2;
+          const u = Math.cos(ph) * rr * p.a, v = Math.sin(ph) * rr * p.b;
+          put(p.x + u * p.cos - v * p.sin, p.z + u * p.sin + v * p.cos);
+        }
+      }
+      for (let s = 0; s < PUD_SEGS; s++) { // центр: веер
+        pudIdx.push(base, base + 1 + (s + 1) % PUD_SEGS, base + 1 + s);
+      }
+      for (let ring = 1; ring < PUD_RINGS; ring++) { // кольца
+        const r0 = base + 1 + (ring - 1) * PUD_SEGS, r1 = base + 1 + ring * PUD_SEGS;
+        for (let s = 0; s < PUD_SEGS; s++) {
+          const sn = (s + 1) % PUD_SEGS;
+          pudIdx.push(r0 + s, r0 + sn, r1 + s, r0 + sn, r1 + sn, r1 + s);
+        }
+      }
+    });
+    const pudGeo = new THREE.BufferGeometry();
+    pudGeo.setAttribute('position', new THREE.BufferAttribute(pudPos, 3));
+    pudGeo.setAttribute('normal', new THREE.BufferAttribute(pudNrm, 3));
+    pudGeo.setAttribute('aPudDepth', new THREE.BufferAttribute(pudDepth, 1));
+    pudGeo.setIndex(pudIdx);
+    pudGeo.computeBoundingSphere();
+
+    const pudUniforms = {
+      uPudTime: { value: 0 },
+      uPudRip: { value: Array.from({ length: 16 }, () => new THREE.Vector4(0, 0, -99, 0)) },
+      uPudSkyZen: { value: new THREE.Color(0xb9b2e2) },
+      uPudSkyHor: { value: new THREE.Color(0xf8dcc0) },
+      uPudShallow: { value: new THREE.Color(0x3d2a20) },
+      uPudDeep: { value: new THREE.Color(0x1d130d) },
+      uPudReflect: { value: 0.25 },        // конвейер рендера нелинеен: >0.28 даёт белое пятно
+      uPudFres: { value: new THREE.Vector2(0.9, -0.4) },   // чуть слабее отражение у горизонта (там небо ярче)
+      uPudShore: { value: 0.22 }
+    };
+    const PUD_FRAG = `
+    {
+      vec2 pp = vPudW.xz;
+      vec2 g = vec2(0.0);
+      float ph1 = pp.x * 5.3 + uPudTime * 1.7;
+      float ph2 = (pp.x + pp.y) * 7.1 - uPudTime * 2.3;
+      float ph3 = pp.y * 4.7 - uPudTime * 1.3;
+      g += vec2(cos(ph1) * 0.9 + cos(ph2) * 0.6, cos(ph3) * 0.9 + cos(ph2) * 0.6) * 0.010;
+      for (int i = 0; i < 16; i++) {
+        vec4 rp = uPudRip[i];
+        float age = uPudTime - rp.z;
+        if (age > 0.0 && age < 2.8) {
+          vec2 d = pp - rp.xy;
+          float L = length(d) + 1e-4;
+          float w = L - age * 1.1;
+          g += d / L * (cos(w * 20.0) * exp(-w * w * 16.0) * exp(-age * 1.3) * rp.w * 0.07);
+        }
+      }
+      vec3 nW = normalize(vec3(-g.x, 1.0, -g.y));
+      normal = normalize((viewMatrix * vec4(nW, 0.0)).xyz);
+      float dpt = max(vPudDepth, 0.0);
+      float ndv = clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0);
+      // Отражение неба почти не зависит от угла (иначе с изометрической камеры сверху вода выглядит чёрной, а у горизонта — белой):
+      // зенит сиреневый, у горизонта персиковый
+      float fres = uPudFres.x + uPudFres.y * pow(1.0 - ndv, 2.5);
+      vec3 refl = mix(uPudSkyZen, uPudSkyHor, pow(1.0 - ndv, 1.4));
+      vec3 body = mix(uPudShallow, uPudDeep, smoothstep(0.0, 0.16, dpt));
+      diffuseColor.rgb = body;
+      diffuseColor.a = smoothstep(0.0, 0.028, vPudDepth) * mix(0.62, 0.95, smoothstep(0.0, 0.10, dpt));
+      // глубина: у берега вода светлее и прозрачнее, к середине темнее и отражает сильнее; у самой кромки тонкая светлая линия
+      float deepK = smoothstep(0.0, 0.12, dpt);
+      float shoreLine = smoothstep(0.004, 0.016, vPudDepth) * (1.0 - smoothstep(0.016, 0.045, vPudDepth));
+      totalEmissiveRadiance += refl * fres * uPudReflect * mix(0.62, 1.0, deepK);
+      totalEmissiveRadiance += uPudSkyHor * shoreLine * uPudShore;
+      roughnessFactor = 0.06;
+    }`;
+    const pudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.06, metalness: 0.0, transparent: true, depthWrite: false });
+    pudMat.onBeforeCompile = (shader) => {
+      Object.assign(shader.uniforms, pudUniforms);
+      shader.vertexShader = shader.vertexShader
+        .replace('#include <common>', '#include <common>\nattribute float aPudDepth;\nvarying float vPudDepth;\nvarying vec3 vPudW;')
+        .replace('#include <project_vertex>', '#include <project_vertex>\nvPudDepth = aPudDepth;\nvPudW = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', '#include <common>\nvarying float vPudDepth;\nvarying vec3 vPudW;\nuniform float uPudTime;\nuniform vec4 uPudRip[16];\nuniform vec3 uPudSkyZen;\nuniform vec3 uPudSkyHor;\nuniform vec3 uPudShallow;\nuniform vec3 uPudDeep;\nuniform float uPudReflect;\nuniform vec2 uPudFres;\nuniform float uPudShore;')
+        .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n' + PUD_FRAG);
+    };
+    const pudMesh = new THREE.Mesh(pudGeo, pudMat);
+    pudMesh.receiveShadow = true;
+    pudMesh.renderOrder = -1;   // первой среди прозрачных: лучи фар, стёкла и дым рисуются поверх воды (depthWrite выключен)
+    scene.add(pudMesh);
+
+    const PUD = {
+      ri: 0,
+      // глубина воды в точке: уровень воды минус текущая поверхность грунта (рельеф + колея); 0 — сухо
+      depthAt(x, z) {
+        let best = 0;
+        for (let k = 0; k < PUDDLES.length; k++) {
+          const p = PUDDLES[k];
+          const dx = x - p.x, dz = z - p.z, ra = p.a * PUD_RMAX;
+          if (dx * dx + dz * dz > ra * ra) continue;
+          // ровно та же область, что рисует водный меш (эллипс t <= PUD_RMAX): колея на берегу рядом с водой — не вода
+          const u = (dx * p.cos + dz * p.sin) / p.a, v = (-dx * p.sin + dz * p.cos) / p.b;
+          if (u * u + v * v > PUD_RMAX * PUD_RMAX) continue;
+          const g0 = getGroundMeshHeight(x, z);
+          if (g0 >= p.wl) continue;   // сухой берег (колея глубже воды сюда её не «приносит»)
+          const d = p.wl - (g0 + SOIL.getDH(x, z));
+          if (d > best) best = d;
+        }
+        return best;
+      },
+      // круги на воде от колеса
+      ripple(x, z, amp) {
+        pudUniforms.uPudRip.value[this.ri].set(x, z, pudUniforms.uPudTime.value, amp);
+        this.ri = (this.ri + 1) & 15;
+      }
+    };
 
     // --- 3B. ДИНАМИЧЕСКАЯ 3D-ВОДА В БОЛОТЕ (СМЕШИВАЕТСЯ С ГРЯЗЬЮ И ВЫПЛЕСКИВАЕТСЯ ИЗ КОЛЕИ) ---
     const WATER_SEGS_X = 48;
@@ -1792,7 +1985,11 @@
     function prepareWheelSet(wheels) {
       const cached = wheels._sim;
       if (cached && cached.length === wheels.length && cached.every((e, i) => e.ref === wheels[i])) return cached;
-      const zs = [...new Set(wheels.map(w => Math.round(w.localZ * 5) / 5))].sort((a, b) => a - b);
+      // оси: колёса, чьи z различаются меньше чем на 0.25 м, — одна ось (раньше округление до 0.2 м могло разрезать одну ось на две)
+      const zs = [...new Set(wheels.map(w => w.localZ))].sort((a, b) => a - b);
+      const axleOf = new Map();
+      let axId = -1, zPrev = -1e9;
+      zs.forEach(z => { if (z - zPrev > 0.25) axId = Math.min(7, axId + 1); axleOf.set(z, axId); zPrev = z; });
       const list = wheels.map(w => {
         if (!w.s) w.s = SoilSim.newWheelState();
         const ud = (w.group && w.group.userData) || {};
@@ -1800,7 +1997,7 @@
           ref: w, localX: w.localX, localZ: w.localZ, radius: w.radius,
           width: ud.physWidth || ud.tireWidth || w.radius * 0.72,
           isFront: w.isFront, driven: w.isDriven,
-          axle: zs.indexOf(Math.round(w.localZ * 5) / 5),
+          axle: axleOf.get(w.localZ),
           s: w.s, x: 0, z: 0, hdg: 0, W: 0, isDrv: false
         };
       });
@@ -2646,7 +2843,7 @@
         winchPos: new THREE.Vector3(0, 0.42, 2.26),
         clearance: 0.28,
         sinkFactor: 1.85,
-        tireBite: 0.5,
+        tireBite: 0.46,
         soundType: 'sedan',
         hasAWD: false,
         hasDiffLock: false,
@@ -2719,6 +2916,7 @@
       });
 
       activeWheels = vehicleModelGroups[idx].wheelsData;
+      activeWheels.forEach(w => { if (w.s) { w.s.hasLast = false; w.s.dig = 0; } });   // след начинается с нового места
 
       for (let i = 0; i < vehicleConfigs.length; i++) {
         const btn = document.getElementById('vbtn-' + i);
@@ -3279,10 +3477,10 @@
     // --- 6B. GLB-МАШИНЫ ПО СПЕЦИФИКАЦИИ (Land Cruiser J40, Delica, HiAce): колёса — отдельные узлы Wheel_FL/FR/RL/RR с центром в ступице ---
     // Модели © Nieve5677 (Sketchfab), CC BY 4.0; упрощены до лёгких GLB, колёса вынесены в отдельные вращающиеся узлы.
     const EXTRA_VEHICLE_SPECS = /*SPECS_BEGIN*/[
-      {"id": "j40_pickup", "name": "Land Cruiser J40 Пикап", "shortName": "J40 Пикап", "typeLabel": "FJ45 • 4x4", "mass": 1750, "power": 22, "maxSpeed": 40, "lowMaxSpeed": 17, "torqueMult": 2.6, "clearance": 0.22, "sinkFactor": 0.55, "tireBite": 0.95, "hasAWD": true, "hasDiffLock": true, "drivenAxles": "all", "soundType": "jeep", "badge": "4x4 AWD", "defaultPaintHex": 14263361, "file": "models/j40_pickup.glb", "dims": {"length": 5.445, "width": 1.861, "height": 1.898}, "wheels": [{"name": "Wheel_FL", "x": -0.7371, "y": 0.3579, "z": 1.505, "radius": 0.3579, "width": 0.2166, "front": true}, {"name": "Wheel_FR", "x": 0.7371, "y": 0.3579, "z": 1.505, "radius": 0.3579, "width": 0.2166, "front": true}, {"name": "Wheel_RL", "x": -0.7371, "y": 0.3579, "z": -1.505, "radius": 0.3579, "width": 0.2166, "front": false}, {"name": "Wheel_RR", "x": 0.7371, "y": 0.3579, "z": -1.505, "radius": 0.3579, "width": 0.2166, "front": false}], "frontAxleZ": 1.505, "rearAxleZ": -1.505, "trackHalfWidth": 0.7371, "bumperZ": 2.2201, "exhaust": [0.465, 0.3, -3.175], "winch": [0.0, 0.5, 2.22], "roofHeight": 1.887, "paintMaterial": "paint", "hasLowGear": true, "hasAirBrakes": false, "physWidth": 0.3},
-      {"id": "j40_hardtop", "name": "Land Cruiser J40 Хардтоп", "shortName": "J40 Хардтоп", "typeLabel": "BJ44 • 4x4", "mass": 1850, "power": 22, "maxSpeed": 40, "lowMaxSpeed": 17, "torqueMult": 2.6, "clearance": 0.22, "sinkFactor": 0.55, "tireBite": 0.95, "hasAWD": true, "hasDiffLock": true, "drivenAxles": "all", "soundType": "jeep", "badge": "4x4 AWD", "defaultPaintHex": 4165515, "file": "models/j40_hardtop.glb", "dims": {"length": 4.389, "width": 1.874, "height": 1.929}, "wheels": [{"name": "Wheel_FL", "x": -0.7371, "y": 0.3579, "z": 1.2338, "radius": 0.3579, "width": 0.2165, "front": true}, {"name": "Wheel_FR", "x": 0.7371, "y": 0.3579, "z": 1.2338, "radius": 0.3579, "width": 0.2165, "front": true}, {"name": "Wheel_RL", "x": -0.7371, "y": 0.3579, "z": -1.2338, "radius": 0.3579, "width": 0.2165, "front": false}, {"name": "Wheel_RR", "x": 0.7371, "y": 0.3579, "z": -1.2338, "radius": 0.3579, "width": 0.2165, "front": false}], "frontAxleZ": 1.2338, "rearAxleZ": -1.2338, "trackHalfWidth": 0.7371, "bumperZ": 1.9474, "exhaust": [0.447, 0.3, -2.392], "winch": [0.0, 0.5, 1.947], "roofHeight": 1.918, "paintMaterial": "paint", "hasLowGear": true, "hasAirBrakes": false, "physWidth": 0.3},
-      {"id": "j40_canvas", "name": "Land Cruiser J40 Тент", "shortName": "J40 Тент", "typeLabel": "BJ40 • 4x4", "mass": 1600, "power": 21, "maxSpeed": 40, "lowMaxSpeed": 17, "torqueMult": 2.6, "clearance": 0.22, "sinkFactor": 0.52, "tireBite": 0.95, "hasAWD": true, "hasDiffLock": true, "drivenAxles": "all", "soundType": "jeep", "badge": "4x4 AWD", "defaultPaintHex": 12731693, "file": "models/j40_canvas.glb", "dims": {"length": 4.131, "width": 1.905, "height": 1.951}, "wheels": [{"name": "Wheel_FL", "x": -0.7372, "y": 0.3579, "z": 1.2338, "radius": 0.3579, "width": 0.2165, "front": true}, {"name": "Wheel_FR", "x": 0.7372, "y": 0.3579, "z": 1.2338, "radius": 0.3579, "width": 0.2165, "front": true}, {"name": "Wheel_RL", "x": -0.7372, "y": 0.3579, "z": -1.2338, "radius": 0.3579, "width": 0.2165, "front": false}, {"name": "Wheel_RR", "x": 0.7372, "y": 0.3579, "z": -1.2338, "radius": 0.3579, "width": 0.2165, "front": false}], "frontAxleZ": 1.2338, "rearAxleZ": -1.2338, "trackHalfWidth": 0.7372, "bumperZ": 1.9474, "exhaust": [0.453, 0.3, -2.133], "winch": [0.0, 0.5, 1.947], "roofHeight": 1.94, "paintMaterial": "paint", "hasLowGear": true, "hasAirBrakes": false, "physWidth": 0.3},
-      {"id": "delica", "name": "Mitsubishi Delica Star Wagon 4WD", "shortName": "Delica 4x4", "typeLabel": "Минивэн • 4WD", "mass": 1900, "power": 21, "maxSpeed": 40, "lowMaxSpeed": 16, "torqueMult": 2.3, "clearance": 0.21, "sinkFactor": 0.7, "tireBite": 0.8, "hasAWD": true, "hasDiffLock": true, "drivenAxles": "all", "soundType": "jeep", "badge": "4x4 AWD", "defaultPaintHex": 8231516, "file": "models/delica.glb", "dims": {"length": 4.365, "width": 2.09, "height": 1.858}, "wheels": [{"name": "Wheel_FL", "x": -0.6758, "y": 0.3602, "z": 1.0952, "radius": 0.3602, "width": 0.2672, "front": true}, {"name": "Wheel_FR", "x": 0.6758, "y": 0.3602, "z": 1.0952, "radius": 0.3602, "width": 0.2672, "front": true}, {"name": "Wheel_RL", "x": -0.6758, "y": 0.3602, "z": -1.0952, "radius": 0.3602, "width": 0.2672, "front": false}, {"name": "Wheel_RR", "x": 0.6758, "y": 0.3602, "z": -1.0952, "radius": 0.3602, "width": 0.2672, "front": false}], "frontAxleZ": 1.0952, "rearAxleZ": -1.0952, "trackHalfWidth": 0.6758, "bumperZ": 2.3066, "exhaust": [0.578, 0.3, -2.008], "winch": [0.0, 0.45, 2.307], "roofHeight": 2.068, "paintMaterial": "paint", "hasLowGear": true, "hasAirBrakes": false, "physWidth": 0.3},
+      {"id": "j40_pickup", "name": "Land Cruiser J40 Пикап", "shortName": "J40 Пикап", "typeLabel": "FJ45 • 4x4", "mass": 1750, "power": 22, "maxSpeed": 40, "lowMaxSpeed": 17, "torqueMult": 2.6, "clearance": 0.28, "sinkFactor": 0.55, "tireBite": 0.95, "hasAWD": true, "hasDiffLock": true, "drivenAxles": "all", "soundType": "jeep", "badge": "4x4 AWD", "defaultPaintHex": 14263361, "file": "models/j40_pickup.glb", "dims": {"length": 5.445, "width": 1.861, "height": 1.898}, "wheels": [{"name": "Wheel_FL", "x": -0.7371, "y": 0.3579, "z": 1.505, "radius": 0.3579, "width": 0.2166, "front": true}, {"name": "Wheel_FR", "x": 0.7371, "y": 0.3579, "z": 1.505, "radius": 0.3579, "width": 0.2166, "front": true}, {"name": "Wheel_RL", "x": -0.7371, "y": 0.3579, "z": -1.505, "radius": 0.3579, "width": 0.2166, "front": false}, {"name": "Wheel_RR", "x": 0.7371, "y": 0.3579, "z": -1.505, "radius": 0.3579, "width": 0.2166, "front": false}], "frontAxleZ": 1.505, "rearAxleZ": -1.505, "trackHalfWidth": 0.7371, "bumperZ": 2.2201, "exhaust": [0.465, 0.3, -3.175], "winch": [0.0, 0.5, 2.22], "roofHeight": 1.887, "paintMaterial": "paint", "hasLowGear": true, "hasAirBrakes": false, "physWidth": 0.3},
+      {"id": "j40_hardtop", "name": "Land Cruiser J40 Хардтоп", "shortName": "J40 Хардтоп", "typeLabel": "BJ44 • 4x4", "mass": 1850, "power": 22, "maxSpeed": 40, "lowMaxSpeed": 17, "torqueMult": 2.6, "clearance": 0.28, "sinkFactor": 0.55, "tireBite": 0.95, "hasAWD": true, "hasDiffLock": true, "drivenAxles": "all", "soundType": "jeep", "badge": "4x4 AWD", "defaultPaintHex": 4165515, "file": "models/j40_hardtop.glb", "dims": {"length": 4.389, "width": 1.874, "height": 1.929}, "wheels": [{"name": "Wheel_FL", "x": -0.7371, "y": 0.3579, "z": 1.2338, "radius": 0.3579, "width": 0.2165, "front": true}, {"name": "Wheel_FR", "x": 0.7371, "y": 0.3579, "z": 1.2338, "radius": 0.3579, "width": 0.2165, "front": true}, {"name": "Wheel_RL", "x": -0.7371, "y": 0.3579, "z": -1.2338, "radius": 0.3579, "width": 0.2165, "front": false}, {"name": "Wheel_RR", "x": 0.7371, "y": 0.3579, "z": -1.2338, "radius": 0.3579, "width": 0.2165, "front": false}], "frontAxleZ": 1.2338, "rearAxleZ": -1.2338, "trackHalfWidth": 0.7371, "bumperZ": 1.9474, "exhaust": [0.447, 0.3, -2.392], "winch": [0.0, 0.5, 1.947], "roofHeight": 1.918, "paintMaterial": "paint", "hasLowGear": true, "hasAirBrakes": false, "physWidth": 0.3},
+      {"id": "j40_canvas", "name": "Land Cruiser J40 Тент", "shortName": "J40 Тент", "typeLabel": "BJ40 • 4x4", "mass": 1600, "power": 21, "maxSpeed": 40, "lowMaxSpeed": 17, "torqueMult": 2.6, "clearance": 0.28, "sinkFactor": 0.52, "tireBite": 0.95, "hasAWD": true, "hasDiffLock": true, "drivenAxles": "all", "soundType": "jeep", "badge": "4x4 AWD", "defaultPaintHex": 12731693, "file": "models/j40_canvas.glb", "dims": {"length": 4.131, "width": 1.905, "height": 1.951}, "wheels": [{"name": "Wheel_FL", "x": -0.7372, "y": 0.3579, "z": 1.2338, "radius": 0.3579, "width": 0.2165, "front": true}, {"name": "Wheel_FR", "x": 0.7372, "y": 0.3579, "z": 1.2338, "radius": 0.3579, "width": 0.2165, "front": true}, {"name": "Wheel_RL", "x": -0.7372, "y": 0.3579, "z": -1.2338, "radius": 0.3579, "width": 0.2165, "front": false}, {"name": "Wheel_RR", "x": 0.7372, "y": 0.3579, "z": -1.2338, "radius": 0.3579, "width": 0.2165, "front": false}], "frontAxleZ": 1.2338, "rearAxleZ": -1.2338, "trackHalfWidth": 0.7372, "bumperZ": 1.9474, "exhaust": [0.453, 0.3, -2.133], "winch": [0.0, 0.5, 1.947], "roofHeight": 1.94, "paintMaterial": "paint", "hasLowGear": true, "hasAirBrakes": false, "physWidth": 0.3},
+      {"id": "delica", "name": "Mitsubishi Delica Star Wagon 4WD", "shortName": "Delica 4x4", "typeLabel": "Минивэн • 4WD", "mass": 1900, "power": 21, "maxSpeed": 40, "lowMaxSpeed": 16, "torqueMult": 2.3, "clearance": 0.3, "sinkFactor": 0.6, "tireBite": 0.9, "hasAWD": true, "hasDiffLock": true, "drivenAxles": "all", "soundType": "jeep", "badge": "4x4 AWD", "defaultPaintHex": 8231516, "file": "models/delica.glb", "dims": {"length": 4.365, "width": 2.09, "height": 1.858}, "wheels": [{"name": "Wheel_FL", "x": -0.6758, "y": 0.3602, "z": 1.0952, "radius": 0.3602, "width": 0.2672, "front": true}, {"name": "Wheel_FR", "x": 0.6758, "y": 0.3602, "z": 1.0952, "radius": 0.3602, "width": 0.2672, "front": true}, {"name": "Wheel_RL", "x": -0.6758, "y": 0.3602, "z": -1.0952, "radius": 0.3602, "width": 0.2672, "front": false}, {"name": "Wheel_RR", "x": 0.6758, "y": 0.3602, "z": -1.0952, "radius": 0.3602, "width": 0.2672, "front": false}], "frontAxleZ": 1.0952, "rearAxleZ": -1.0952, "trackHalfWidth": 0.6758, "bumperZ": 2.3066, "exhaust": [0.578, 0.3, -2.008], "winch": [0.0, 0.45, 2.307], "roofHeight": 2.068, "paintMaterial": "paint", "hasLowGear": true, "hasAirBrakes": false, "physWidth": 0.3},
       {"id": "hiace", "name": "Toyota HiAce H50 Фургон", "shortName": "HiAce H50", "typeLabel": "Фургон • RWD", "mass": 1750, "power": 17, "maxSpeed": 40, "lowMaxSpeed": 15, "torqueMult": 1.9, "clearance": 0.18, "sinkFactor": 1.1, "tireBite": 0.45, "hasAWD": false, "hasDiffLock": false, "drivenAxles": "rear", "soundType": "bus", "badge": "4x2 RWD", "defaultPaintHex": 15327695, "file": "models/hiace.glb", "dims": {"length": 4.734, "width": 2.154, "height": 1.67}, "wheels": [{"name": "Wheel_FL", "x": -0.7339, "y": 0.3461, "z": 1.2503, "radius": 0.3461, "width": 0.1991, "front": true}, {"name": "Wheel_FR", "x": 0.7339, "y": 0.3461, "z": 1.2503, "radius": 0.3461, "width": 0.1991, "front": true}, {"name": "Wheel_RL", "x": -0.7339, "y": 0.3461, "z": -1.2503, "radius": 0.3461, "width": 0.1991, "front": false}, {"name": "Wheel_RR", "x": 0.7339, "y": 0.3461, "z": -1.2503, "radius": 0.3461, "width": 0.1991, "front": false}], "frontAxleZ": 1.2503, "rearAxleZ": -1.2503, "trackHalfWidth": 0.7339, "bumperZ": 2.2954, "exhaust": [0.592, 0.3, -2.389], "winch": [0.0, 0.45, 2.295], "roofHeight": 1.93, "paintMaterial": "paint", "hasLowGear": true, "hasAirBrakes": false, "physWidth": 0.25}
     ]/*SPECS_END*/;
 
@@ -3318,10 +3516,14 @@
         layoutTopBars();
       }
 
-      if (typeof THREE.GLTFLoader === 'undefined') { console.warn('GLTFLoader недоступен: ' + spec.id); return; }
+      const markFailed = () => {   // машина недоступна: не «загружается вечно», кнопка приглушена, недостроенная модель скрыта
+        model.failed = true; model.pending = false; model.group.visible = false;
+        if (model.button) { model.button.style.opacity = '0.35'; model.button.title = 'Модель не загрузилась: откройте игру через http-сервер или GitHub Pages'; }
+      };
+      if (typeof THREE.GLTFLoader === 'undefined') { console.warn('GLTFLoader недоступен: ' + spec.id); markFailed(); return; }
       new THREE.GLTFLoader().load(spec.file, (gltf) => {
         try { buildSpecVehicle(gltf, spec, model, idx); }
-        catch (e) { console.error('Ошибка сборки ' + spec.id + ':', e); }
+        catch (e) { console.error('Ошибка сборки ' + spec.id + ':', e); markFailed(); }
       }, undefined, () => {
         // GLB по file:// браузер не отдаёт: машина недоступна, кнопка приглушается
         model.failed = true;
@@ -3932,6 +4134,13 @@
       { z:  80, title: '🏁 ФИНИШ: ВЕРШИНА ПЕРЕВАЛА', isFinish: true }
     ];
 
+    // Совет после КП (индекс КП -> текст): техника проезда трудных секторов
+    const CP_HINTS = {
+      1: '⏳ ВПЕРЕДИ ПЕСОК: нажмите E — блокировка дифференциала',
+      2: '⏳ ВПЕРЕДИ ГЛИНА И БОЛОТО: нажмите R — понижающая передача',
+      5: '⛰ ВПЕРЕДИ СНЕЖНЫЙ ПОДЪЁМ: R — понижайка, E — блокировка; застряли — F, лебёдка'
+    };
+
     const cpPostGeo = new THREE.CylinderGeometry(0.22, 0.26, 5.2, 8);
     const cpBeamGeo = new THREE.BoxGeometry(11.6, 0.65, 0.45);
     const cpPostMat = new THREE.MeshStandardMaterial({ color: 0xa8703c, roughness: 0.85, map: ovhWoodTexture() });
@@ -4523,7 +4732,9 @@
     }
 
     // Выплёскивание струй воды и мутной жижи из колеи в стороны при проезде по болоту/воде
-    function spawnWaterSpill(pos, rightVec, sideSign, intensity) {
+    const SWAMP_SPLASH = [0x348f88, 0x734b28, 0xe2f7f4];   // бирюза болота / бурая жижа / пена
+    const PUDDLE_SPLASH = [0x8a6a58, 0xcbbfdc, 0xf5ebf0];  // мутная глина / отражённое небо / пена
+    function spawnWaterSpill(pos, rightVec, sideSign, intensity, pal = SWAMP_SPLASH) {
       if (mudFling) {
         const r0 = Math.random();
         const outS = (1.8 + Math.random() * 2.4) * intensity;
@@ -4531,7 +4742,7 @@
           rightVec.x * sideSign * outS + (Math.random() - 0.5) * 1.2,
           1.4 + Math.random() * 1.8 * intensity,
           rightVec.z * sideSign * outS + (Math.random() - 0.5) * 1.2,
-          0.03 + Math.random() * 0.05, r0 < 0.48 ? 0x348f88 : (r0 < 0.82 ? 0x734b28 : 0xe2f7f4));
+          0.03 + Math.random() * 0.05, r0 < 0.48 ? pal[0] : (r0 < 0.82 ? pal[1] : pal[2]));
         return;
       }
       const c = mudPool.find(item => !item.mesh.visible);
@@ -4543,7 +4754,7 @@
 
       const r = Math.random();
       // Смешивание бирюзовой воды, взбаламученной бурой грязи и белой пены
-      c.mesh.material.color.setHex(r < 0.48 ? 0x348f88 : (r < 0.82 ? 0x734b28 : 0xe2f7f4));
+      c.mesh.material.color.setHex(r < 0.48 ? pal[0] : (r < 0.82 ? pal[1] : pal[2]));
       c.mesh.material.roughness = 0.15;
 
       const outSpeed = (1.8 + Math.random() * 2.4) * intensity;
@@ -4624,6 +4835,7 @@
     const vehicleDirtUniforms = [];   // по одной на машину (makeDirtUniforms)
     const vehicleDirtColor = [];      // цвет налипшей грязи = цвет грунта, по которому ехали
     const vehicleDirtWheels = [];     // true, когда колёса машины уже переданы в шейдер грязи
+    const vehicleDirtWheelSig = [];   // «подпись» переданных колёс (число + uuid первого): при смене колёс GLB привязка повторяется
     const tmpSoilCol = new THREE.Color();
 
     // Система летящих комьев (instanced) вместо старых кубиков; приземляясь, ком оставляет пятно грязи на грунте
@@ -4651,9 +4863,12 @@
           vehicleDirtColor[i] = new THREE.Color(0x5a3a22);
         }
         patchVehicleDirt(m.group, vehicleDirtUniforms[i]);
-        if (!vehicleDirtWheels[i] && m.wheelsData.length && typeof setDirtWheels === 'function') {
+        // колёса передаются в шейдер грязи заново, когда процедурные колёса заменены колёсами из GLB (меняется их число/узлы)
+        const wSig = m.wheelsData.length ? m.wheelsData.length + ':' + m.wheelsData[0].group.uuid : '';
+        if (wSig && vehicleDirtWheelSig[i] !== wSig && typeof setDirtWheels === 'function') {
           truck.updateMatrixWorld(true);
           setDirtWheels(vehicleDirtUniforms[i], m.group, m.wheelsData.map(w => w.group), m.wheelsData.map(w => w.radius));
+          vehicleDirtWheelSig[i] = wSig;
           vehicleDirtWheels[i] = true;
         }
       }
@@ -4739,7 +4954,11 @@
       camZoom = THREE.MathUtils.clamp(camZoom + (e.deltaY > 0 ? 0.08 : -0.08), 0.55, 1.65);
     }, { passive: true });
 
+    // потеря фокуса окна (Alt-Tab с зажатой клавишей) не должна оставлять педаль/руль «залипшими»
+    window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+    const REPEAT_BLOCKED = new Set(['KeyQ', 'KeyE', 'KeyR', 'KeyF', 'KeyL', 'KeyC', 'KeyV', 'KeyM']);   // переключатели не должны повторяться при удержании
     window.addEventListener('keydown', e => {
+      if (e.repeat && (REPEAT_BLOCKED.has(e.code) || /^(Digit|Numpad)\d$/.test(e.code))) return;
       if (!audioCtx) initAudio();
       switch (e.code) {
         case 'Digit1': case 'Numpad1': switchVehicle(0); break;
@@ -4891,6 +5110,9 @@
       truckSpeed = 0;
       truckPitch = 0;
       truckRoll = 0;
+      throttleState = 0; rutVLat = 0; bellyAmount = 0; soilV.accelPrev = 0;
+      // состояния колёс: без этого первый след тянется от старого места (сотни ложных штампов), грязь/яма остаются от прошлой поездки
+      vehicleModelGroups.forEach(m => m.wheelsData.forEach(w => { if (w.s) { w.s.hasLast = false; w.s.mud = 0; w.s.dig = 0; } }));
       if (winchActive) toggleWinch();
 
       // Сброс чекпоинтов экспедиции
@@ -4920,12 +5142,14 @@
     const tmpRight = new THREE.Vector3();
     const tmpHub = new THREE.Vector3();
     const tempWheelWorldPos = new THREE.Vector3();
+    const tmpPudPos = new THREE.Vector3();
 
     function animate() {
       requestAnimationFrame(animate);
 
       const delta = Math.min(clock.getDelta(), 0.05);
       const cfg = currentVehicleConfig;
+      pudUniforms.uPudTime.value = clock.elapsedTime;   // рябь и круги на лужах
 
       // Таймер экспедиции
       if (!expeditionFinished && (passedCount > 0 || Math.abs(truckSpeed) > 0.2)) {
@@ -4942,6 +5166,11 @@
       // Сектор под машиной (для HUD и звука); сама физика считается по грунту под КАЖДЫМ колесом (SoilSim)
       const sector = getSectorData(truckPos.x, truckPos.z);
       const simWheels = prepareWheelSet(activeWheels);
+      // Машина без колёс (ошибка данных): физику не считаем, иначе NaN отравит положение кузова навсегда — просто рисуем кадр
+      if (!simWheels.length) {
+        if (postFX) postFX.render(); else renderer.render(scene, camera);
+        return;
+      }
 
       // Пятна контакта колёс в плане и курс каждого колеса
       let sinH = Math.sin(truckHeading), cosH = Math.cos(truckHeading);
@@ -4981,7 +5210,9 @@
           wVec.normalize();
           winchForce = 45000 * Math.max(0, 1 - Math.max(0, truckSpeed) / 1.8);
           const a = Math.atan2(wVec.x, wVec.z);
-          truckHeading = THREE.MathUtils.lerp(truckHeading, a, delta * 2.2);
+          // кратчайший поворот к тросу (курс накапливается без ограничения: прежний lerp крутил машину целыми оборотами)
+          const dA = Math.atan2(Math.sin(a - truckHeading), Math.cos(a - truckHeading));
+          truckHeading += dA * Math.min(1, delta * 2.2);
         } else {
           toggleWinch();
         }
@@ -4990,7 +5221,15 @@
       // Продольная динамика: тяга ограничена сцеплением каждого колеса с грунтом, сопротивление — просадкой, налипшей грязью, уклоном
       soilV.mass = cfg.mass;
       soilV.speed = truckSpeed;
-      soilV.slope = Math.tan(-truckPitch);
+      // Уклон для физики — по НЕдеформированному рельефу между осями (с настилом моста). Ямы/колея уже учтены в SoilSim (climb, roll):
+      // тангаж кузова из-за ямы под колёсами нельзя считать ещё и подъёмом (двойной счёт останавливал машину на ровном месте)
+      {
+        const fzA = cfg.frontAxleZ, rzA = cfg.rearAxleZ;
+        const fx = truckPos.x + sinH * fzA, fzz = truckPos.z + cosH * fzA, rx = truckPos.x + sinH * rzA, rzz = truckPos.z + cosH * rzA;
+        const gF = getTerrainHeight(fx, fzz) - SOIL.getDH(fx, fzz), gR = getTerrainHeight(rx, rzz) - SOIL.getDH(rx, rzz);
+        const sTarget = THREE.MathUtils.clamp((gF - gR) / Math.max(1, fzA - rzA), -0.7, 0.7);
+        soilV.slope += (sTarget - soilV.slope) * Math.min(1, delta * 10);
+      }
       soilV.belly = bellyAmount;
       soilV.winch = winchForce;
       soilInput.throttle = throttleState;
@@ -5000,6 +5239,7 @@
       soilInput.lowGear = isLowGear;
       SOIL.vehicleStep(soilV, simWheels, soilInput, cfg, delta, soilStepOut);
       truckSpeed = soilStepOut.speed;
+      if (!Number.isFinite(truckSpeed)) { truckSpeed = 0; soilV.accelPrev = 0; bellyAmount = 0; rutVLat = 0; throttleState = 0; } // защита от NaN
       const power = throttleState; // для звука и дыма
       const speedAbs = Math.abs(truckSpeed);
 
@@ -5039,12 +5279,13 @@
         w.slipRatio = slip;
 
         // Намокание колеса в болоте/воде и плавное высыхание на суше
-        const inSwamp = wSector.type === 'swamp' || (e.z > 17 && e.z < 45);
+        // (по типу грунта под колесом: на сухом травяном склоне рядом с болотом колесо не мокнет)
+        const inSwamp = SOIL.typeAtXZ(e.x, e.z) === SoilSim.TYPE.swamp;
         if (inSwamp) {
           w.wetness = Math.min(1.0, (w.wetness || 0) + delta * 3.0);
           if (speedAbs > 0.15 || slip > 0.15) displaceAndMixWater(e.x, e.z, speedAbs, slip);
         } else if (wSector.type === 'clay') {
-          w.wetness = Math.min(0.65, Math.max(w.wetness || 0, 0.35));
+          w.wetness = Math.max(0.35, Math.min(0.65, (w.wetness || 0) - delta * 0.16));   // сохнет до 0.35 (раньше после лужи залипала на 0.65)
         } else {
           w.wetness = Math.max(0, (w.wetness || 0) - delta * 0.16);
         }
@@ -5055,7 +5296,8 @@
         const surfSpeed = speedAbs + Math.abs(slipSpeed);
 
         // Грязь в протекторе: набирается в липком мокром грунте, срывается центробежной силой / буксованием / смывается водой
-        const waterK = waterDepthAt(e.x, e.z, wPos.y - e.radius);
+        const pudD = PUD.depthAt(e.x, e.z);
+        const waterK = Math.max(waterDepthAt(e.x, e.z, wPos.y - e.radius), Math.min(1, pudD / 0.10));
         s.inWater = waterK;
         const shed = SOIL.updateMud(s, delta, surfSpeed, slip, waterK, true);
 
@@ -5067,14 +5309,28 @@
         if (shell) {
           const vis = s.mud > 0.02;
           if (shell.mesh.visible !== vis) shell.mesh.visible = vis;
-          if (vis) shell.update(s.mud, SoilSim.PARAMS[s.t].color, s.wet, expeditionTime);
+          if (vis) shell.update(s.mud, SoilSim.PARAMS[s.t].color, s.wet, clock.elapsedTime);
         }
 
         // Брызги воды, смешанной с грязью, из колеи в стороны (болото)
-        if ((inSwamp || (w.wetness || 0) > 0.38) && (speedAbs > 0.8 || slip > 0.22)) {
+        if ((inSwamp || ((w.wetness || 0) > 0.38 && pudD <= 0.012)) && (speedAbs > 0.8 || slip > 0.22)) {
           if (Math.random() < 0.55) {
             const sideSign = w.localX < 0 ? -1 : 1;
-            spawnWaterSpill(wPos, rightVec, sideSign, Math.min(1.6, 0.45 + speedAbs * 0.06 + slip * 0.7));
+            spawnWaterSpill(wPos, rightVec, sideSign, Math.min(1.6, 0.45 + speedAbs * 0.06 + slip * 0.7), inSwamp ? SWAMP_SPLASH : PUDDLE_SPLASH);
+          }
+        }
+
+        // Лужа под колесом: колесо мокнет, по воде расходятся круги, летят брызги
+        if (pudD > 0.012) {
+          w.wetness = Math.min(1.0, (w.wetness || 0) + delta * 3.0);
+          w.pudT = (w.pudT || 0) - delta;
+          if ((speedAbs > 0.5 || slip > 0.2) && w.pudT <= 0) {
+            PUD.ripple(e.x, e.z, Math.min(1.6, 0.55 + speedAbs * 0.07 + slip * 0.8));
+            w.pudT = 0.16 + 0.25 / (1 + speedAbs);
+          }
+          if ((speedAbs > 0.8 || slip > 0.22) && Math.random() < 0.5) {
+            tmpPudPos.set(wPos.x, wPos.y - e.radius, wPos.z);
+            spawnWaterSpill(tmpPudPos, rightVec, w.localX < 0 ? -1 : 1, Math.min(1.3, 0.35 + speedAbs * 0.05 + slip * 0.6), PUDDLE_SPLASH);
           }
         }
 
@@ -5090,8 +5346,8 @@
       flushSoilToGpu();
 
       // Обновление 3D-поверхности воды в болоте (волны, смешивание с грязью и пена)
-      updateDynamicWater(delta, expeditionTime);
-      if (soilUniforms && soilUniforms.uTime) soilUniforms.uTime.value = expeditionTime;
+      updateDynamicWater(delta, clock.elapsedTime);   // реальное время: вода и грязь живут и до старта, и после финиша
+      if (soilUniforms && soilUniforms.uTime) soilUniforms.uTime.value = clock.elapsedTime;
 
       // Проверка прохождения контрольных ворот (чекпоинтов)
       checkpoints.forEach((cp, idx) => {
@@ -5122,6 +5378,8 @@
           } else {
             playCheckpointChime(false);
             showPopup(`✅ ПРОЙДЕН ${cp.title} (${passedCount}/${checkpoints.length})`);
+            const hint = CP_HINTS[idx];   // совет перед трудным участком (появляется после сообщения о пройденном КП)
+            if (hint) setTimeout(() => { if (!expeditionFinished) showPopup(hint); }, 2700);
           }
         }
       });
@@ -5151,6 +5409,7 @@
         slopeZ = sZH / sZZ;
       }
       let planeAtOrigin = mH - slopeZ * mZ - slopeX * mX;
+      const slopeFit = slopeZ; // наклон плоскости по колёсам (до поправки на упор бампера) — для проверки касания днищем
 
       // Бампер упирается в склон/вал впереди: нос приподнимается
       const bumperX = truckPos.x + sinH * cfg.bumperZ, bumperZ = truckPos.z + cosH * cfg.bumperZ;
@@ -5164,18 +5423,19 @@
       let groundAtCenter = planeAtOrigin;
 
       // Горб между колеями: если он выше клиренса — днище ложится на грунт (сопротивление, подъём кузова, горб срезается)
-      const hHump = Math.max(
-        getTerrainHeight(truckPos.x, truckPos.z),
-        getTerrainHeight(truckPos.x + sinH * 0.9, truckPos.z + cosH * 0.9),
-        getTerrainHeight(truckPos.x - sinH * 0.9, truckPos.z - cosH * 0.9)
+      // (каждая точка сравнивается с плоскостью кузова В СВОЕЙ точке: на подъёме/спуске склон сам по себе не «горб»)
+      const hHumpRel = Math.max(
+        getTerrainHeight(truckPos.x, truckPos.z) - planeAtOrigin,
+        getTerrainHeight(truckPos.x + sinH * 0.9, truckPos.z + cosH * 0.9) - (planeAtOrigin + slopeFit * 0.9),
+        getTerrainHeight(truckPos.x - sinH * 0.9, truckPos.z - cosH * 0.9) - (planeAtOrigin - slopeFit * 0.9)
       );
       const bellyLimit = cfg.clearance * 0.85;
-      const bellyExcess = (hHump - planeAtOrigin) - bellyLimit;
+      const bellyExcess = hHumpRel - bellyLimit;
       bellyAmount = THREE.MathUtils.clamp(bellyExcess / 0.12, 0, 1);
       if (bellyExcess > 0) {
         groundAtCenter += bellyExcess * 0.55;
         if (speedAbs > 0.05 || throttleState !== 0) {
-          SOIL.plow(truckPos.x, truckPos.z, truckHeading, cfg.trackHalfWidth * 0.75, 1.1, planeAtOrigin + bellyLimit, getGroundMeshHeight, Math.min(1, delta * 5));
+          SOIL.plow(truckPos.x, truckPos.z, truckHeading, cfg.trackHalfWidth * 0.75, 1.1, planeAtOrigin + bellyLimit, getGroundMeshHeight, Math.min(1, delta * 5), slopeFit);
         }
       }
 
@@ -5203,7 +5463,7 @@
       const sPos = snowGeo.attributes.position.array;
       for (let i = 0; i < SNOW_COUNT; i++) {
         sPos[i * 3 + 1] -= (2.2 + (i % 5) * 0.3) * delta;
-        sPos[i * 3] += Math.sin(expeditionTime * 1.5 + i) * 0.6 * delta;
+        sPos[i * 3] += Math.sin(clock.elapsedTime * 1.5 + i) * 0.6 * delta;
         if (sPos[i * 3 + 1] < 0) {
           sPos[i * 3 + 1] = 18;
         }
@@ -5252,8 +5512,12 @@
       updateCameraView(delta);
 
       // Солнце и тени следуют за машиной (центр ячейки теневой карты привязан к сетке, чтобы тени не мерцали)
-      const snap = 0.5;
-      sunLight.target.position.set(Math.round(truckPos.x / snap) * snap, 0, Math.round(truckPos.z / snap) * snap);
+      {
+        const pR = Math.round((truckPos.x * sunAxR.x + truckPos.z * sunAxR.z) / sunShadowTexel) * sunShadowTexel;
+        const pU = Math.round((truckPos.x * sunAxU.x + truckPos.z * sunAxU.z) / sunShadowTexel) * sunShadowTexel;
+        const pF = truckPos.x * sunAxF.x + truckPos.z * sunAxF.z;
+        sunLight.target.position.set(0, 0, 0).addScaledVector(sunAxR, pR).addScaledVector(sunAxU, pU).addScaledVector(sunAxF, pF);
+      }
       sunLight.position.copy(sunLight.target.position).addScaledVector(sunDirection, SUN_SHADOW_DIST);
       sunLight.target.updateMatrixWorld();
       if (skyDome) skyDome.update(camera, sunDirection);
@@ -5346,8 +5610,13 @@
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
-      if (postFX) postFX.setSize(window.innerWidth, window.innerHeight, renderer.getPixelRatio());
+      // пересоздание целей постобработки (MSAA + bloom) дорогое: при перетаскивании края окна — только после паузы
+      if (postFX) {
+        clearTimeout(postFxResizeTimer);
+        postFxResizeTimer = setTimeout(() => postFX.setSize(window.innerWidth, window.innerHeight, renderer.getPixelRatio()), 120);
+      }
     });
+    let postFxResizeTimer = 0;
 
     // Подключение GLB-машин (после объявления всех систем: грязь на кузове, частицы и т.д.)
     EXTRA_VEHICLE_SPECS.forEach(registerSpecVehicle);

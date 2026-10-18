@@ -14,3 +14,6 @@ source_models/
 tools/blender/out/
 tools/blender/j40/cache/
 __pycache__/
+
+# Результаты автопилота
+tools/autopilot/out/

@@ -39,9 +39,9 @@
   def(TYPE.forest,   { visc: 0.004, zRef: 0.046, n: 0.8, cohesion: 9.0, tanPhi: 0.62, mu: 0.75, K: 0.012, compact: 0.55, maxDepth: 0.30, sticky: 0.35, dig: 0.55, slump: 1.1, settle: 0.0, baseWet: 0.30, poolCap: 0.55, roll0: 0.035, rollMul: 1.0, berm: 0.16, color: 0x6b4a2f, ttl: 90 });
   def(TYPE.grass,    { visc: 0.006, zRef: 0.029, n: 0.8, cohesion: 12.0, tanPhi: 0.66, mu: 0.75, K: 0.012, compact: 0.50, maxDepth: 0.18, sticky: 0.15, dig: 0.40, slump: 1.4, settle: 0.0, baseWet: 0.35, poolCap: 0.30, roll0: 0.050, rollMul: 1.0, berm: 0.10, color: 0x5d5530, ttl: 60 });
   def(TYPE.sand,     { biteSens: 0.2, visc: 0.030, zRef: 0.144, n: 1.0, cohesion: 0.8, tanPhi: 0.50, mu: 0.6, K: 0.020, compact: 0.75, maxDepth: 0.42, sticky: 0.03, dig: 1.0, slump: 0.55, settle: 0.0, baseWet: 0.08, poolCap: 0.0, roll0: 0.075, rollMul: 3.2, berm: 0.24, color: 0xc79a5b, ttl: 240 });
-  def(TYPE.clay,     { biteSens: 1.0, visc: 0.040, zRef: 0.661, n: 0.6, cohesion: 8.0, tanPhi: 0.28, mu: 0.5, K: 0.020, compact: 0.20, maxDepth: 0.55, sticky: 1.0, dig: 0.7, slump: 0.50, settle: 0.010, baseWet: 0.70, poolCap: 0.95, roll0: 0.070, rollMul: 3.6, berm: 0.30, color: 0x6a3f24, ttl: 900 });
-  def(TYPE.swamp,    { biteSens: 1.0, visc: 0.070, zRef: 3.253, n: 0.5, cohesion: 6.0, tanPhi: 0.24, mu: 0.3, K: 0.050, compact: 0.05, maxDepth: 0.75, sticky: 0.85, dig: 0.65, slump: 0.12, settle: 0.060, baseWet: 1.0, poolCap: 1.0, roll0: 0.110, rollMul: 4.2, berm: 0.20, color: 0x4a3b2a, ttl: 900 });
-  def(TYPE.snow,     { biteSens: 0.9, visc: 0.030, zRef: 0.396, n: 1.3, cohesion: 1.2, tanPhi: 0.27, mu: 0.3, K: 0.030, compact: 0.85, maxDepth: 0.55, sticky: 0.25, dig: 0.8, slump: 0.80, settle: 0.0, baseWet: 0.30, poolCap: 0.0, roll0: 0.055, rollMul: 3.2, berm: 0.22, color: 0xeef3f8, ttl: 240 });
+  def(TYPE.clay,     { biteSens: 0.85, visc: 0.040, zRef: 0.661, n: 0.6, cohesion: 8.0, tanPhi: 0.28, mu: 0.5, K: 0.020, compact: 0.20, maxDepth: 0.55, sticky: 1.0, dig: 0.7, slump: 0.50, settle: 0.010, baseWet: 0.70, poolCap: 0.95, roll0: 0.052, rollMul: 3.6, berm: 0.30, color: 0x6a3f24, ttl: 900 });
+  def(TYPE.swamp,    { biteSens: 1.0, visc: 0.070, zRef: 3.253, n: 0.5, cohesion: 6.0, tanPhi: 0.24, mu: 0.3, K: 0.050, compact: 0.05, maxDepth: 0.58, sticky: 0.85, dig: 0.65, slump: 0.12, settle: 0.060, baseWet: 1.0, poolCap: 1.0, roll0: 0.110, rollMul: 4.2, berm: 0.20, color: 0x4a3b2a, ttl: 900 });
+  def(TYPE.snow,     { biteSens: 0.9, visc: 0.030, zRef: 0.396, n: 1.3, cohesion: 3.0, tanPhi: 0.44, mu: 0.42, K: 0.030, compact: 0.85, maxDepth: 0.55, sticky: 0.25, dig: 0.8, slump: 0.80, settle: 0.0, baseWet: 0.30, poolCap: 0.0, roll0: 0.055, rollMul: 3.2, berm: 0.22, color: 0xeef3f8, ttl: 240 });
 
   // inverse Janosi curve: fraction f -> x = i L / K, with f(x) = 1 - (1 - exp(-x)) / x
   var INV_N = 128;
@@ -95,7 +95,7 @@
     this.TZ = Math.ceil(this.NZ / this.TS);
     var nt = this.TX * this.TZ;
     this.tileDirty = new Uint8Array(nt);
-    this.tileTTL = new Uint16Array(nt);
+    this.tileTTL = new Float32Array(nt); // in 60 Hz frame equivalents, decremented by real time (see relax)
     this.tileActive = new Uint8Array(nt);
     this.active = new Int32Array(nt);
     this.activeCount = 0;
@@ -247,7 +247,7 @@
     return {
       mud: 0, dig: 0, hasLast: false, lastX: 0, lastZ: 0,
       slip: 0, spin: 0, zEq: 0, L: 0.4, cap: 0, roll: 0, climb: 0, t: 0, wet: 0, pack: 0, churn: 0,
-      sink: 0, lat: 0, soilR: 0, shed: 0, inWater: 0
+      sink: 0, lat: 0, soilR: 0, shed: 0, inWater: 0, dirSign: 1
     };
   };
 
@@ -281,7 +281,7 @@
     var pr = P[t];
     ws.t = t; ws.wet = pr0.wet; ws.pack = pr0.pack; ws.churn = pr0.churn;
     var mud = ws.mud;
-    var clog = 1 - 0.55 * smooth(0.2, 0.85, mud);
+    var clog = 1 - 0.42 * smooth(0.2, 0.85, mud);
     bite = 1 - (1 - bite) * pr.biteSens; // road tyres only suffer on soft ground
 
     if (!pr.deform) {
@@ -302,15 +302,17 @@
     ws.L = L;
     var k = PREF / Math.pow(zr, pr.n);
     // only the NEW compression costs energy; an existing rut is nearly free to roll in
-    var Cfront = Math.max(0, -pr0.dhF);
+    // (in the direction of travel: when reversing out of a hole the cells behind are the ones to roll into / climb out of)
+    var dhLead = ws.dirSign < 0 ? pr0.dhR : pr0.dhF;
+    var Cfront = Math.max(0, -dhLead);
     var zf = Math.max(0, z - Cfront);
     var Rc = pr.rollMul * b * k * Math.pow(zf, pr.n + 1) / (pr.n + 1);
     // stepping out of a hole dug by wheel spin / climbing the front wall of the rut
-    var wall = Math.max(0, (pr0.dhF - pr0.dh) - z * 1.15); // only the excess over the equilibrium sinkage is a wall to climb
-    var hW = Math.min(wall, 0.65 * R);
+    var wall = Math.max(0, (dhLead - pr0.dh) - z * 1.15); // only the excess over the equilibrium sinkage is a wall to climb
+    var hW = Math.min(wall, 0.45 * R);
     var climb = W * Math.sqrt(2 * hW / R) / Math.max(0.35, 1 - hW / R);
     ws.climb = climb;
-    ws.roll = W * pr.roll0 * (1 + 0.4 * mud) + Rc + climb * 0.9;
+    ws.roll = W * pr.roll0 * (1 + 0.3 * mud) + Rc + climb * 0.5;
 
     // shear strength
     var dWet = Math.max(0, pr0.wet - pr.baseWet);
@@ -379,6 +381,7 @@
     var cell = this.cell, inv = this.inv, ox = this.originX, oz = this.originZ;
     var dist = 0, steps = 1;
     var lx = x, lz = z;
+    if (ws.hasLast && Math.hypot(x - ws.lastX, z - ws.lastZ) > 4) ws.hasLast = false; // teleport, reset or vehicle switch
     if (ws.hasLast) { lx = ws.lastX; lz = ws.lastZ; dist = Math.hypot(x - lx, z - lz); steps = Math.min(14, Math.max(1, Math.ceil(dist / 0.07))); }
     ws.lastX = x; ws.lastZ = z; ws.hasLast = true;
 
@@ -393,7 +396,7 @@
       var soft = clamp(0.35 + 0.65 * ws.wet, 0, 1) * (1 - 0.6 * clamp(ws.pack, 0, 1)) * (1 + 0.6 * ws.churn);
       if (slip > 0.55) {
         var room = Math.max(0, pr.maxDepth - zEq);
-        ws.dig = Math.min(room, ws.dig + pr.dig * soft * (slip - 0.55) / 0.45 * dt * 0.42);
+        ws.dig = Math.min(room, ws.dig + pr.dig * soft * (slip - 0.55) / 0.45 * dt * 0.22);
       }
       ws.dig *= Math.exp(-dist / 0.55);
       if (slip < 0.3) ws.dig *= Math.exp(-dt * 0.6);
@@ -496,7 +499,8 @@
 
   // The belly of a high-centred vehicle shaves the hump between the ruts: cells higher than the body bottom
   // are pressed down (baseAt(x, z) returns the undeformed terrain height).
-  SoilSim.prototype.plow = function (x, z, hdg, halfW, halfL, bodyBottomY, baseAt, rate) {
+  SoilSim.prototype.plow = function (x, z, hdg, halfW, halfL, bodyBottomY, baseAt, rate, slopeZ) {
+    slopeZ = slopeZ || 0; // body-bottom plane tilt along the heading (rise per metre forward)
     var NX = this.NX, NZ = this.NZ, d = this.data, tm = this.typeMap, cell = this.cell, inv = this.inv;
     var sinH = Math.sin(hdg), cosH = Math.cos(hdg);
     var rad = Math.hypot(halfW, halfL);
@@ -513,7 +517,7 @@
         var c = j * NX + i;
         if (!P[tm[c]].deform) continue;
         var q = c * 4;
-        var limit = bodyBottomY - baseAt(px, pz);
+        var limit = bodyBottomY + slopeZ * f - baseAt(px, pz);
         if (d[q] > limit) {
           d[q] += (limit - d[q]) * rate;
           d[q + 2] = Math.min(1, d[q + 2] + 0.1 * rate);
@@ -551,13 +555,14 @@
     var frame = this.frame, cnt = this.activeCount, act = this.active;
     var inv = this.inv, wr = 0;
     var dtS = dt * 4; // each active tile is processed every 4th frame
+    var ttlDec = dt * 240; // 4 frames at 60 Hz per processing interval, but in real time (frame-rate independent)
     for (var a = 0; a < cnt; a++) {
       var t = act[a];
       var ttl = this.tileTTL[t];
       if (ttl <= 0) { this.tileActive[t] = 0; continue; }
       act[wr++] = t;
       if (((a + frame) & 3) !== 0) { continue; }
-      this.tileTTL[t] = ttl > 4 ? ttl - 4 : 0;
+      this.tileTTL[t] = ttl > ttlDec ? ttl - ttlDec : 0;
       var tj = Math.floor(t / TX), ti = t - tj * TX;
       var i0 = ti * TS, j0 = tj * TS, i1 = Math.min(NX - 1, i0 + TS - 1), j1 = Math.min(NZ - 1, j0 + TS - 1);
       var changed = false;
@@ -608,6 +613,7 @@
     var bite = cfg.tireBite != null ? cfg.tireBite : 1;
 
     // per-wheel loads with longitudinal weight transfer (acceleration and slope shift weight to the rear)
+    var dirSgn = v > 0.1 ? 1 : (v < -0.1 ? -1 : (I.throttle < -0.01 ? -1 : 1)); // direction of travel (or of the pedal when standing)
     var shift = clamp(0.30 * ((V.accelPrev || 0) / G + V.slope), -0.3, 0.3);
     var zmax = 0.001;
     for (var k = 0; k < N; k++) zmax = Math.max(zmax, Math.abs(wheels[k].localZ));
@@ -615,6 +621,7 @@
     var sumCap = 0, sumRoll = 0, sumSteerGrip = 0, nFront = 0, loadSum = 0;
     for (k = 0; k < N; k++) {
       var w = wheels[k];
+      w.s.dirSign = dirSgn;
       var Wi = Wtot / N * (1 - shift * (w.localZ / zmax));
       Wi = Math.max(0.15 * Wtot / N, Wi);
       w.W = Wi;
@@ -654,6 +661,7 @@
       var maxAx = 0;
       for (k = 0; k < N; k++) if (wheels[k].axle > maxAx) maxAx = wheels[k].axle;
       var nAxD = 0;
+      if (out.axCap.length <= maxAx) { out.axCap = new Float64Array(maxAx + 1); out.axCnt = new Int32Array(maxAx + 1); out.axMin = new Float64Array(maxAx + 1); }
       var axCap = out.axCap, axCnt = out.axCnt, axMin = out.axMin;
       for (i = 0; i <= maxAx; i++) { axCap[i] = 0; axCnt[i] = 0; axMin[i] = 1e12; }
       for (k = 0; k < N; k++) if (wheels[k].isDrv) { var a = wheels[k].axle; axCap[a] += wheels[k].s.cap; axCnt[a]++; axMin[a] = Math.min(axMin[a], wheels[k].s.cap); }

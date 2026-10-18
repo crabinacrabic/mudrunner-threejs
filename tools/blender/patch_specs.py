@@ -7,10 +7,10 @@ for i in ids:
     shutil.copy(os.path.join(SCR, 'out', i + '.glb'), os.path.join(GAME, 'models', i + '.glb'))
     specs.append(json.load(io.open(os.path.join(SCR, 'out', i + '.spec.json'), encoding='utf-8')))
 OVR = {
-    'j40_pickup': dict(physWidth=0.30, sinkFactor=0.55, tireBite=0.95),
-    'j40_hardtop': dict(physWidth=0.30, sinkFactor=0.55, tireBite=0.95),
-    'j40_canvas': dict(physWidth=0.30, sinkFactor=0.52, tireBite=0.95),
-    'delica': dict(physWidth=0.30, sinkFactor=0.70, tireBite=0.80),
+    'j40_pickup': dict(physWidth=0.30, sinkFactor=0.55, tireBite=0.95, clearance=0.28),
+    'j40_hardtop': dict(physWidth=0.30, sinkFactor=0.55, tireBite=0.95, clearance=0.28),
+    'j40_canvas': dict(physWidth=0.30, sinkFactor=0.52, tireBite=0.95, clearance=0.28),
+    'delica': dict(physWidth=0.30, sinkFactor=0.60, tireBite=0.90, clearance=0.30),
     'hiace': dict(physWidth=0.25, sinkFactor=1.10, tireBite=0.45),
 }
 for sp in specs:
