@@ -2126,10 +2126,12 @@
 
     // Билинейная выборка высоты по предрассчитанной сетке Филиппин (models/philippines_meta.json)
     function getPhilippinesGroundHeight(x, z) {
+      if (typeof x !== 'number' || typeof z !== 'number' || isNaN(x) || isNaN(z)) return 12.0;
+
       // Приоритет 1: Аналитическая высота гладкой сплайн-дороги (без ступенек и невидимых препятствий)
       if (window.PhilippinesTracks && window.PhilippinesTracks.getRoadElevation) {
         const rElev = window.PhilippinesTracks.getRoadElevation(x, z);
-        if (rElev && rElev.onRoad) {
+        if (rElev && rElev.onRoad && !isNaN(rElev.height)) {
           return rElev.height;
         }
       }
@@ -2137,14 +2139,16 @@
       if (!philippinesMeta) return 12.0;
       const b = philippinesMeta.bounds;
       if (!b) return 12.0;
-      const width = b.width || (b.maxX - b.minX);
-      const length = b.length || (b.maxZ - b.minZ);
+      const width = b.width || (b.maxX - b.minX) || 500;
+      const length = b.length || (b.maxZ - b.minZ) || 500;
       const res = philippinesMeta.res || philippinesMeta.gridRes || 128;
-      const u = THREE.MathUtils.clamp((x - b.minX) / width, 0, 0.9999);
-      const v = THREE.MathUtils.clamp((z - b.minZ) / length, 0, 0.9999);
+      const rawU = (x - b.minX) / width;
+      const rawV = (z - b.minZ) / length;
+      const u = isNaN(rawU) ? 0.5 : THREE.MathUtils.clamp(rawU, 0, 0.9999);
+      const v = isNaN(rawV) ? 0.5 : THREE.MathUtils.clamp(rawV, 0, 0.9999);
       const gx = u * (res - 1);
       const gz = v * (res - 1);
-      const ix = Math.floor(gx), iz = Math.floor(gz);
+      const ix = Math.floor(gx) || 0, iz = Math.floor(gz) || 0;
       const tx = gx - ix, tz = gz - iz;
       const grid = philippinesMeta.grid || philippinesMeta.elevationGrid;
       if (!grid) return 12.0;
@@ -2154,20 +2158,25 @@
         // 2D сетка: grid[row][col], где row — координата Z, col — координата X
         const nextIz = Math.min(iz + 1, res - 1);
         const nextIx = Math.min(ix + 1, res - 1);
-        h00 = grid[iz][ix];
-        h10 = grid[iz][nextIx];
-        h01 = grid[nextIz][ix];
-        h11 = grid[nextIz][nextIx];
+        if (grid[iz]) {
+          h00 = grid[iz][ix] ?? 12.0;
+          h10 = grid[iz][nextIx] ?? 12.0;
+        }
+        if (grid[nextIz]) {
+          h01 = grid[nextIz][ix] ?? 12.0;
+          h11 = grid[nextIz][nextIx] ?? 12.0;
+        }
       } else {
         // 1D сплющенный массив
         const nextIz = Math.min(iz + 1, res - 1);
         const nextIx = Math.min(ix + 1, res - 1);
-        h00 = grid[iz * res + ix];
-        h10 = grid[iz * res + nextIx];
-        h01 = grid[nextIz * res + ix];
-        h11 = grid[nextIz * res + nextIx];
+        h00 = grid[iz * res + ix] ?? 12.0;
+        h10 = grid[iz * res + nextIx] ?? 12.0;
+        h01 = grid[nextIz * res + ix] ?? 12.0;
+        h11 = grid[nextIz * res + nextIx] ?? 12.0;
       }
-      return (h00 * (1 - tx) + h10 * tx) * (1 - tz) + (h01 * (1 - tx) + h11 * tx) * tz;
+      const sampledH = (h00 * (1 - tx) + h10 * tx) * (1 - tz) + (h01 * (1 - tx) + h11 * tx) * tz;
+      return Math.min(isNaN(sampledH) ? 12.0 : sampledH, 14.5);
     }
 
     // Высота НЕДЕФОРМИРОВАННОЙ сетки грунта (для деревьев, камней, опор моста): билинейная выборка без ступенек
@@ -2216,10 +2225,33 @@
 
     function getSectorData(x, z) {
       if (currentMapId === 'philippines') {
+        if (window.PhilippinesTracks && window.PhilippinesTracks.getSoilZoneAt) {
+          const sz = window.PhilippinesTracks.getSoilZoneAt(x, z);
+          if (sz) {
+            const str = sz.strength || 0.8;
+            if (sz.type === 'clay') {
+              return { type: 'clay', drag: 2.50 * str, slipMult: 1.40, label: 'ГРУНТ ТАЙГИ: ВЯЗКАЯ ГЛИНА', color: '#f97316' };
+            } else if (sz.type === 'swamp') {
+              return { type: 'swamp', drag: 3.90 * str, slipMult: 2.05, label: 'ГРУНТ ТАЙГИ: ТОРФЯНОЕ БОЛОТО', color: '#ef4444' };
+            } else if (sz.type === 'sand') {
+              return { type: 'sand', drag: 1.85 * str, slipMult: 1.40, label: 'СЫПУЧИЙ ПЕСОК (БУКСОВКА)', color: '#eab308' };
+            } else if (sz.type === 'forest') {
+              return { type: 'forest', drag: 1.35 * str, slipMult: 0.85, label: 'ЛЕСНАЯ ЗЕМЛЯ И ХВОЯ', color: '#84cc16' };
+            } else if (sz.type === 'snow') {
+              return { type: 'snow', drag: 2.10 * str, slipMult: 1.65, label: 'СНЕЖНАЯ ЦЕЛИНА И СУГРОБЫ', color: '#38bdf8' };
+            }
+          }
+        }
         if (window.PhilippinesTracks && window.PhilippinesTracks.getRoadElevation) {
           const rElev = window.PhilippinesTracks.getRoadElevation(x, z);
           if (rElev && rElev.onRoad) {
-            return { type: 'asphalt', drag: rElev.drag, slipMult: rElev.slipMult, label: rElev.label, color: rElev.color };
+            return {
+              type: rElev.surfaceType || 'asphalt',
+              drag: rElev.drag,
+              slipMult: rElev.slipMult,
+              label: rElev.label,
+              color: rElev.color
+            };
           }
         }
         if (z < -160 && x > 60 && x < 180) {
@@ -2268,6 +2300,7 @@
       cellsPerMeter: 10,
       typeAt: soilTypeAt
     });
+    window.SOIL = SOIL;
     const SOIL_NAMES = ['Бетон', 'Грунтовка', 'Песок', 'Глина', 'Болото', 'Брёвна', 'Снег', 'Трава'];
     let soilGpu = null; // зеркало поля в GPU-текстуре
     let soilUniforms = null;
@@ -4059,6 +4092,8 @@
 
     truck.position.copy(truckPos);
     truck.rotation.y = truckHeading;
+    window.truckPos = truckPos;
+    window.truck = truck;
 
     // --- 7. ДЕРЕВЬЯ, СКАЛЫ И НАДЁЖНЫЙ БРЕВЕНЧАТЫЙ МОСТ С ОПОРАМИ ---
     // Стиль «Over the Hill»: пухлые слоистые хвойные, осенние лиственные «облака» с бледными стволами,
@@ -5050,6 +5085,8 @@
 
     function updateAudio(rpm, slip) {
       if (!audioEnabled || !audioCtx) return;
+      if (typeof rpm !== 'number' || isNaN(rpm) || !isFinite(rpm)) rpm = 800;
+      if (typeof slip !== 'number' || isNaN(slip) || !isFinite(slip)) slip = 0;
       const cfg = currentVehicleConfig;
 
       if (cfg.soundType === 'diesel') {
@@ -6029,8 +6066,9 @@
       if (skyDome) skyDome.update(camera, sunDirection);
 
       // Приборы и звук
-      const targetRPM = 800 + Math.abs(truckSpeed) * 60 + (keys.forward || keys.backward ? 1300 * Math.max(0.35, Math.abs(throttleState)) : 0) + (totalSlip * 380);
-      engineRPM = THREE.MathUtils.lerp(engineRPM, targetRPM, delta * 6);
+      const targetRPM = 800 + Math.abs(truckSpeed || 0) * 60 + (keys.forward || keys.backward ? 1300 * Math.max(0.35, Math.abs(throttleState || 0)) : 0) + ((totalSlip || 0) * 380);
+      engineRPM = THREE.MathUtils.lerp(engineRPM || 800, isNaN(targetRPM) ? 800 : targetRPM, delta * 6);
+      if (isNaN(engineRPM) || !isFinite(engineRPM)) engineRPM = 800;
 
       updateHUD(sector);
       updateAudio(engineRPM, totalSlip);
@@ -6327,7 +6365,7 @@
               }
             });
             root.position.y = -0.45;
-            root.visible = false; // Сырой скан скрыт: вместо него используется чистый стилизованный террейн и дороги
+            root.visible = true; // Настоящие 3D-небоскрёбы Mactan New Town включены
             window.photogrammetryMesh = root;
             philippinesGroup.add(root);
 
@@ -6487,15 +6525,45 @@
       }
     }
     window.switchMap = switchMap;
+    window.teleportTruck = function(x, z, heading) {
+      const gh = (currentMapId === 'philippines') ? getPhilippinesGroundHeight(x, z) : getGroundMeshHeight(x, z);
+      truckPos.set(x, gh + (currentVehicleConfig?.clearance || 0.3) + 0.35, z);
+      if (typeof heading === 'number') truckHeading = heading;
+      truckSpeed = 0;
+      truckPitch = 0;
+      truckRoll = 0;
+      rutVLat = 0;
+      bellyAmount = 0;
+      truck.position.copy(truckPos);
+      truck.rotation.set(0, truckHeading, 0);
+    };
 
-    // Тюнинг физики SoilSim для городских асфальтовых трасс и побережья Филиппин
+    // Тюнинг физики SoilSim для городских асфальтовых трасс, грунтовых дорог и зон почвы Тайги
     if (typeof SOIL !== 'undefined' && SOIL.typeAtXZ) {
       const origTypeAtXZ = SOIL.typeAtXZ.bind(SOIL);
       SOIL.typeAtXZ = function(x, z) {
         if (currentMapId === 'philippines') {
+          if (window.PhilippinesTracks && window.PhilippinesTracks.getSoilZoneAt) {
+            const sz = window.PhilippinesTracks.getSoilZoneAt(x, z);
+            if (sz) {
+              if (sz.type === 'clay') return SoilSim.TYPE.clay;
+              if (sz.type === 'swamp') return SoilSim.TYPE.swamp;
+              if (sz.type === 'sand') return SoilSim.TYPE.sand;
+              if (sz.type === 'forest') return SoilSim.TYPE.forest;
+              if (sz.type === 'snow') return SoilSim.TYPE.snow;
+            }
+          }
           if (window.PhilippinesTracks && window.PhilippinesTracks.getRoadElevation) {
             const rInfo = window.PhilippinesTracks.getRoadElevation(x, z);
-            if (rInfo && rInfo.onRoad) return SoilSim.TYPE.concrete; // Асфальт
+            if (rInfo && rInfo.onRoad) {
+              const st = rInfo.surfaceType;
+              if (st === 'clay') return SoilSim.TYPE.clay;
+              if (st === 'sand') return SoilSim.TYPE.sand;
+              if (st === 'swamp') return SoilSim.TYPE.swamp;
+              if (st === 'forest') return SoilSim.TYPE.forest;
+              if (st === 'snow') return SoilSim.TYPE.snow;
+              return SoilSim.TYPE.concrete; // Асфальт
+            }
           }
           if (z < -160 && x > 60 && x < 180) return SoilSim.TYPE.swamp; // Прибой лагуны / мелководье
           if (z < -120 && x > 70) return SoilSim.TYPE.sand; // Золотой песок пляжа курорта
@@ -6503,12 +6571,42 @@
         }
         return origTypeAtXZ(x, z);
       };
+
       const origSample = SOIL.sample.bind(SOIL);
       SOIL.sample = function(x, z, out) {
         if (currentMapId === 'philippines') {
+          if (window.PhilippinesTracks && window.PhilippinesTracks.getSoilZoneAt) {
+            const sz = window.PhilippinesTracks.getSoilZoneAt(x, z);
+            if (sz) {
+              const str = sz.strength || 0.8;
+              if (sz.type === 'clay') {
+                out.dh = -0.18 * str; out.wet = 0.75; out.pack = 0.20; out.churn = 0.70; return;
+              } else if (sz.type === 'swamp') {
+                out.dh = -0.26 * str; out.wet = 1.00; out.pack = 0.08; out.churn = 0.90; return;
+              } else if (sz.type === 'sand') {
+                out.dh = -0.08 * str; out.wet = 0.10; out.pack = 0.50; out.churn = 0.30; return;
+              } else if (sz.type === 'forest') {
+                out.dh = -0.06 * str; out.wet = 0.35; out.pack = 0.50; out.churn = 0.40; return;
+              } else if (sz.type === 'snow') {
+                out.dh = -0.16 * str; out.wet = 0.30; out.pack = 0.65; out.churn = 0.50; return;
+              }
+            }
+          }
           if (window.PhilippinesTracks && window.PhilippinesTracks.getRoadElevation) {
             const rInfo = window.PhilippinesTracks.getRoadElevation(x, z);
             if (rInfo && rInfo.onRoad) {
+              const st = rInfo.surfaceType;
+              if (st === 'clay') {
+                out.dh = -0.16; out.wet = 0.70; out.pack = 0.25; out.churn = 0.65; return;
+              } else if (st === 'sand') {
+                out.dh = -0.06; out.wet = 0.10; out.pack = 0.55; out.churn = 0.25; return;
+              } else if (st === 'swamp') {
+                out.dh = -0.22; out.wet = 1.00; out.pack = 0.10; out.churn = 0.85; return;
+              } else if (st === 'forest') {
+                out.dh = -0.05; out.wet = 0.30; out.pack = 0.50; out.churn = 0.35; return;
+              } else if (st === 'snow') {
+                out.dh = -0.14; out.wet = 0.25; out.pack = 0.70; out.churn = 0.45; return;
+              }
               out.dh = 0; out.wet = 0; out.pack = 1; out.churn = 0;
               return;
             }
@@ -6527,9 +6625,37 @@
         }
         return origSample(x, z, out);
       };
+
       const origGetDH = SOIL.getDH.bind(SOIL);
       SOIL.getDH = function(x, z) {
-        if (currentMapId === 'philippines') return 0;
+        if (currentMapId === 'philippines') {
+          if (window.PhilippinesTracks && window.PhilippinesTracks.getSoilZoneAt) {
+            const sz = window.PhilippinesTracks.getSoilZoneAt(x, z);
+            if (sz) {
+              const str = sz.strength || 0.8;
+              if (sz.type === 'clay') return -0.18 * str;
+              if (sz.type === 'swamp') return -0.26 * str;
+              if (sz.type === 'sand') return -0.08 * str;
+              if (sz.type === 'forest') return -0.06 * str;
+              if (sz.type === 'snow') return -0.16 * str;
+            }
+          }
+          if (window.PhilippinesTracks && window.PhilippinesTracks.getRoadElevation) {
+            const rInfo = window.PhilippinesTracks.getRoadElevation(x, z);
+            if (rInfo && rInfo.onRoad) {
+              const st = rInfo.surfaceType;
+              if (st === 'clay') return -0.16;
+              if (st === 'sand') return -0.06;
+              if (st === 'swamp') return -0.22;
+              if (st === 'forest') return -0.05;
+              if (st === 'snow') return -0.14;
+              return 0;
+            }
+          }
+          if (z < -160 && x > 60 && x < 180) return -0.12;
+          if (z < -120 && x > 70) return -0.05;
+          return 0;
+        }
         return origGetDH(x, z);
       };
     }

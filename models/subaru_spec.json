@@ -1,0 +1,83 @@
+{
+  "id": "subaru_l_series",
+  "name": "Subaru L-Series 1990 4WD Sports Wagon",
+  "shortName": "Subaru 4WD",
+  "typeLabel": "Универсал • 4WD",
+  "mass": 1250,
+  "power": 24,
+  "maxSpeed": 48,
+  "lowMaxSpeed": 20,
+  "torqueMult": 2.2,
+  "clearance": 0.22,
+  "sinkFactor": 0.65,
+  "tireBite": 0.85,
+  "hasAWD": true,
+  "hasDiffLock": true,
+  "drivenAxles": "all",
+  "soundType": "jeep",
+  "badge": "4WD Boxer",
+  "defaultPaintHex": 2837630,
+  "file": "models/subaru_l_series.glb",
+  "dims": {
+    "length": 4.411,
+    "width": 2.17,
+    "height": 2.404
+  },
+  "wheels": [
+    {
+      "name": "Wheel_FL",
+      "x": -0.71,
+      "y": 0.21965885162353516,
+      "z": 1.235,
+      "radius": 0.2199999988079071,
+      "width": 0.14800000190734863,
+      "front": true
+    },
+    {
+      "name": "Wheel_FR",
+      "x": 0.71,
+      "y": 0.21965885162353516,
+      "z": 1.235,
+      "radius": 0.2199999988079071,
+      "width": 0.14800000190734863,
+      "front": true
+    },
+    {
+      "name": "Wheel_RL",
+      "x": -0.71,
+      "y": 0.21965885162353516,
+      "z": -1.235,
+      "radius": 0.2199999988079071,
+      "width": 0.14800000190734863,
+      "front": false
+    },
+    {
+      "name": "Wheel_RR",
+      "x": 0.71,
+      "y": 0.21965885162353516,
+      "z": -1.235,
+      "radius": 0.2199999988079071,
+      "width": 0.14800000190734863,
+      "front": false
+    }
+  ],
+  "frontAxleZ": 1.235,
+  "rearAxleZ": -1.235,
+  "trackHalfWidth": 0.71,
+  "bumperZ": 2.205,
+  "exhaust": [
+    0.45,
+    0.25,
+    -2.205
+  ],
+  "winch": [
+    0.0,
+    0.4,
+    2.205
+  ],
+  "roofHeight": 2.624,
+  "paintMaterial": "paint",
+  "hasLowGear": true,
+  "hasAirBrakes": false,
+  "physWidth": 0.28
+}

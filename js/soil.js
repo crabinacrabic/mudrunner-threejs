@@ -43,6 +43,14 @@
   def(TYPE.swamp,    { biteSens: 1.0, visc: 0.070, zRef: 3.253, n: 0.5, cohesion: 6.0, tanPhi: 0.24, mu: 0.3, K: 0.050, compact: 0.05, maxDepth: 0.58, sticky: 0.85, dig: 0.65, slump: 0.12, settle: 0.060, baseWet: 1.0, poolCap: 1.0, roll0: 0.110, rollMul: 4.2, berm: 0.20, color: 0x4a3b2a, ttl: 900 });
   def(TYPE.snow,     { biteSens: 0.9, visc: 0.030, zRef: 0.396, n: 1.3, cohesion: 3.0, tanPhi: 0.44, mu: 0.42, K: 0.030, compact: 0.85, maxDepth: 0.55, sticky: 0.25, dig: 0.8, slump: 0.80, settle: 0.0, baseWet: 0.30, poolCap: 0.0, roll0: 0.055, rollMul: 3.2, berm: 0.22, color: 0xeef3f8, ttl: 240 });
 
+  // Fallback для любых неопределённых или выходящих за границы типов почвы
+  var fallbackParam = P[TYPE.concrete];
+  for (var pi = -128; pi <= 128; pi++) {
+    if (!P[pi]) P[pi] = fallbackParam;
+  }
+  P[undefined] = fallbackParam;
+  P[NaN] = fallbackParam;
+
   // inverse Janosi curve: fraction f -> x = i L / K, with f(x) = 1 - (1 - exp(-x)) / x
   var INV_N = 128;
   var INV = new Float32Array(INV_N + 1);
@@ -274,11 +282,15 @@
       }
     }
     var inv9 = 1 / cnt;
-    var t = tm[cI];
+    var t = (typeof this.typeAtXZ === 'function') ? this.typeAtXZ(x, z) : (tm ? tm[cI] : 0);
+    if (typeof t !== 'number' || isNaN(t)) t = 0;
     pr0.t = t;
     pr0.dh = sumDh * inv9; pr0.wet = sumWet * inv9; pr0.pack = sumPack * inv9; pr0.churn = sumChurn * inv9;
     pr0.dhF = dhF / 3; pr0.dhR = dhR / 3; pr0.dhL = dhL / 3; pr0.dhRt = dhRt / 3;
-    var pr = P[t];
+    if (typeof this.sample === 'function' && typeof global.currentMapId !== 'undefined' && global.currentMapId !== 'taiga') {
+      this.sample(x, z, pr0);
+    }
+    var pr = P[t] || P[TYPE.concrete];
     ws.t = t; ws.wet = pr0.wet; ws.pack = pr0.pack; ws.churn = pr0.churn;
     var mud = ws.mud;
     var clog = 1 - 0.42 * smooth(0.2, 0.85, mud);

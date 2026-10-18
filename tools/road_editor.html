@@ -2,11 +2,11 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>🗺️ Редактор Дорожной Сети — Philippines Mactan</title>
+  <title>🗺️ Редактор Карты и Ассетов — Philippines Mactan</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
     body {
-      background: #0f1013;
+      background: #0b0c0e;
       color: #e2e8f0;
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
       display: flex;
@@ -14,22 +14,27 @@
       width: 100vw;
       overflow: hidden;
     }
+
+    /* Боковая панель */
     #sidebar {
-      width: 380px;
-      min-width: 380px;
-      background: #16181d;
+      width: 410px;
+      min-width: 410px;
+      background: #14161b;
       border-right: 1px solid rgba(255,255,255,0.08);
       display: flex;
       flex-direction: column;
-      z-index: 10;
-      box-shadow: 4px 0 24px rgba(0,0,0,0.5);
+      z-index: 20;
+      box-shadow: 6px 0 28px rgba(0,0,0,0.6);
     }
     .header {
-      padding: 18px 20px;
+      padding: 16px 20px;
       border-bottom: 1px solid rgba(255,255,255,0.08);
       background: rgba(255,255,255,0.02);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
-    .header h1 {
+    .header-titles h1 {
       font-size: 15px;
       font-weight: 700;
       letter-spacing: 0.5px;
@@ -38,27 +43,92 @@
       align-items: center;
       gap: 8px;
     }
-    .header p {
-      font-size: 12px;
+    .header-titles p {
+      font-size: 11px;
       color: #94a3b8;
-      margin-top: 5px;
-      line-height: 1.4;
+      margin-top: 3px;
     }
-    .content {
+    .badge-scale {
+      font-size: 10px;
+      font-weight: 700;
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      padding: 3px 7px;
+      border-radius: 4px;
+    }
+
+    /* Навигация по вкладкам */
+    .tabs-bar {
+      display: flex;
+      background: #0f1013;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 6px 12px 0 12px;
+      gap: 4px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 9px 8px;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: #94a3b8;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+      border-top-left-radius: 6px;
+      border-top-right-radius: 6px;
+    }
+    .tab-btn:hover {
+      color: #f1f5f9;
+      background: rgba(255,255,255,0.03);
+    }
+    .tab-btn.active {
+      color: #f59e0b;
+      border-bottom-color: #f59e0b;
+      background: rgba(245, 158, 11, 0.08);
+    }
+
+    /* Контент вкладок */
+    .tab-content {
       flex: 1;
       overflow-y: auto;
-      padding: 16px 20px;
-      display: flex;
+      padding: 16px 18px;
+      display: none;
       flex-direction: column;
       gap: 14px;
+    }
+    .tab-content.active {
+      display: flex;
+    }
+
+    /* Секции и карточки */
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #64748b;
+      margin-bottom: 2px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
     .route-card {
       background: rgba(255,255,255,0.03);
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 8px;
-      padding: 12px 14px;
+      padding: 8px 12px;
       cursor: pointer;
       transition: all 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
     .route-card:hover {
       background: rgba(255,255,255,0.06);
@@ -76,26 +146,312 @@
       font-size: 13px;
       font-weight: 600;
     }
+    .route-card-header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
     .route-dot {
       width: 10px;
       height: 10px;
       border-radius: 50%;
       display: inline-block;
-      margin-right: 8px;
+      flex-shrink: 0;
+    }
+    .route-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .icon-btn-mini {
+      background: transparent;
+      border: none;
+      color: #64748b;
+      cursor: pointer;
+      font-size: 13px;
+      padding: 2px 4px;
+      border-radius: 4px;
+      transition: all 0.1s;
+    }
+    .icon-btn-mini:hover {
+      color: #ef4444;
+      background: rgba(239, 68, 68, 0.15);
     }
     .route-stats {
       font-size: 11px;
       color: #94a3b8;
-      margin-top: 6px;
       display: flex;
       justify-content: space-between;
     }
+
+    /* Палитра пропсов (Вкладка 2) */
+    .props-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .prop-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      padding: 12px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      cursor: grab;
+      transition: all 0.15s ease;
+      position: relative;
+    }
+    .prop-card:hover {
+      background: rgba(255,255,255,0.07);
+      border-color: #f59e0b;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .prop-card.stamp-active {
+      border-color: #00f0ff;
+      background: rgba(0, 240, 255, 0.12);
+      box-shadow: 0 0 16px rgba(0, 240, 255, 0.25);
+    }
+    .prop-card:active {
+      cursor: grabbing;
+    }
+    .prop-icon {
+      font-size: 28px;
+      line-height: 1;
+    }
+    .prop-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #f1f5f9;
+      text-align: center;
+    }
+    .prop-badge {
+      font-size: 10px;
+      color: #94a3b8;
+      background: rgba(255,255,255,0.06);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .prop-drag-hint {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      font-size: 10px;
+      color: #64748b;
+      opacity: 0.7;
+    }
+
+    /* Инспектор параметров (Вкладка 3) */
+    .field-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .field-row label {
+      font-size: 12px;
+      color: #94a3b8;
+      min-width: 90px;
+    }
+    .field-row input[type="text"],
+    .field-row input[type="number"] {
+      flex: 1;
+      background: #1e2128;
+      border: 1px solid rgba(255,255,255,0.12);
+      color: #f1f5f9;
+      padding: 6px 10px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-family: monospace;
+    }
+    .field-row input[type="range"] {
+      flex: 1;
+      accent-color: #f59e0b;
+    }
+    .color-swatches {
+      display: flex;
+      gap: 6px;
+    }
+    .color-swatch {
+      width: 22px;
+      height: 22px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.1s;
+    }
+    .color-swatch:hover, .color-swatch.active {
+      transform: scale(1.15);
+      border-color: #fff;
+    }
+
+    /* Кисть грунта (Soil Brush) */
+    .soil-type-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      background: #18191f;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+    .soil-type-btn:hover {
+      background: #252833;
+      border-color: rgba(255,255,255,0.2);
+    }
+    .soil-type-btn.active {
+      border-color: #f59e0b;
+      background: rgba(245,158,11,0.12);
+      box-shadow: 0 0 10px rgba(245,158,11,0.25);
+    }
+    .soil-swatch {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    }
+
+    /* D-Pad и инспектор перемещения */
+    .dpad-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      margin: 8px 0;
+      background: rgba(0,0,0,0.35);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      padding: 10px;
+    }
+    .dpad-row {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+      align-items: center;
+    }
+    .dpad-btn {
+      width: 44px;
+      height: 38px;
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #f1f5f9;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.1s ease;
+    }
+    .dpad-btn:hover {
+      background: #334155;
+      border-color: #f59e0b;
+      color: #f59e0b;
+      transform: scale(1.05);
+    }
+    .dpad-btn:active {
+      background: #f59e0b;
+      color: #000;
+      transform: scale(0.95);
+    }
+    .dpad-center {
+      width: 44px;
+      height: 38px;
+      font-size: 16px;
+      background: rgba(245, 158, 11, 0.15);
+      border-color: rgba(245, 158, 11, 0.4);
+      color: #f59e0b;
+    }
+    .dpad-step-bar {
+      display: flex;
+      gap: 4px;
+      width: 100%;
+      justify-content: space-between;
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .step-btn {
+      flex: 1;
+      padding: 4px 0;
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #94a3b8;
+      font-size: 10px;
+      font-family: monospace;
+      border-radius: 4px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.1s;
+    }
+    .step-btn:hover {
+      background: #334155;
+      color: #fff;
+    }
+    .step-btn.active {
+      background: #f59e0b;
+      color: #000;
+      font-weight: 700;
+      border-color: #f59e0b;
+    }
+    .quick-pill-row {
+      display: flex;
+      gap: 4px;
+      margin-top: 4px;
+    }
+    .quick-pill {
+      flex: 1;
+      padding: 4px 0;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #cbd5e1;
+      font-size: 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.1s;
+    }
+    .quick-pill:hover {
+      background: rgba(255,255,255,0.12);
+      color: #f59e0b;
+      border-color: rgba(245,158,11,0.4);
+    }
+    .props-list-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 8px;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      cursor: pointer;
+      transition: all 0.1s;
+    }
+    .props-list-item:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(245,158,11,0.3);
+    }
+    .props-list-item.active {
+      background: rgba(245,158,11,0.15);
+      border-color: #f59e0b;
+    }
+
+    /* Кнопки и контролы */
     .controls {
       display: flex;
       flex-direction: column;
       gap: 8px;
-      padding-top: 10px;
-      border-top: 1px solid rgba(255,255,255,0.08);
     }
     .btn {
       background: #23262e;
@@ -126,6 +482,25 @@
       background: #fbbf24;
       box-shadow: 0 0 16px rgba(245, 158, 11, 0.4);
     }
+    .btn-success {
+      background: #10b981;
+      color: #000;
+      border: none;
+      font-weight: 700;
+    }
+    .btn-success:hover {
+      background: #34d399;
+      box-shadow: 0 0 16px rgba(16, 185, 129, 0.4);
+    }
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    .btn-danger:hover {
+      background: #ef4444;
+      color: #fff;
+    }
     .btn-row {
       display: flex;
       gap: 8px;
@@ -133,16 +508,30 @@
     .btn-row .btn {
       flex: 1;
     }
+
+    /* Нижняя статусная панель сайдбара */
+    .sidebar-footer {
+      padding: 14px 18px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      background: #0f1013;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
     .coords-display {
       font-family: monospace;
       font-size: 11px;
       color: #38bdf8;
-      background: rgba(0,0,0,0.5);
-      padding: 10px 12px;
+      background: rgba(0,0,0,0.45);
+      padding: 8px 10px;
       border-radius: 6px;
       border: 1px solid rgba(255,255,255,0.06);
-      line-height: 1.5;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
+
+    /* Холст и вьюпорт */
     #viewport {
       flex: 1;
       position: relative;
@@ -156,11 +545,20 @@
     #viewport.space-held {
       cursor: grab !important;
     }
+    #viewport.stamp-cursor {
+      cursor: cell !important;
+    }
+    #viewport.dragover {
+      outline: 3px dashed #f59e0b;
+      outline-offset: -3px;
+    }
     canvas {
       display: block;
       width: 100%;
       height: 100%;
     }
+
+    /* Плавающие подсказки и тулбар */
     .floating-hud {
       position: absolute;
       top: 16px;
@@ -170,14 +568,16 @@
       border: 1px solid rgba(255,255,255,0.12);
       padding: 12px 16px;
       border-radius: 8px;
-      font-size: 12px;
+      font-size: 11px;
       line-height: 1.6;
       color: #cbd5e1;
-      max-width: 320px;
+      max-width: 330px;
       box-shadow: 0 8px 32px rgba(0,0,0,0.5);
       pointer-events: none;
+      z-index: 10;
     }
     .floating-hud b { color: #f59e0b; }
+
     .zoom-toolbar {
       position: absolute;
       bottom: 20px;
@@ -189,6 +589,7 @@
       padding: 6px;
       border-radius: 8px;
       border: 1px solid rgba(255,255,255,0.1);
+      z-index: 10;
     }
     .zoom-btn {
       width: 34px;
@@ -218,71 +619,464 @@
       display: flex;
       align-items: center;
     }
+
+    /* Всплывающее уведомление Toast */
+    #toast {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #10b981;
+      color: #000;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 10px 22px;
+      border-radius: 30px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+      z-index: 100;
+      opacity: 0;
+    }
+    #toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
   </style>
 </head>
 <body>
 
+  <!-- Боковая панель -->
   <div id="sidebar">
     <div class="header">
-      <h1>🗺️ РЕДАКТОР ТРЕКОВ MACTAN</h1>
-      <p>Оцифровка трёх маршрутов острова Лапу-Лапу (500×500м).</p>
+      <div class="header-titles">
+        <h1>🗺️ РЕДАКТОР КАРТЫ MACTAN</h1>
+        <p>Дороги, пропсы и объекты острова Лапу-Лапу</p>
+      </div>
+      <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+        <span class="badge-scale" id="badge-map-scale">500 × 500 м</span>
+        <span class="badge-scale" id="badge-map-res" style="color:#00f0ff; border-color:rgba(0,240,255,0.4); background:rgba(0,240,255,0.1);">4096 × 4096 Ultra-HD</span>
+      </div>
     </div>
 
-    <div class="content">
-      <div id="routes-list"></div>
+    <!-- Вкладки -->
+    <div class="tabs-bar">
+      <button class="tab-btn active" id="tab-btn-roads" onclick="switchTab('roads')">🛣️ Дороги</button>
+      <button class="tab-btn" id="tab-btn-props" onclick="switchTab('props')">🌴 Ассеты</button>
+      <button class="tab-btn" id="tab-btn-soil" onclick="switchTab('soil')">🚜 Грунт</button>
+      <button class="tab-btn" id="tab-btn-inspector" onclick="switchTab('inspector')">📐 Инспектор</button>
+    </div>
 
-      <div class="coords-display" id="coords-info">
-        <div>Координаты Three.js:</div>
-        <div><b>X: 0.00 м | Z: 0.00 м</b></div>
-        <div id="route-point-count" style="color:#94a3b8; margin-top:4px;">Точек в треке: 0</div>
+    <!-- Вкладка 1: Дорожная сеть -->
+    <div class="tab-content active" id="tab-roads">
+      <!-- Переключатель режима инструмента дороги: Выбор vs Рисование -->
+      <div style="background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; margin-bottom:12px; display:flex; flex-direction:column; gap:6px;">
+        <div style="font-size:11px; color:#94a3b8; font-weight:600; display:flex; justify-content:space-between; align-items:center;">
+          <span>Режим инструмента дороги:</span>
+          <span id="road-mode-badge" style="color:#00f0ff; font-weight:700;">✋ Выбор</span>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button id="btn-road-mode-select" class="btn" style="flex:1; background:#00f0ff; color:#0f172a; font-weight:700; border-color:#00f0ff;" onclick="setRoadToolMode('select')" title="Обычный режим: выбор точек, перемещение карты, без линий за курсором [V / Esc]">✋ Выбор [Esc]</button>
+          <button id="btn-road-mode-draw" class="btn" style="flex:1; background:#1e293b; color:#cbd5e1;" onclick="setRoadToolMode('draw')" title="Режим рисования: кликайте по карте для добавления новых точек [B]">✏️ Рисовать дорогу</button>
+        </div>
+        <div id="road-mode-hint" style="font-size:10px; color:#64748b; line-height:1.3;">
+          В режиме <b>Выбор</b> бирюзовые линии не следуют за мышкой, можно двигать карту и выделять точки.
+        </div>
       </div>
 
-      <div class="controls">
-        <div class="btn-row">
-          <button class="btn" id="btn-delete-last">↩️ Отменить точку</button>
-          <button class="btn" id="btn-clear-route">🗑️ Очистить трек</button>
+      <div class="section-title">
+        <span>Маршруты острова</span>
+        <button class="btn" style="padding:4px 8px; font-size:11px;" onclick="promptNewRoute()">+ Новый маршрут</button>
+      </div>
+
+      <div id="routes-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+
+      <div class="section-title" style="margin-top:10px;">Параметры активной дороги</div>
+      <div class="field-row">
+        <label>Ширина полотна:</label>
+        <input type="range" id="route-width-slider" min="4" max="16" step="0.5" value="8" oninput="updateActiveRouteWidth(this.value)">
+        <span id="route-width-val" style="font-family:monospace; font-size:12px; min-width:35px;">8.0 м</span>
+      </div>
+
+      <div class="field-row">
+        <label>Покрытие дороги:</label>
+        <select id="route-surface-select" onchange="updateActiveRouteSurface(this.value)" style="background:#1e293b; color:#f1f5f9; border:1px solid rgba(255,255,255,0.15); border-radius:6px; padding:5px 8px; font-size:11px; flex:1; cursor:pointer;">
+          <option value="asphalt" selected>🛣️ Асфальт (городской бульвар)</option>
+          <option value="clay">🟫 Вязкая глина (Тайга)</option>
+          <option value="sand">🟡 Песчаная колея (пляж)</option>
+          <option value="forest">🌲 Лесная тропа (грунт и корни)</option>
+          <option value="swamp">🟤 Болото / грязевой брод</option>
+          <option value="snow">❄️ Заснеженная колея</option>
+        </select>
+      </div>
+
+      <div class="field-row">
+        <label>Цвет линии:</label>
+        <div class="color-swatches" id="route-colors">
+          <div class="color-swatch active" style="background:#00f0ff" onclick="setActiveRouteColor('#00f0ff')"></div>
+          <div class="color-swatch" style="background:#f59e0b" onclick="setActiveRouteColor('#f59e0b')"></div>
+          <div class="color-swatch" style="background:#4ade80" onclick="setActiveRouteColor('#4ade80')"></div>
+          <div class="color-swatch" style="background:#ec4899" onclick="setActiveRouteColor('#ec4899')"></div>
+          <div class="color-swatch" style="background:#a855f7" onclick="setActiveRouteColor('#a855f7')"></div>
+          <div class="color-swatch" style="background:#ffffff" onclick="setActiveRouteColor('#ffffff')"></div>
         </div>
-        <button class="btn btn-primary" id="btn-save-json">💾 Скачать philippines_roads.json</button>
-        <button class="btn" id="btn-copy-json">📋 Скопировать JSON в буфер</button>
-        <button class="btn" id="btn-reset-view">🎯 Сбросить вид (100%)</button>
+      </div>
+
+      <!-- Режим добавления и расстановки точек -->
+      <div class="section-title" style="margin-top:10px;">Режим расстановки точек</div>
+      <div class="field-row">
+        <label>Режим вставки:</label>
+        <select id="point-insert-mode" onchange="setPointInsertMode(this.value)" style="background:#1e293b; color:#f1f5f9; border:1px solid rgba(255,255,255,0.15); border-radius:6px; padding:5px 8px; font-size:11px; flex:1; cursor:pointer;">
+          <option value="smart" selected>🎯 Умная вставка (в ближайший сегмент)</option>
+          <option value="append">➕ В конец маршрута</option>
+          <option value="prepend">⏪ В начало маршрута</option>
+          <option value="after-selected">📍 После выбранной точки</option>
+        </select>
+      </div>
+
+      <!-- Действия над порядком маршрута -->
+      <div class="btn-row" style="margin-top:6px;">
+        <button class="btn" onclick="reverseActiveRoute()" title="Развернуть направление всей трассы от финиша к старту">🔄 Реверс (Развернуть)</button>
+        <button class="btn" onclick="sortActiveRoutePoints()" title="Автоматически соединить точки в кратчайшую непрерывную трассу без пересечений">⚡ Упорядочить трассу</button>
+      </div>
+
+      <!-- Карточка выбранной точки маршрута -->
+      <div id="point-control-card" style="display:none; background:rgba(0,240,255,0.06); border:1px solid rgba(0,240,255,0.3); border-radius:8px; padding:10px 12px; margin-top:8px; flex-direction:column; gap:6px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:12px; font-weight:700; color:#00f0ff;">📍 Выбрана точка № <span id="pt-ctrl-idx">1</span></span>
+          <button class="icon-btn-mini" onclick="deselectPoint()" title="Снять выделение">✕</button>
+        </div>
+        <div class="field-row">
+          <label style="min-width:50px;">X (м):</label>
+          <input type="number" id="pt-ctrl-x" step="0.5" style="width:70px; background:#1e293b; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:2px 4px; font-family:monospace;" onchange="updateSelectedPointCoord('x', this.value)">
+          <label style="min-width:30px; text-align:right;">Z (м):</label>
+          <input type="number" id="pt-ctrl-z" step="0.5" style="width:70px; background:#1e293b; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:2px 4px; font-family:monospace;" onchange="updateSelectedPointCoord('z', this.value)">
+        </div>
+        <div class="btn-row" style="margin-top:4px;">
+          <button class="btn" onclick="moveSelectedPointOrder(-1)" title="Сдвинуть точку на одну позицию раньше (к началу)">▲ Раньше</button>
+          <button class="btn" onclick="moveSelectedPointOrder(1)" title="Сдвинуть точку на одну позицию позже (к концу)">▼ Позже</button>
+          <button class="btn btn-danger" onclick="deleteSelectedPoint()" title="Удалить эту точку">🗑️ Удалить</button>
+        </div>
+      </div>
+
+      <!-- Раскрывающийся список всех точек маршрута -->
+      <details id="route-points-details" style="margin-top:8px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:6px 10px; font-size:11px;">
+        <summary style="cursor:pointer; color:#94a3b8; font-weight:600; outline:none;" id="route-points-summary">📍 Список всех точек (0)</summary>
+        <div id="route-points-list" style="margin-top:8px; max-height:160px; overflow-y:auto; display:flex; flex-direction:column; gap:4px;"></div>
+      </details>
+
+      <div class="controls" style="margin-top:8px;">
+        <div class="btn-row">
+          <button class="btn" onclick="undoLastPoint()">↩️ Отменить точку</button>
+          <button class="btn btn-danger" onclick="clearActiveRoutePoints()">🗑️ Очистить точки</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Вкладка 2: Каталог ассетов / Пропсов (Drag & Drop + Штамп) -->
+    <div class="tab-content" id="tab-props">
+      <div class="section-title">
+        <span>Каталог 3D-моделей острова</span>
+        <span id="props-count-badge" style="color:#f59e0b; font-size:11px;">0 на карте</span>
+      </div>
+      <p style="font-size:11px; color:#94a3b8; line-height:1.4;">
+        👉 <b>Перетащите</b> объект мышкой на карту (Drag & Drop) или <b>кликните</b> для режима штампа.
+      </p>
+
+      <div class="props-grid" id="props-grid">
+        <!-- Карточки ассетов генерируются динамически -->
+      </div>
+
+      <div class="controls" style="margin-top:10px;">
+        <button class="btn" id="btn-cancel-stamp" style="display:none;" onclick="cancelStampMode()">❌ Выйти из режима штампа [Esc]</button>
+      </div>
+    </div>
+
+    <!-- Вкладка 3: Инспектор выбранного объекта -->
+    <div class="tab-content" id="tab-inspector">
+      <div class="section-title">
+        <span>Свойства объекта</span>
+        <button class="icon-btn-mini" onclick="selectProp(null)" title="Снять выделение [Esc]">✕ Снять</button>
+      </div>
+
+      <div id="inspector-empty" style="color:#64748b; font-size:12px; padding:24px 10px; text-align:center; background:rgba(255,255,255,0.02); border:1px dashed rgba(255,255,255,0.1); border-radius:8px;">
+        👉 Кликните на любой объект на карте или выберите из списка ниже, чтобы перемещать его.
+      </div>
+
+      <div id="inspector-fields" style="display:none; flex-direction:column; gap:10px;">
+        <!-- Заголовок объекта -->
+        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.25); border-radius:6px; padding:8px 10px;">
+          <div>
+            <div id="insp-type" style="font-weight:700; color:#f59e0b; font-size:13px;">🌴 Пальма</div>
+            <div id="insp-id-badge" style="font-size:10px; color:#94a3b8; font-family:monospace;">#palm_1</div>
+          </div>
+          <button class="btn" style="padding:4px 8px; font-size:11px;" onclick="centerCameraOnSelectedProp()" title="Переместить камеру к этому объекту">🎯 В фокус</button>
+        </div>
+
+        <!-- Позиция X и Z с живым вводом -->
+        <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:8px; display:flex; flex-direction:column; gap:6px;">
+          <div style="font-size:11px; color:#94a3b8; font-weight:600;">Координаты на острове (метры):</div>
+          <div class="field-row">
+            <label style="min-width:40px;">X (м):</label>
+            <input type="number" id="insp-x" step="0.5" oninput="updateSelectedPropFromInspector()" onchange="commitPropUndo()">
+            <label style="min-width:30px; text-align:right;">Z (м):</label>
+            <input type="number" id="insp-z" step="0.5" oninput="updateSelectedPropFromInspector()" onchange="commitPropUndo()">
+          </div>
+        </div>
+
+        <!-- Д-пад / Джойстик точного смещения -->
+        <div class="dpad-container">
+          <div style="width:100%; display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:11px; color:#cbd5e1; font-weight:600;">🕹️ Джойстик смещения (D-Pad):</span>
+            <span id="dpad-step-label" style="font-size:10px; color:#f59e0b; font-family:monospace; font-weight:700;">шаг 1.0 м</span>
+          </div>
+
+          <div class="dpad-row" style="margin-top:6px;">
+            <button class="dpad-btn" onclick="nudgeSelectedProp(0, -currentNudgeStep)" title="Сместить на Север (-Z) [Стрелка Вверх]">▲</button>
+          </div>
+          <div class="dpad-row">
+            <button class="dpad-btn" onclick="nudgeSelectedProp(-currentNudgeStep, 0)" title="Сместить на Запад (-X) [Стрелка Влево]">◀</button>
+            <button class="dpad-btn dpad-center" onclick="centerCameraOnSelectedProp()" title="Центрировать камеру">🎯</button>
+            <button class="dpad-btn" onclick="nudgeSelectedProp(currentNudgeStep, 0)" title="Сместить на Восток (+X) [Стрелка Вправо]">▶</button>
+          </div>
+          <div class="dpad-row">
+            <button class="dpad-btn" onclick="nudgeSelectedProp(0, currentNudgeStep)" title="Сместить на Юг (+Z) [Стрелка Вниз]">▼</button>
+          </div>
+
+          <!-- Выбор шага смещения -->
+          <div class="dpad-step-bar">
+            <button class="step-btn" onclick="setNudgeStep(0.2, this)">0.2м</button>
+            <button class="step-btn" onclick="setNudgeStep(0.5, this)">0.5м</button>
+            <button class="step-btn active" onclick="setNudgeStep(1.0, this)">1.0м</button>
+            <button class="step-btn" onclick="setNudgeStep(2.0, this)">2.0м</button>
+            <button class="step-btn" onclick="setNudgeStep(5.0, this)">5.0м</button>
+          </div>
+        </div>
+
+        <!-- Вращение -->
+        <div class="field-row">
+          <label>Поворот (°):</label>
+          <input type="range" id="insp-rot-slider" min="0" max="360" step="5" oninput="updateSelectedPropRot(this.value)" onchange="commitPropUndo()">
+          <span id="insp-rot-val" style="font-family:monospace; min-width:40px;">0°</span>
+        </div>
+        <div class="quick-pill-row">
+          <button class="quick-pill" onclick="rotateSelectedPropDelta(-15)">⟲ -15° [Q]</button>
+          <button class="quick-pill" onclick="rotateSelectedPropDelta(15)">⟳ +15° [E]</button>
+          <button class="quick-pill" onclick="setSelectedPropRotExact(0)">0°</button>
+          <button class="quick-pill" onclick="setSelectedPropRotExact(90)">90°</button>
+          <button class="quick-pill" onclick="setSelectedPropRotExact(180)">180°</button>
+          <button class="quick-pill" onclick="setSelectedPropRotExact(270)">270°</button>
+        </div>
+
+        <!-- Масштаб -->
+        <div class="field-row" style="margin-top:4px;">
+          <label>Масштаб:</label>
+          <input type="range" id="insp-scale-slider" min="0.4" max="3.0" step="0.05" value="1.0" oninput="updateSelectedPropScale(this.value)" onchange="commitPropUndo()">
+          <span id="insp-scale-val" style="font-family:monospace; min-width:40px;">1.0×</span>
+        </div>
+        <div class="quick-pill-row">
+          <button class="quick-pill" onclick="scaleSelectedPropDelta(0.9)">−10% [[]</button>
+          <button class="quick-pill" onclick="scaleSelectedPropDelta(1.1)">+10% []]</button>
+          <button class="quick-pill" onclick="setSelectedPropScaleExact(0.8)">0.8×</button>
+          <button class="quick-pill" onclick="setSelectedPropScaleExact(1.0)">1.0×</button>
+          <button class="quick-pill" onclick="setSelectedPropScaleExact(1.3)">1.3×</button>
+          <button class="quick-pill" onclick="setSelectedPropScaleExact(1.8)">1.8×</button>
+        </div>
+
+        <!-- Цвет ткани (зонтики, шезлонги) -->
+        <div class="field-row" id="insp-color-row" style="display:none; margin-top:4px;">
+          <label>Цвет ткани:</label>
+          <div class="color-swatches" id="insp-colors">
+            <div class="color-swatch" style="background:#06b6d4" onclick="setSelectedPropColor('#06b6d4')"></div>
+            <div class="color-swatch" style="background:#f97316" onclick="setSelectedPropColor('#f97316')"></div>
+            <div class="color-swatch" style="background:#eab308" onclick="setSelectedPropColor('#eab308')"></div>
+            <div class="color-swatch" style="background:#ec4899" onclick="setSelectedPropColor('#ec4899')"></div>
+            <div class="color-swatch" style="background:#10b981" onclick="setSelectedPropColor('#10b981')"></div>
+          </div>
+        </div>
+
+        <!-- Кнопки действий -->
+        <div class="btn-row" style="margin-top:8px;">
+          <button class="btn" onclick="duplicateSelectedProp()">📋 Дублировать [Ctrl+D]</button>
+          <button class="btn btn-danger" onclick="deleteSelectedProp()">🗑️ Удалить [Del]</button>
+        </div>
+      </div>
+
+      <!-- Список всех объектов на острове -->
+      <details id="all-props-details" style="margin-top:14px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:6px 10px; font-size:11px;">
+        <summary style="cursor:pointer; color:#94a3b8; font-weight:600; outline:none;" id="all-props-summary">📋 Все объекты на карте (0)</summary>
+        <div id="all-props-list" style="margin-top:8px; max-height:180px; overflow-y:auto; display:flex; flex-direction:column; gap:4px;"></div>
+      </details>
+    </div>
+
+    <!-- Вкладка 4: Кисть и зоны грунта из Тайги -->
+    <div class="tab-content" id="tab-soil">
+      <div class="section-title">
+        <span>🚜 Кисть грунта (Тайга)</span>
+        <span id="soil-count-badge" style="color:#f59e0b; font-size:11px;">0 зон</span>
+      </div>
+      <p style="font-size:11px; color:#94a3b8; line-height:1.4; margin-bottom:8px;">
+        Выберите тип грунта и <b>рисуйте мышкой прямо по карте</b>. При езде машина будет вязнуть, буксовать и пачкаться в соответствии с физикой SoilSim!
+      </p>
+
+      <!-- Палитра грунтов -->
+      <div class="section-title" style="margin-top:2px;"><span>Тип покрытия / грунта</span></div>
+      <div class="soil-palette" id="soil-palette" style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+        <button class="soil-type-btn active" id="soil-btn-clay" onclick="setSoilBrushType('clay')">
+          <span class="soil-swatch" style="background:#6a3f24;"></span>
+          <div style="text-align:left;">
+            <div style="font-weight:700; color:#f1f5f9; font-size:11px;">🟫 Глина</div>
+            <div style="font-size:9px; color:#94a3b8;">Колея, пробуксовка</div>
+          </div>
+        </button>
+        <button class="soil-type-btn" id="soil-btn-swamp" onclick="setSoilBrushType('swamp')">
+          <span class="soil-swatch" style="background:#4a3b2a;"></span>
+          <div style="text-align:left;">
+            <div style="font-weight:700; color:#f1f5f9; font-size:11px;">🟤 Болото / Брод</div>
+            <div style="font-size:9px; color:#94a3b8;">Жижа, брызги</div>
+          </div>
+        </button>
+        <button class="soil-type-btn" id="soil-btn-sand" onclick="setSoilBrushType('sand')">
+          <span class="soil-swatch" style="background:#c79a5b;"></span>
+          <div style="text-align:left;">
+            <div style="font-weight:700; color:#f1f5f9; font-size:11px;">🟡 Песок</div>
+            <div style="font-size:9px; color:#94a3b8;">Срыв сцепления</div>
+          </div>
+        </button>
+        <button class="soil-type-btn" id="soil-btn-forest" onclick="setSoilBrushType('forest')">
+          <span class="soil-swatch" style="background:#6b4a2f;"></span>
+          <div style="text-align:left;">
+            <div style="font-weight:700; color:#f1f5f9; font-size:11px;">🌲 Лесная почва</div>
+            <div style="font-size:9px; color:#94a3b8;">Хвоя, корни</div>
+          </div>
+        </button>
+        <button class="soil-type-btn" id="soil-btn-snow" onclick="setSoilBrushType('snow')">
+          <span class="soil-swatch" style="background:#eef3f8;"></span>
+          <div style="text-align:left;">
+            <div style="font-weight:700; color:#f1f5f9; font-size:11px;">❄️ Снег</div>
+            <div style="font-size:9px; color:#94a3b8;">Скольжение</div>
+          </div>
+        </button>
+        <button class="soil-type-btn" id="soil-btn-eraser" onclick="setSoilBrushType('eraser')">
+          <span class="soil-swatch" style="background:#386641; border:1px dashed #fff;"></span>
+          <div style="text-align:left;">
+            <div style="font-weight:700; color:#f1f5f9; font-size:11px;">🧼 Ластик</div>
+            <div style="font-size:9px; color:#94a3b8;">Стереть в траву</div>
+          </div>
+        </button>
+      </div>
+
+      <!-- Настройки кисти -->
+      <div style="background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:10px; display:flex; flex-direction:column; gap:8px; margin-top:8px;">
+        <div>
+          <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px;">
+            <span style="color:#cbd5e1; font-weight:600;">Радиус кисти:</span>
+            <span id="soil-brush-radius-label" style="color:#f59e0b; font-weight:700;">12 м</span>
+          </div>
+          <input type="range" id="soil-brush-radius" min="2" max="40" step="1" value="12" style="width:100%; accent-color:#f59e0b;" oninput="updateSoilBrushRadius(this.value)">
+          <div style="display:flex; justify-content:space-between; font-size:9px; color:#64748b; margin-top:2px;">
+            <span>2 м (колея)</span>
+            <span>20 м</span>
+            <span>40 м (полигон)</span>
+          </div>
+        </div>
+
+        <div>
+          <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px;">
+            <span style="color:#cbd5e1; font-weight:600;">Плотность / Сила:</span>
+            <span id="soil-brush-strength-label" style="color:#00f0ff; font-weight:700;">80%</span>
+          </div>
+          <input type="range" id="soil-brush-strength" min="0.2" max="1.0" step="0.05" value="0.8" style="width:100%; accent-color:#00f0ff;" oninput="updateSoilBrushStrength(this.value)">
+        </div>
+      </div>
+
+      <!-- Быстрые пресеты оффроуда -->
+      <div class="section-title" style="margin-top:6px;"><span>Готовые пресеты</span></div>
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <button class="btn" style="text-align:left; font-size:11px; padding:8px 10px;" onclick="applySoilPreset('mud_track')">
+          🟫 <b>Грязевой оффроуд-участок</b> у КП-2
+        </button>
+        <button class="btn" style="text-align:left; font-size:11px; padding:8px 10px;" onclick="applySoilPreset('beach_sand')">
+          🟡 <b>Песчаная полоса</b> вдоль курортного пляжа
+        </button>
+      </div>
+
+      <!-- Действия с грунтом -->
+      <div class="controls" style="margin-top:8px;">
+        <div class="btn-row">
+          <button class="btn" onclick="undoLastSoilZone()">↩️ Отменить мазок</button>
+          <button class="btn btn-danger" onclick="clearAllSoilZones()">🗑️ Очистить весь грунт</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Футер сайдбара с быстрыми действиями -->
+    <div class="sidebar-footer">
+      <div class="coords-display">
+        <span id="status-coords">X: 0.00 м | Z: 0.00 м</span>
+        <span id="status-stats" style="color:#94a3b8;">4 дороги | 0 пропсов</span>
+      </div>
+
+      <button class="btn btn-primary" onclick="saveToProject()">💾 Сохранить в проект (напрямую)</button>
+      <div class="btn-row">
+        <button class="btn" onclick="downloadRoadsJson()">📥 Скачать JSON</button>
+        <button class="btn" onclick="copyJsonToClipboard()">📋 Скопировать</button>
       </div>
     </div>
   </div>
 
+  <!-- Вьюпорт холста -->
   <div id="viewport">
     <canvas id="canvas"></canvas>
 
+    <!-- Баннер активного режима рисования -->
+    <div id="draw-mode-banner" style="display:none; position:absolute; top:16px; left:50%; transform:translateX(-50%); background:rgba(245,158,11,0.95); color:#000; padding:8px 20px; border-radius:30px; font-weight:700; font-size:12px; box-shadow:0 6px 24px rgba(0,0,0,0.5); z-index:20; align-items:center; gap:12px;">
+      <span>✏️ Режим рисования дороги активен (Кликайте по карте для добавления точек)</span>
+      <button onclick="setRoadToolMode('select')" style="background:#0f172a; color:#fff; border:none; padding:4px 12px; border-radius:15px; font-size:11px; cursor:pointer; font-weight:bold;">Завершить [Esc]</button>
+    </div>
+
     <div class="floating-hud">
-      <b>Управление картой:</b><br>
-      • <b>Колёсико мыши</b> — зум в точку курсора (0.4× .. 8.0×)<br>
-      • <b>Зажатое колёсико</b> или <b>Пробел + ЛКМ</b> — перемещение карты<br>
-      • <b>ЛКМ</b> — поставить точку / перетащить точку<br>
-      • <b>ПКМ по точке</b> — удалить точку<br>
+      <b>Управление картой, трассами и объектами:</b><br>
+      • <b>✋ Выбор [Esc / V]</b> — двигайте карту, точки и объекты<br>
+      • <b>🌴 Объекты</b> — кликните для выбора, <b>перетаскивайте мышкой</b> или двигайте <b>стрелками клавиатуры</b><br>
+      • <b>🕹️ D-Pad в Инспекторе</b> — точное смещение шагом от 0.2м до 5м<br>
+      • <b>Q / E</b> — поворот объекта, <b>[ / ]</b> — масштаб, <b>Del</b> — удалить<br>
+      • <b>✏️ Рисовать [B]</b> — кликайте по карте для добавления новых точек дороги<br>
+      • <b>Колёсико / Ctrl + Колёсико</b> — свободный зум от 8% до 1200%<br>
+      • <b>Хватайте ассеты из меню</b> и тащите (Drag & Drop) на карту<br>
     </div>
 
     <div class="zoom-toolbar">
-      <button class="zoom-btn" id="btn-zoom-out" title="Уменьшить">−</button>
-      <div class="zoom-label" id="zoom-indicator">100%</div>
-      <button class="zoom-btn" id="btn-zoom-in" title="Увеличить">+</button>
-      <button class="zoom-btn" id="btn-zoom-fit" title="Сброс вида" style="font-size:12px;">1:1</button>
+      <button class="zoom-btn" onclick="applyZoom(-1)" title="Уменьшить масштаб (Ctrl + Колесо вниз)">−</button>
+      <div class="zoom-label" id="zoom-indicator" title="Кликните для масштаба 100%" onclick="resetZoomAndPan()" style="cursor:pointer;">100%</div>
+      <button class="zoom-btn" onclick="applyZoom(1)" title="Увеличить масштаб (Ctrl + Колесо вверх)">+</button>
+      <button class="zoom-btn" onclick="resetZoomAndPan()" title="Сбросить масштаб 1:1 (100%)" style="font-size:11px;">1:1</button>
+      <button class="zoom-btn" onclick="fitMapToScreen()" title="Показать весь остров целиком на экране" style="font-size:11px; padding:0 10px; width:auto;">🔍 Вся карта</button>
     </div>
+
+    <div id="toast">✅ Файл успешно сохранён в проект!</div>
   </div>
 
   <script>
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    const viewport = document.getElementById('viewport');
-    const coordsInfo = document.getElementById('coords-info');
-    const pointCountEl = document.getElementById('route-point-count');
-    const routesList = document.getElementById('routes-list');
-    const zoomIndicator = document.getElementById('zoom-indicator');
+    // --- 1. ОПРЕДЕЛЕНИЯ КАТАЛОГА АССЕТОВ (PROPS DEFINITIONS) ---
+    const PROPS_CATALOG = [
+      { type: 'palm', name: 'Кокосовая пальма', icon: '🌴', badge: 'Природа', defaultScale: 1.1, radius: 4.5 },
+      { type: 'bungalow', name: 'Курортное бунгало', icon: '🛖', badge: 'Курорт', defaultScale: 1.0, radius: 5.5 },
+      { type: 'umbrella', name: 'Пляжный зонт', icon: '⛱️', badge: 'Курорт', defaultScale: 1.0, radius: 2.2, defaultColor: '#06b6d4' },
+      { type: 'lounger', name: 'Шезлонг с полотенцем', icon: '🛋️', badge: 'Курорт', defaultScale: 1.0, radius: 2.0 },
+      { type: 'lamp', name: 'Уличный фонарь', icon: '🏮', badge: 'Город', defaultScale: 1.0, radius: 2.5 },
+      { type: 'boat', name: 'Лодка Банка', icon: '🚤', badge: 'Вода', defaultScale: 1.0, radius: 6.0 },
+      { type: 'pier', name: 'Деревянный пирс', icon: '🪵', badge: 'Курорт', defaultScale: 1.0, radius: 18.0 },
+      { type: 'buoy', name: 'Сигнальный буй', icon: '🟠', badge: 'Вода', defaultScale: 1.0, radius: 1.8 },
+      { type: 'rock', name: 'Тропический валун', icon: '🪨', badge: 'Природа', defaultScale: 1.2, radius: 3.5 },
+      { type: 'checkpoint', name: 'Арка чекпоинта', icon: '🏁', badge: 'Ралли', defaultScale: 1.0, radius: 7.0 }
+    ];
 
-    // Размер исходного ортофотоплана
+    // --- 2. ГЛОБАЛЬНОЕ СОСТОЯНИЕ РЕДАКТОРА ---
     const ORTHO_METERS = 500.0;
     const MAP_TEX_SIZE = 1024;
     const METERS_PER_TEX_PX = ORTHO_METERS / MAP_TEX_SIZE;
 
-    // Состояние панорамирования и зума
     let zoom = 1.0;
     let panX = 0;
     let panY = 0;
@@ -290,63 +1084,135 @@
     let panStartX = 0;
     let panStartY = 0;
     let isSpaceHeld = false;
+    let isRHeld = false;
 
-    // Редактирование точек
+    // Режимы редактирования
+    let activeTab = 'roads'; // 'roads', 'props', 'inspector'
+    let roadToolMode = 'select'; // 'select' (по умолчанию, безопасный просмотр без паразитных линий), 'draw' (добавление точек)
+    let stampPropType = null; // если активен режим штампа ассета
+    let ghostPos = null; // экранная и мировая позиция для предпросмотра размещения
+
+    // Выделение
+    let selectedProp = null;
+    let hoveredProp = null;
+    let isDraggingProp = false;
+    let dragPropOffset = { x: 0, z: 0 };
+    let currentNudgeStep = 1.0;
+
+    // Точки дорог
     let draggedPoint = null;
     let hoveredPoint = null;
+    let selectedPoint = null; // { routeId, idx }
+    let pointInsertMode = 'smart'; // 'smart', 'append', 'prepend', 'after-selected'
+    let ghostInsertInfo = null; // { index, mode, wx, wz, routeId }
     let hasMovedDuringMouseDown = false;
     let mouseDownPos = { x: 0, y: 0 };
 
-    // Загрузка текстуры карты
-    const mapImg = new Image();
-    mapImg.src = '/philippines_topdown_map.png';
-    mapImg.onload = () => { render(); };
+    // Данные карты
+    let routesData = {};
+    let propsData = [];
+    let activeRouteId = "mactan_boulevard";
 
-    // Три целевых маршрута согласно концепту
-    let routesData = {
-      "coastal_loop": {
-        name: "1. Coastal Loop (Набережная и курорт)",
-        color: "#00f0ff",
-        width: 8.0,
-        points: []
-      },
-      "barangay_trail": {
-        name: "2. Barangay & Coconut Trail (Грунтовка и роща)",
-        color: "#4ade80",
-        width: 7.0,
-        points: []
-      },
-      "shoreline_trail": {
-        name: "3. Shoreline Trail (Песок, лодки, брод)",
-        color: "#fbbf24",
-        width: 6.5,
-        points: []
-      },
-      "mactan_boulevard": {
-        name: "4. Mactan Boulevard (Главный проспект)",
-        color: "#f59e0b",
-        width: 10.0,
-        points: []
-      }
+    // Зоны грунта из Тайги (SoilSim: глина, болото, песок, лес, снег)
+    let soilZones = [];
+    window.soilZones = soilZones;
+    let currentSoilType = 'clay';
+    let soilBrushRadius = 12.0;
+    let soilBrushStrength = 0.8;
+    let isPaintingSoil = false;
+    let lastSoilPaintPos = null;
+    let soilMouseWorldPos = null;
+
+    const SOIL_COLORS = {
+      clay: '#6a3f24',
+      swamp: '#4a3b2a',
+      sand: '#c79a5b',
+      forest: '#6b4a2f',
+      snow: '#eef3f8',
+      eraser: '#386641'
     };
 
-    let activeRouteId = "coastal_loop";
-
-    // Инициализация размеров canvas
-    function resizeCanvas() {
-      const rect = viewport.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      ctx.resetTransform();
-      ctx.scale(dpr, dpr);
-      render();
+    function hexToRgba(hex, alpha) {
+      hex = hex.replace('#', '');
+      if (hex.length === 3) {
+        hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+      }
+      const r = parseInt(hex.substring(0, 2), 16) || 0;
+      const g = parseInt(hex.substring(2, 4), 16) || 0;
+      const b = parseInt(hex.substring(4, 6), 16) || 0;
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
     }
-    window.addEventListener('resize', resizeCanvas);
 
-    // Преобразование координат
-    // Мировые метры Three.js: X в [-250 .. +250], Z в [-250 .. +250]
-    // Текстурные пиксели: tx в [0 .. 1024], ty в [0 .. 1024]
+    // Стек отмены (Undo)
+    const undoStack = [];
+    function pushUndoState() {
+      if (undoStack.length > 30) undoStack.shift();
+      undoStack.push({
+        routes: JSON.parse(JSON.stringify(routesData)),
+        props: JSON.parse(JSON.stringify(propsData)),
+        soil: JSON.parse(JSON.stringify(soilZones))
+      });
+    }
+
+    // Canvas
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const viewport = document.getElementById('viewport');
+    const zoomIndicator = document.getElementById('zoom-indicator');
+    const statusCoords = document.getElementById('status-coords');
+    const statusStats = document.getElementById('status-stats');
+    const toast = document.getElementById('toast');
+
+    // Загрузка текстуры карты в сверхвысоком разрешении (Ultra-HD 4096px)
+    const mapImg = new Image();
+    window.mapImg = mapImg;
+    mapImg.src = '/philippines_topdown_map.png?t=' + Date.now();
+    mapImg.onload = () => {
+      console.log('🗺️ Загружена Ultra-HD карта Mactan:', mapImg.naturalWidth, 'x', mapImg.naturalHeight);
+      const resBadge = document.getElementById('badge-map-res');
+      if (resBadge) resBadge.textContent = `${mapImg.naturalWidth} × ${mapImg.naturalHeight} Ultra-HD`;
+      render();
+    };
+
+    // --- 3. ИНИЦИАЛИЗАЦИЯ И ЗАГРУЗКА ДАННЫХ ---
+    fetch('/models/philippines_roads.json')
+      .then(res => res.json())
+      .then(data => {
+        routesData = data.routes || {};
+        propsData = data.props || [];
+        soilZones = data.soilZones || [];
+        window.routesData = routesData;
+        window.propsData = propsData;
+        window.soilZones = soilZones;
+        if (!routesData.mactan_boulevard) {
+          routesData.mactan_boulevard = { name: "Mactan Boulevard", color: "#f59e0b", width: 10, points: [] };
+        }
+        activeRouteId = Object.keys(routesData)[0] || "mactan_boulevard";
+        initPropsCatalogUI();
+        buildRoutesUI();
+        updateStats();
+        updateSoilCountBadge();
+        if (typeof updateAllPropsListUI === 'function') updateAllPropsListUI();
+        render();
+      })
+      .catch(err => {
+        console.warn('Загрузка дефолтных путей:', err);
+        routesData = {
+          "mactan_boulevard": { name: "Mactan Boulevard", color: "#f59e0b", width: 10, points: [] },
+          "coastal_loop": { name: "Coastal Loop", color: "#00f0ff", width: 8, points: [] }
+        };
+        soilZones = [];
+        window.soilZones = soilZones;
+        activeRouteId = "mactan_boulevard";
+        initPropsCatalogUI();
+        buildRoutesUI();
+        updateStats();
+        updateSoilCountBadge();
+        if (typeof updateAllPropsListUI === 'function') updateAllPropsListUI();
+        render();
+      });
+
+    // --- 4. ПРЕОБРАЗОВАНИЕ КООРДИНАТ (THREE.JS <-> SCREEN) ---
     function metersToTexPx(x, z) {
       const tx = (x / METERS_PER_TEX_PX) + MAP_TEX_SIZE / 2;
       const ty = (z / METERS_PER_TEX_PX) + MAP_TEX_SIZE / 2;
@@ -359,91 +1225,1077 @@
       return { x: Math.round(x * 100) / 100, z: Math.round(z * 100) / 100 };
     }
 
-    // Экранные координаты (CSS пиксели во вьюпорте) в мировые метры Three.js
-    function screenToWorld(sx, sy) {
+    function screenToWorld(clientX, clientY) {
       const rect = viewport.getBoundingClientRect();
+      const mouseX = clientX - rect.left;
+      const mouseY = clientY - rect.top;
       const cx = rect.width / 2;
       const cy = rect.height / 2;
-      // Обратное преобразование: screen = (tex - 512) * zoom + center + pan
-      const tx = (sx - cx - panX) / zoom + MAP_TEX_SIZE / 2;
-      const ty = (sy - cy - panY) / zoom + MAP_TEX_SIZE / 2;
+      const tx = (mouseX - cx - panX) / zoom + MAP_TEX_SIZE / 2;
+      const ty = (mouseY - cy - panY) / zoom + MAP_TEX_SIZE / 2;
       return texPxToMeters(tx, ty);
     }
 
-    // Мировые метры Three.js в экранные CSS пиксели во вьюпорте
     function worldToScreen(x, z) {
       const rect = viewport.getBoundingClientRect();
       const cx = rect.width / 2;
       const cy = rect.height / 2;
       const { tx, ty } = metersToTexPx(x, z);
-      const sx = (tx - MAP_TEX_SIZE / 2) * zoom + cx + panX;
-      const sy = (ty - MAP_TEX_SIZE / 2) * zoom + cy + panY;
-      return { sx, sy };
+      const vx = (tx - MAP_TEX_SIZE / 2) * zoom + cx + panX;
+      const vy = (ty - MAP_TEX_SIZE / 2) * zoom + cy + panY;
+      return {
+        vx, vy, // Координаты внутри Canvas viewport (0..width, 0..height)
+        sx: rect.left + vx, // Координаты в окне браузера (clientX)
+        sy: rect.top + vy,  // Координаты в окне браузера (clientY)
+        clientX: rect.left + vx,
+        clientY: rect.top + vy
+      };
     }
 
-    // Загрузка начальных маршрутов
-    fetch('/models/philippines_roads.json')
-      .then(res => res.json())
-      .then(data => {
-        if (data.routes) {
-          if (data.routes.beach_promenade) routesData.coastal_loop.points = data.routes.beach_promenade.points;
-          if (data.routes.mangrove_trail) routesData.barangay_trail.points = data.routes.mangrove_trail.points;
-          if (data.routes.mactan_boulevard) routesData.mactan_boulevard.points = data.routes.mactan_boulevard.points;
-          if (data.routes.plaza_loop) routesData.shoreline_trail.points = data.routes.plaza_loop.points;
-        }
-        buildUI();
-        render();
-      })
-      .catch(err => {
-        console.warn('Используются дефолтные маршруты:', err);
-        buildUI();
-        render();
-      });
+    function resizeCanvas() {
+      const rect = viewport.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.round(rect.width * dpr);
+      canvas.height = Math.round(rect.height * dpr);
+      ctx.resetTransform();
+      ctx.scale(dpr, dpr);
+      render();
+    }
+    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('load', resizeCanvas);
+    setTimeout(resizeCanvas, 50);
 
-    function buildUI() {
-      routesList.innerHTML = '';
+    // --- 5. UI ВЕРСТКА И УПРАВЛЕНИЕ ВКЛАДКАМИ ---
+    function switchTab(tab) {
+      activeTab = tab;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+      document.getElementById('tab-btn-' + tab)?.classList.add('active');
+      document.getElementById('tab-' + tab)?.classList.add('active');
+
+      if (tab !== 'props' && stampPropType) {
+        cancelStampMode();
+      }
+      if (tab !== 'roads') {
+        ghostInsertInfo = null;
+      }
+      render();
+    }
+    window.switchTab = switchTab;
+
+    function setRoadToolMode(mode) {
+      roadToolMode = mode;
+      const btnSel = document.getElementById('btn-road-mode-select');
+      const btnDraw = document.getElementById('btn-road-mode-draw');
+      const badge = document.getElementById('road-mode-badge');
+      const hint = document.getElementById('road-mode-hint');
+      const banner = document.getElementById('draw-mode-banner');
+
+      if (mode === 'select') {
+        ghostInsertInfo = null;
+        if (viewport) viewport.style.cursor = 'default';
+        if (btnSel) {
+          btnSel.style.background = '#00f0ff';
+          btnSel.style.color = '#0f172a';
+          btnSel.style.borderColor = '#00f0ff';
+        }
+        if (btnDraw) {
+          btnDraw.style.background = '#1e293b';
+          btnDraw.style.color = '#cbd5e1';
+          btnDraw.style.borderColor = 'rgba(255,255,255,0.15)';
+        }
+        if (badge) {
+          badge.textContent = '✋ Выбор';
+          badge.style.color = '#00f0ff';
+        }
+        if (hint) {
+          hint.innerHTML = 'В режиме <b>Выбор</b> бирюзовые линии не следуют за мышкой, можно двигать карту и выделять точки.';
+        }
+        if (banner) banner.style.display = 'none';
+      } else {
+        if (viewport) viewport.style.cursor = 'crosshair';
+        if (btnSel) {
+          btnSel.style.background = '#1e293b';
+          btnSel.style.color = '#cbd5e1';
+          btnSel.style.borderColor = 'rgba(255,255,255,0.15)';
+        }
+        if (btnDraw) {
+          btnDraw.style.background = '#f59e0b';
+          btnDraw.style.color = '#000';
+          btnDraw.style.borderColor = '#f59e0b';
+        }
+        if (badge) {
+          badge.textContent = '✏️ Рисование';
+          badge.style.color = '#f59e0b';
+        }
+        if (hint) {
+          hint.innerHTML = 'Кликайте по карте для добавления точек. Нажмите <b>Esc</b> или кнопку "Выбор" для завершения.';
+        }
+        if (banner) banner.style.display = 'flex';
+        showToast('Режим рисования включен: кликайте по карте (Esc для выхода)');
+      }
+      render();
+    }
+    window.setRoadToolMode = setRoadToolMode;
+
+    function initPropsCatalogUI() {
+      const grid = document.getElementById('props-grid');
+      if (!grid) return;
+      grid.innerHTML = '';
+
+      PROPS_CATALOG.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'prop-card' + (stampPropType === p.type ? ' stamp-active' : '');
+        card.draggable = true;
+        card.innerHTML = `
+          <span class="prop-drag-hint">Тащить</span>
+          <div class="prop-icon">${p.icon}</div>
+          <div class="prop-label">${p.name}</div>
+          <span class="prop-badge">${p.badge}</span>
+        `;
+
+        // События Drag & Drop
+        card.addEventListener('dragstart', (e) => {
+          e.dataTransfer.setData('text/plain', p.type);
+          e.dataTransfer.effectAllowed = 'copy';
+        });
+
+        // Клик для режима штампа (быстрое клик-размещение)
+        card.onclick = () => {
+          if (stampPropType === p.type) {
+            cancelStampMode();
+          } else {
+            activateStampMode(p.type);
+          }
+        };
+
+        grid.appendChild(card);
+      });
+      updateStats();
+    }
+
+    function activateStampMode(type) {
+      stampPropType = type;
+      viewport.classList.add('stamp-cursor');
+      document.getElementById('btn-cancel-stamp').style.display = 'block';
+      document.querySelectorAll('.prop-card').forEach(c => {
+        c.classList.toggle('stamp-active', c.querySelector('.prop-label').textContent === PROPS_CATALOG.find(p=>p.type===type)?.name);
+      });
+      showToast(`Режим штампа: кликайте на карте для размещения ${type}`);
+    }
+
+    function cancelStampMode() {
+      stampPropType = null;
+      ghostPos = null;
+      viewport.classList.remove('stamp-cursor');
+      document.getElementById('btn-cancel-stamp').style.display = 'none';
+      document.querySelectorAll('.prop-card').forEach(c => c.classList.remove('stamp-active'));
+      render();
+    }
+    window.cancelStampMode = cancelStampMode;
+
+    function buildRoutesUI() {
+      const container = document.getElementById('routes-list');
+      if (!container) return;
+      container.innerHTML = '';
+
       Object.keys(routesData).forEach(id => {
         const r = routesData[id];
         const card = document.createElement('div');
         card.className = 'route-card' + (id === activeRouteId ? ' active' : '');
+        const surfIcon = {
+          asphalt: '🛣️',
+          clay: '🟫',
+          sand: '🟡',
+          forest: '🌲',
+          swamp: '🟤',
+          snow: '❄️'
+        }[r.surfaceType || 'asphalt'] || '🛣️';
+        const surfLabel = {
+          asphalt: 'Асфальт',
+          clay: 'Глина',
+          sand: 'Песок',
+          forest: 'Лес',
+          swamp: 'Болото',
+          snow: 'Снег'
+        }[r.surfaceType || 'asphalt'] || 'Асфальт';
+
         card.innerHTML = `
           <div class="route-card-title">
-            <span><span class="route-dot" style="background:${r.color}; box-shadow: 0 0 8px ${r.color}"></span>${r.name}</span>
+            <div class="route-card-header-left">
+              <span class="route-dot" style="background:${r.color}; box-shadow: 0 0 8px ${r.color}"></span>
+              <span>${r.name}</span>
+            </div>
+            <div class="route-actions">
+              <button class="icon-btn-mini" title="Удалить маршрут" onclick="deleteRoute('${id}', event)">🗑️</button>
+            </div>
           </div>
           <div class="route-stats">
-            <span>Ширина: ${r.width} м</span>
-            <span>Точек: ${r.points.length}</span>
+            <span style="color:#00f0ff;">${surfIcon} ${surfLabel}</span>
+            <span>Ширина: ${r.width || 8} м</span>
+            <span>Точек: ${r.points ? r.points.length : 0}</span>
           </div>
         `;
-        card.onclick = () => {
+        card.onclick = (e) => {
+          if (e.target.closest('.icon-btn-mini')) return;
           activeRouteId = id;
-          buildUI();
+          syncActiveRouteControls();
+          buildRoutesUI();
           render();
         };
-        routesList.appendChild(card);
+        container.appendChild(card);
       });
-      const cur = routesData[activeRouteId];
-      if (pointCountEl) pointCountEl.textContent = `Точек в треке: ${cur ? cur.points.length : 0}`;
+      syncActiveRouteControls();
+      updateStats();
+      if (typeof updatePointControlCard === 'function') updatePointControlCard();
+      if (typeof updatePointsListUI === 'function') updatePointsListUI();
     }
 
+    function syncActiveRouteControls() {
+      const cur = routesData[activeRouteId];
+      if (!cur) return;
+      const slider = document.getElementById('route-width-slider');
+      const val = document.getElementById('route-width-val');
+      if (slider) slider.value = cur.width || 8.0;
+      if (val) val.textContent = (cur.width || 8.0).toFixed(1) + ' м';
+
+      const surfSelect = document.getElementById('route-surface-select');
+      if (surfSelect) surfSelect.value = cur.surfaceType || 'asphalt';
+
+      // Выделение активного цвета
+      document.querySelectorAll('#route-colors .color-swatch').forEach(sw => {
+        sw.classList.toggle('active', sw.style.backgroundColor === cur.color);
+      });
+    }
+
+    function updateActiveRouteSurface(surf) {
+      if (!routesData[activeRouteId]) return;
+      pushUndoState();
+      routesData[activeRouteId].surfaceType = surf;
+      syncActiveRouteControls();
+      buildRoutesUI();
+      render();
+      const labels = {
+        asphalt: 'Асфальт (городской)',
+        clay: 'Вязкая глина (Тайга)',
+        sand: 'Песчаная колея',
+        forest: 'Лесная тропа',
+        swamp: 'Грязевой брод',
+        snow: 'Заснеженная колея'
+      };
+      showToast(`Покрытие дороги: ${labels[surf] || surf}`);
+    }
+    window.updateActiveRouteSurface = updateActiveRouteSurface;
+
+    function updateActiveRouteWidth(w) {
+      if (!routesData[activeRouteId]) return;
+      pushUndoState();
+      routesData[activeRouteId].width = parseFloat(w);
+      syncActiveRouteControls();
+      buildRoutesUI();
+      render();
+    }
+    window.updateActiveRouteWidth = updateActiveRouteWidth;
+
+    function setActiveRouteColor(color) {
+      if (!routesData[activeRouteId]) return;
+      pushUndoState();
+      routesData[activeRouteId].color = color;
+      syncActiveRouteControls();
+      buildRoutesUI();
+      render();
+    }
+    window.setActiveRouteColor = setActiveRouteColor;
+
+    function promptNewRoute() {
+      const name = prompt("Введите название нового маршрута:", "Новая дорога");
+      if (!name) return;
+      pushUndoState();
+      const id = 'route_' + Date.now();
+      routesData[id] = {
+        name: name,
+        color: '#00f0ff',
+        width: 8.0,
+        points: []
+      };
+      activeRouteId = id;
+      buildRoutesUI();
+      render();
+      showToast(`Маршрут "${name}" создан! Кликайте по карте для добавления точек.`);
+    }
+    window.promptNewRoute = promptNewRoute;
+
+    function deleteRoute(id, e) {
+      if (e) e.stopPropagation();
+      if (!confirm(`Удалить маршрут "${routesData[id]?.name}"?`)) return;
+      pushUndoState();
+      delete routesData[id];
+      const keys = Object.keys(routesData);
+      activeRouteId = keys[0] || null;
+      buildRoutesUI();
+      render();
+    }
+    window.deleteRoute = deleteRoute;
+
+    function undoLastPoint() {
+      const cur = routesData[activeRouteId];
+      if (!cur || !cur.points.length) return;
+      pushUndoState();
+      cur.points.pop();
+      buildRoutesUI();
+      render();
+    }
+    window.undoLastPoint = undoLastPoint;
+
+    function clearActiveRoutePoints() {
+      const cur = routesData[activeRouteId];
+      if (!cur || !cur.points.length) return;
+      if (!confirm(`Очистить все точки в маршруте "${cur.name}"?`)) return;
+      pushUndoState();
+      cur.points = [];
+      selectedPoint = null;
+      buildRoutesUI();
+      render();
+    }
+    window.clearActiveRoutePoints = clearActiveRoutePoints;
+
+    function setPointInsertMode(mode) {
+      pointInsertMode = mode;
+      showToast(`Режим вставки: ${
+        mode === 'smart' ? '🎯 Умная вставка' :
+        mode === 'append' ? '➕ В конец' :
+        mode === 'prepend' ? '⏪ В начало' : '📍 После выбранной'
+      }`);
+      render();
+    }
+    window.setPointInsertMode = setPointInsertMode;
+
+    function findBestInsertionIndex(route, wx, wz) {
+      if (!route || !route.points) return null;
+      const pts = route.points;
+      if (pts.length === 0) return { index: 0, mode: 'empty', routeId: activeRouteId, dist: 0 };
+      if (pts.length === 1) {
+        const d = Math.hypot(wx - pts[0].x, wz - pts[0].z);
+        return { index: 1, mode: 'append', routeId: activeRouteId, dist: d };
+      }
+
+      if (pointInsertMode === 'append') {
+        const last = pts[pts.length - 1];
+        const d = Math.hypot(wx - last.x, wz - last.z);
+        return { index: pts.length, mode: 'append', routeId: activeRouteId, dist: d };
+      }
+      if (pointInsertMode === 'prepend') {
+        const first = pts[0];
+        const d = Math.hypot(wx - first.x, wz - first.z);
+        return { index: 0, mode: 'prepend', routeId: activeRouteId, dist: d };
+      }
+      if (pointInsertMode === 'after-selected' && selectedPoint && selectedPoint.routeId === activeRouteId) {
+        const p = pts[selectedPoint.idx];
+        const d = p ? Math.hypot(wx - p.x, wz - p.z) : 0;
+        return { index: selectedPoint.idx + 1, mode: 'after-selected', routeId: activeRouteId, dist: d };
+      }
+
+      // SMART MODE:
+      const distStart = Math.hypot(wx - pts[0].x, wz - pts[0].z);
+      const distEnd = Math.hypot(wx - pts[pts.length - 1].x, wz - pts[pts.length - 1].z);
+
+      const vStart = { x: pts[0].x - pts[1].x, z: pts[0].z - pts[1].z };
+      const toClickStart = { x: wx - pts[0].x, z: wz - pts[0].z };
+      const dotStart = toClickStart.x * vStart.x + toClickStart.z * vStart.z;
+
+      const vEnd = { x: pts[pts.length - 1].x - pts[pts.length - 2].x, z: pts[pts.length - 1].z - pts[pts.length - 2].z };
+      const toClickEnd = { x: wx - pts[pts.length - 1].x, z: wz - pts[pts.length - 1].z };
+      const dotEnd = toClickEnd.x * vEnd.x + toClickEnd.z * vEnd.z;
+
+      let minSegDist = Infinity;
+      let bestSegIdx = -1;
+
+      for (let i = 0; i < pts.length - 1; i++) {
+        const a = pts[i];
+        const b = pts[i + 1];
+        const abx = b.x - a.x;
+        const abz = b.z - a.z;
+        const abLenSq = abx * abx + abz * abz;
+        if (abLenSq < 0.0001) continue;
+
+        const t = Math.max(0, Math.min(1, ((wx - a.x) * abx + (wz - a.z) * abz) / abLenSq));
+        const projX = a.x + t * abx;
+        const projZ = a.z + t * abz;
+        const d = Math.hypot(wx - projX, wz - projZ);
+
+        if (d < minSegDist) {
+          minSegDist = d;
+          bestSegIdx = i;
+        }
+      }
+
+      if (dotEnd > 0 && distEnd < minSegDist) {
+        return { index: pts.length, mode: 'append', routeId: activeRouteId, dist: distEnd };
+      }
+      if (dotStart > 0 && distStart < minSegDist) {
+        return { index: 0, mode: 'prepend', routeId: activeRouteId, dist: distStart };
+      }
+      if (bestSegIdx !== -1) {
+        return { index: bestSegIdx + 1, mode: 'smart-segment', routeId: activeRouteId, segIdx: bestSegIdx, dist: minSegDist };
+      }
+      return { index: pts.length, mode: 'append', routeId: activeRouteId, dist: distEnd };
+    }
+    window.findBestInsertionIndex = findBestInsertionIndex;
+
+    function updatePointControlCard() {
+      const card = document.getElementById('point-control-card');
+      if (!card) return;
+      if (!selectedPoint || selectedPoint.routeId !== activeRouteId) {
+        card.style.display = 'none';
+        updatePointsListUI();
+        return;
+      }
+      const cur = routesData[selectedPoint.routeId];
+      if (!cur || !cur.points || !cur.points[selectedPoint.idx]) {
+        card.style.display = 'none';
+        selectedPoint = null;
+        updatePointsListUI();
+        return;
+      }
+      const p = cur.points[selectedPoint.idx];
+      card.style.display = 'flex';
+      const idxEl = document.getElementById('pt-ctrl-idx');
+      if (idxEl) idxEl.textContent = `${selectedPoint.idx + 1} из ${cur.points.length}`;
+      const xEl = document.getElementById('pt-ctrl-x');
+      const zEl = document.getElementById('pt-ctrl-z');
+      if (xEl) xEl.value = p.x.toFixed(2);
+      if (zEl) zEl.value = p.z.toFixed(2);
+
+      updatePointsListUI();
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    window.updatePointControlCard = updatePointControlCard;
+
+    function selectPoint(pt) {
+      selectedPoint = pt;
+      if (pt) activeRouteId = pt.routeId;
+      buildRoutesUI();
+      updatePointControlCard();
+      render();
+    }
+    window.selectPoint = selectPoint;
+
+    function setActiveRoute(id) {
+      activeRouteId = id;
+      syncActiveRouteControls();
+      buildRoutesUI();
+      render();
+    }
+    window.setActiveRoute = setActiveRoute;
+
+    function deselectPoint() {
+      selectedPoint = null;
+      updatePointControlCard();
+      render();
+    }
+    window.deselectPoint = deselectPoint;
+
+    function updateSelectedPointCoord(axis, val) {
+      if (!selectedPoint) return;
+      const cur = routesData[selectedPoint.routeId];
+      if (!cur || !cur.points || !cur.points[selectedPoint.idx]) return;
+      pushUndoState();
+      cur.points[selectedPoint.idx][axis] = parseFloat(val) || 0;
+      updatePointControlCard();
+      render();
+    }
+    window.updateSelectedPointCoord = updateSelectedPointCoord;
+
+    function moveSelectedPointOrder(delta) {
+      if (!selectedPoint) return;
+      movePointIndex(selectedPoint.idx, delta);
+    }
+    window.moveSelectedPointOrder = moveSelectedPointOrder;
+
+    function movePointIndex(idx, delta) {
+      const cur = routesData[activeRouteId];
+      if (!cur || !cur.points) return;
+      const targetIdx = idx + delta;
+      if (targetIdx < 0 || targetIdx >= cur.points.length) return;
+      pushUndoState();
+      const temp = cur.points[idx];
+      cur.points[idx] = cur.points[targetIdx];
+      cur.points[targetIdx] = temp;
+      if (selectedPoint && selectedPoint.idx === idx) {
+        selectedPoint.idx = targetIdx;
+      }
+      buildRoutesUI();
+      updatePointControlCard();
+      render();
+      showToast(`Порядок изменён: точка ${idx + 1} перемещена на #${targetIdx + 1}`);
+    }
+    window.movePointIndex = movePointIndex;
+
+    function deleteSelectedPoint() {
+      if (!selectedPoint) return;
+      deletePointIndex(selectedPoint.idx);
+    }
+    window.deleteSelectedPoint = deleteSelectedPoint;
+
+    function deletePointIndex(idx) {
+      const cur = routesData[activeRouteId];
+      if (!cur || !cur.points || !cur.points[idx]) return;
+      pushUndoState();
+      cur.points.splice(idx, 1);
+      selectedPoint = null;
+      buildRoutesUI();
+      updatePointControlCard();
+      render();
+      showToast(`Точка #${idx + 1} удалена`);
+    }
+    window.deletePointIndex = deletePointIndex;
+
+    function reverseActiveRoute() {
+      const cur = routesData[activeRouteId];
+      if (!cur || !cur.points || cur.points.length < 2) return;
+      pushUndoState();
+      cur.points.reverse();
+      if (selectedPoint && selectedPoint.routeId === activeRouteId) {
+        selectedPoint.idx = cur.points.length - 1 - selectedPoint.idx;
+      }
+      buildRoutesUI();
+      updatePointControlCard();
+      render();
+      showToast('🔄 Направление трассы развёрнуто (Реверс)!');
+    }
+    window.reverseActiveRoute = reverseActiveRoute;
+
+    function sortActiveRoutePoints() {
+      const cur = routesData[activeRouteId];
+      if (!cur || !cur.points || cur.points.length < 3) {
+        showToast('Для упорядочивания нужно минимум 3 точки');
+        return;
+      }
+      pushUndoState();
+      const unvisited = cur.points.slice();
+      const sorted = [unvisited.shift()];
+
+      while (unvisited.length > 0) {
+        const last = sorted[sorted.length - 1];
+        let bestDist = Infinity;
+        let bestIdx = 0;
+        for (let i = 0; i < unvisited.length; i++) {
+          const d = Math.hypot(unvisited[i].x - last.x, unvisited[i].z - last.z);
+          if (d < bestDist) {
+            bestDist = d;
+            bestIdx = i;
+          }
+        }
+        sorted.push(unvisited.splice(bestIdx, 1)[0]);
+      }
+
+      cur.points = sorted;
+      selectedPoint = null;
+      buildRoutesUI();
+      updatePointControlCard();
+      render();
+      showToast('⚡ Точки упорядочены в кратчайшую непрерывную трассу!');
+    }
+    window.sortActiveRoutePoints = sortActiveRoutePoints;
+
+    function updatePointsListUI() {
+      const summary = document.getElementById('route-points-summary');
+      const list = document.getElementById('route-points-list');
+      if (!summary || !list) return;
+
+      const cur = routesData[activeRouteId];
+      const pts = cur ? cur.points || [] : [];
+      summary.textContent = `📍 Список всех точек (${pts.length})`;
+
+      list.innerHTML = '';
+      pts.forEach((p, idx) => {
+        const item = document.createElement('div');
+        const isSel = selectedPoint && selectedPoint.routeId === activeRouteId && selectedPoint.idx === idx;
+        item.style.cssText = `
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 4px 6px; border-radius: 4px; background: ${isSel ? 'rgba(0,240,255,0.15)' : 'rgba(255,255,255,0.03)'};
+          border: 1px solid ${isSel ? '#00f0ff' : 'rgba(255,255,255,0.05)'}; cursor: pointer;
+        `;
+        item.innerHTML = `
+          <span style="font-family:monospace; color:${isSel ? '#00f0ff' : '#cbd5e1'}; font-size:11px;">
+            <b>#${idx + 1}</b> (${p.x.toFixed(1)}, ${p.z.toFixed(1)})
+          </span>
+          <div style="display:flex; gap:2px;">
+            <button class="icon-btn-mini" title="Сдвинуть раньше" onclick="event.stopPropagation(); movePointIndex(${idx}, -1)">▲</button>
+            <button class="icon-btn-mini" title="Сдвинуть позже" onclick="event.stopPropagation(); movePointIndex(${idx}, 1)">▼</button>
+            <button class="icon-btn-mini" title="Удалить" onclick="event.stopPropagation(); deletePointIndex(${idx})">🗑️</button>
+          </div>
+        `;
+        item.onclick = () => {
+          selectedPoint = { routeId: activeRouteId, idx };
+          updatePointControlCard();
+          render();
+        };
+        list.appendChild(item);
+      });
+    }
+    window.updatePointsListUI = updatePointsListUI;
+
+    function updateStats() {
+      let rCount = Object.keys(routesData).length;
+      let pCount = propsData.length;
+      let sCount = (soilZones || []).length;
+      if (statusStats) statusStats.textContent = `${rCount} дорог | ${pCount} пропсов | ${sCount} зон грунта`;
+      const badge = document.getElementById('props-count-badge');
+      if (badge) badge.textContent = `${pCount} на карте`;
+      updateSoilCountBadge();
+    }
+
+    // --- 5B. УПРАВЛЕНИЕ КИСТЬЮ И ЗОНАМИ ГРУНТА (SOIL TAB) ---
+    function setSoilBrushType(type) {
+      currentSoilType = type;
+      document.querySelectorAll('.soil-type-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.id === 'soil-btn-' + type);
+      });
+      const names = {
+        clay: '🟫 Глина (Тайга)',
+        swamp: '🟤 Болото / Брод',
+        sand: '🟡 Сыпучий песок',
+        forest: '🌲 Лесная почва',
+        snow: '❄️ Снег',
+        eraser: '🧼 Ластик (трава)'
+      };
+      showToast(`Выбран грунт: ${names[type] || type}`);
+      render();
+    }
+    window.setSoilBrushType = setSoilBrushType;
+
+    function updateSoilBrushRadius(val) {
+      soilBrushRadius = parseFloat(val);
+      const label = document.getElementById('soil-brush-radius-label');
+      if (label) label.textContent = `${soilBrushRadius.toFixed(0)} м`;
+      render();
+    }
+    window.updateSoilBrushRadius = updateSoilBrushRadius;
+
+    function updateSoilBrushStrength(val) {
+      soilBrushStrength = parseFloat(val);
+      const label = document.getElementById('soil-brush-strength-label');
+      if (label) label.textContent = `${Math.round(soilBrushStrength * 100)}%`;
+      render();
+    }
+    window.updateSoilBrushStrength = updateSoilBrushStrength;
+
+    function updateSoilCountBadge() {
+      const badge = document.getElementById('soil-count-badge');
+      if (badge) badge.textContent = `${(soilZones || []).length} зон`;
+    }
+    window.updateSoilCountBadge = updateSoilCountBadge;
+
+    function applySoilBrush(wx, wz) {
+      if (currentSoilType === 'eraser') {
+        const eraseR = soilBrushRadius;
+        const initialCount = soilZones.length;
+        soilZones = soilZones.filter(z => {
+          const d = Math.hypot(z.x - wx, z.z - wz);
+          return d > (z.radius + eraseR) * 0.75;
+        });
+        window.soilZones = soilZones;
+        if (soilZones.length !== initialCount) {
+          updateSoilCountBadge();
+          render();
+        }
+        return;
+      }
+
+      // Не спамить мазки слишком близко друг к другу (минимум 35% от радиуса кисти)
+      if (lastSoilPaintPos) {
+        const d = Math.hypot(wx - lastSoilPaintPos.x, wz - lastSoilPaintPos.z);
+        if (d < soilBrushRadius * 0.35) return;
+      }
+
+      soilZones.push({
+        id: 'soil_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+        type: currentSoilType,
+        x: Math.round(wx * 10) / 10,
+        z: Math.round(wz * 10) / 10,
+        radius: soilBrushRadius,
+        strength: soilBrushStrength
+      });
+      lastSoilPaintPos = { x: wx, z: wz };
+      updateSoilCountBadge();
+      updateStats();
+      render();
+    }
+
+    function undoLastSoilZone() {
+      if (!soilZones.length) return;
+      pushUndoState();
+      soilZones.pop();
+      updateSoilCountBadge();
+      updateStats();
+      render();
+      showToast('↩️ Последний мазок грунта отменён');
+    }
+    window.undoLastSoilZone = undoLastSoilZone;
+
+    function clearAllSoilZones() {
+      if (!soilZones.length) return;
+      if (!confirm('Очистить все нарисованные зоны грунта на карте?')) return;
+      pushUndoState();
+      soilZones = [];
+      window.soilZones = soilZones;
+      updateSoilCountBadge();
+      updateStats();
+      render();
+      showToast('🗑️ Все зоны грунта очищены');
+    }
+    window.clearAllSoilZones = clearAllSoilZones;
+
+    function applySoilPreset(preset) {
+      pushUndoState();
+      if (preset === 'mud_track') {
+        // Оффроуд-участок глины и болотной жижи у КП-2 (New Town grove)
+        const spots = [
+          { x: 22, z: 12, radius: 15, strength: 0.9, type: 'clay' },
+          { x: 34, z: 18, radius: 16, strength: 0.85, type: 'clay' },
+          { x: 46, z: 24, radius: 15, strength: 0.85, type: 'clay' },
+          { x: 58, z: 28, radius: 14, strength: 0.9, type: 'clay' },
+          { x: 38, z: 20, radius: 10, strength: 1.0, type: 'swamp' }
+        ];
+        spots.forEach(s => {
+          soilZones.push({
+            id: 'preset_mud_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+            ...s
+          });
+        });
+        showToast('🟫 Грязевой оффроуд-участок у КП-2 добавлен!');
+      } else if (preset === 'beach_sand') {
+        // Песчаная полоса вдоль пляжа курорта
+        const spots = [
+          { x: 98, z: -138, radius: 20, strength: 0.95, type: 'sand' },
+          { x: 114, z: -145, radius: 22, strength: 0.95, type: 'sand' },
+          { x: 130, z: -155, radius: 24, strength: 1.0, type: 'sand' },
+          { x: 142, z: -168, radius: 20, strength: 1.0, type: 'sand' }
+        ];
+        spots.forEach(s => {
+          soilZones.push({
+            id: 'preset_sand_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+            ...s
+          });
+        });
+        showToast('🟡 Песчаная полоса вдоль пляжа добавлена!');
+      }
+      updateSoilCountBadge();
+      updateStats();
+      render();
+    }
+    window.applySoilPreset = applySoilPreset;
+
+    // --- 6. ИНСПЕКТОР ВЫДЕЛЕННОГО ПРОПСА ---
+    function selectProp(prop) {
+      selectedProp = prop;
+      const emptyEl = document.getElementById('inspector-empty');
+      const fieldsEl = document.getElementById('inspector-fields');
+
+      if (!prop) {
+        if (emptyEl) emptyEl.style.display = 'block';
+        if (fieldsEl) fieldsEl.style.display = 'none';
+        updateAllPropsListUI();
+        render();
+        return;
+      }
+
+      if (emptyEl) emptyEl.style.display = 'none';
+      if (fieldsEl) fieldsEl.style.display = 'flex';
+
+      const def = PROPS_CATALOG.find(p => p.type === prop.type);
+      const nameEl = document.getElementById('insp-type');
+      if (nameEl) nameEl.textContent = `${def ? def.icon : '📦'} ${prop.name || prop.type}`;
+      const idEl = document.getElementById('insp-id-badge');
+      if (idEl) idEl.textContent = `#${prop.id || prop.type}`;
+
+      const inX = document.getElementById('insp-x');
+      const inZ = document.getElementById('insp-z');
+      if (inX) inX.value = (prop.x !== undefined ? prop.x.toFixed(2) : '0.00');
+      if (inZ) inZ.value = (prop.z !== undefined ? prop.z.toFixed(2) : '0.00');
+
+      const rotDeg = Math.round(((prop.rot || 0) * 180 / Math.PI) % 360);
+      const rotVal = (rotDeg < 0) ? rotDeg + 360 : rotDeg;
+      const rotSlider = document.getElementById('insp-rot-slider');
+      const rotValEl = document.getElementById('insp-rot-val');
+      if (rotSlider) rotSlider.value = rotVal;
+      if (rotValEl) rotValEl.textContent = rotVal + '°';
+
+      const scale = prop.scale || 1.0;
+      const scSlider = document.getElementById('insp-scale-slider');
+      const scValEl = document.getElementById('insp-scale-val');
+      if (scSlider) scSlider.value = scale;
+      if (scValEl) scValEl.textContent = scale.toFixed(2) + '×';
+
+      const colorRow = document.getElementById('insp-color-row');
+      if (colorRow) {
+        if (prop.type === 'umbrella' || prop.type === 'lounger') {
+          colorRow.style.display = 'flex';
+        } else {
+          colorRow.style.display = 'none';
+        }
+      }
+
+      switchTab('inspector');
+      updateAllPropsListUI();
+      render();
+    }
+    window.selectProp = selectProp;
+    window.render = render;
+    window.updateStats = updateStats;
+
+    function commitPropUndo() {
+      pushUndoState();
+      updateAllPropsListUI();
+    }
+    window.commitPropUndo = commitPropUndo;
+
+    function updateSelectedPropFromInspector() {
+      if (!selectedProp) return;
+      const inX = parseFloat(document.getElementById('insp-x').value);
+      const inZ = parseFloat(document.getElementById('insp-z').value);
+      if (!isNaN(inX)) selectedProp.x = inX;
+      if (!isNaN(inZ)) selectedProp.z = inZ;
+      render();
+    }
+    window.updateSelectedPropFromInspector = updateSelectedPropFromInspector;
+
+    function setNudgeStep(step, btn) {
+      currentNudgeStep = step;
+      document.querySelectorAll('.step-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      const lbl = document.getElementById('dpad-step-label');
+      if (lbl) lbl.textContent = `шаг ${step.toFixed(1)} м`;
+    }
+    window.setNudgeStep = setNudgeStep;
+
+    function nudgeSelectedProp(dx, dz) {
+      if (!selectedProp) return;
+      pushUndoState();
+      selectedProp.x = Math.round((selectedProp.x + dx) * 100) / 100;
+      selectedProp.z = Math.round((selectedProp.z + dz) * 100) / 100;
+      const inX = document.getElementById('insp-x');
+      const inZ = document.getElementById('insp-z');
+      if (inX) inX.value = selectedProp.x.toFixed(2);
+      if (inZ) inZ.value = selectedProp.z.toFixed(2);
+      render();
+      updateAllPropsListUI();
+    }
+    window.nudgeSelectedProp = nudgeSelectedProp;
+
+    function centerCameraOnSelectedProp() {
+      if (!selectedProp) return;
+      const { tx, ty } = metersToTexPx(selectedProp.x, selectedProp.z);
+      panX = -(tx - MAP_TEX_SIZE / 2) * zoom;
+      panY = -(ty - MAP_TEX_SIZE / 2) * zoom;
+      render();
+      showToast(`🎯 Камера наведена на ${selectedProp.name || selectedProp.type}`);
+    }
+    window.centerCameraOnSelectedProp = centerCameraOnSelectedProp;
+
+    function updateSelectedPropRot(deg) {
+      if (!selectedProp) return;
+      selectedProp.rot = parseFloat(deg) * Math.PI / 180;
+      const rotValEl = document.getElementById('insp-rot-val');
+      if (rotValEl) rotValEl.textContent = deg + '°';
+      render();
+    }
+    window.updateSelectedPropRot = updateSelectedPropRot;
+
+    function setSelectedPropRotExact(deg) {
+      if (!selectedProp) return;
+      pushUndoState();
+      selectedProp.rot = (deg * Math.PI) / 180;
+      const s = document.getElementById('insp-rot-slider');
+      const val = document.getElementById('insp-rot-val');
+      if (s) s.value = deg;
+      if (val) val.textContent = deg + '°';
+      render();
+    }
+    window.setSelectedPropRotExact = setSelectedPropRotExact;
+
+    function rotateSelectedPropDelta(degDelta) {
+      if (!selectedProp) return;
+      pushUndoState();
+      let deg = Math.round(((selectedProp.rot || 0) * 180 / Math.PI) + degDelta);
+      deg = ((deg % 360) + 360) % 360;
+      setSelectedPropRotExact(deg);
+    }
+    window.rotateSelectedPropDelta = rotateSelectedPropDelta;
+
+    function updateSelectedPropScale(val) {
+      if (!selectedProp) return;
+      selectedProp.scale = parseFloat(val);
+      const valEl = document.getElementById('insp-scale-val');
+      if (valEl) valEl.textContent = parseFloat(val).toFixed(2) + '×';
+      render();
+    }
+    window.updateSelectedPropScale = updateSelectedPropScale;
+
+    function setSelectedPropScaleExact(val) {
+      if (!selectedProp) return;
+      pushUndoState();
+      selectedProp.scale = parseFloat(val);
+      const s = document.getElementById('insp-scale-slider');
+      const valEl = document.getElementById('insp-scale-val');
+      if (s) s.value = selectedProp.scale;
+      if (valEl) valEl.textContent = selectedProp.scale.toFixed(2) + '×';
+      render();
+    }
+    window.setSelectedPropScaleExact = setSelectedPropScaleExact;
+
+    function scaleSelectedPropDelta(factor) {
+      if (!selectedProp) return;
+      pushUndoState();
+      let s = Math.round((selectedProp.scale || 1.0) * factor * 100) / 100;
+      s = Math.max(0.4, Math.min(3.0, s));
+      setSelectedPropScaleExact(s);
+    }
+    window.scaleSelectedPropDelta = scaleSelectedPropDelta;
+
+    function setSelectedPropColor(c) {
+      if (!selectedProp) return;
+      pushUndoState();
+      selectedProp.color = c;
+      render();
+    }
+    window.setSelectedPropColor = setSelectedPropColor;
+
+    function duplicateSelectedProp() {
+      if (!selectedProp) return;
+      pushUndoState();
+      const newProp = JSON.parse(JSON.stringify(selectedProp));
+      newProp.id = (selectedProp.type || 'prop') + '_' + Date.now();
+      newProp.x += 2.0;
+      newProp.z += 2.0;
+      propsData.push(newProp);
+      selectProp(newProp);
+      updateStats();
+      updateAllPropsListUI();
+      showToast('Объект сдублирован (+2м)');
+    }
+    window.duplicateSelectedProp = duplicateSelectedProp;
+
+    function deleteSelectedProp() {
+      if (!selectedProp) return;
+      pushUndoState();
+      const idx = propsData.indexOf(selectedProp);
+      if (idx !== -1) {
+        propsData.splice(idx, 1);
+      }
+      selectProp(null);
+      updateStats();
+      updateAllPropsListUI();
+      showToast('Объект удалён');
+    }
+    window.deleteSelectedProp = deleteSelectedProp;
+
+    function updateAllPropsListUI() {
+      const summary = document.getElementById('all-props-summary');
+      const list = document.getElementById('all-props-list');
+      if (!summary || !list) return;
+
+      summary.textContent = `📋 Все объекты на карте (${propsData.length})`;
+      list.innerHTML = '';
+
+      propsData.forEach((p, idx) => {
+        const def = PROPS_CATALOG.find(c => c.type === p.type);
+        const isSel = (selectedProp === p);
+        const item = document.createElement('div');
+        item.className = 'props-list-item' + (isSel ? ' active' : '');
+        item.innerHTML = `
+          <div style="display:flex; align-items:center; gap:6px; overflow:hidden;">
+            <span style="font-size:14px;">${def ? def.icon : '📦'}</span>
+            <span style="font-size:11px; font-weight:600; color:${isSel ? '#f59e0b' : '#cbd5e1'}; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">
+              ${p.name || p.type}
+            </span>
+            <span style="font-family:monospace; font-size:10px; color:#64748b;">(${p.x.toFixed(0)}, ${p.z.toFixed(0)})</span>
+          </div>
+          <div style="display:flex; gap:3px;">
+            <button class="icon-btn-mini" title="Центрировать на карте" onclick="event.stopPropagation(); selectProp(propsData[${idx}]); centerCameraOnSelectedProp();">🎯</button>
+            <button class="icon-btn-mini" title="Удалить" onclick="event.stopPropagation(); selectProp(propsData[${idx}]); deleteSelectedProp();">🗑️</button>
+          </div>
+        `;
+        item.onclick = () => {
+          selectProp(p);
+        };
+        list.appendChild(item);
+      });
+    }
+    window.updateAllPropsListUI = updateAllPropsListUI;
+
+    // --- 7. DRAG & DROP СОБЫТИЯ НА VIEWPORT ---
+    viewport.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      viewport.classList.add('dragover');
+      const w = screenToWorld(e.clientX, e.clientY);
+      ghostPos = { x: w.x, z: w.z, type: e.dataTransfer.types.includes('text/plain') ? 'drag' : null };
+      render();
+    });
+
+    viewport.addEventListener('dragleave', () => {
+      viewport.classList.remove('dragover');
+      ghostPos = null;
+      render();
+    });
+
+    viewport.addEventListener('drop', (e) => {
+      e.preventDefault();
+      viewport.classList.remove('dragover');
+      ghostPos = null;
+
+      const propType = e.dataTransfer.getData('text/plain');
+      if (!propType) return;
+
+      const w = screenToWorld(e.clientX, e.clientY);
+      pushUndoState();
+
+      const def = PROPS_CATALOG.find(p => p.type === propType);
+      const newProp = {
+        id: propType + '_' + Date.now(),
+        type: propType,
+        name: (def ? def.name : propType),
+        x: w.x,
+        z: w.z,
+        rot: 0,
+        scale: def ? def.defaultScale : 1.0,
+        color: def?.defaultColor || undefined
+      };
+
+      propsData.push(newProp);
+      selectProp(newProp);
+      updateStats();
+      showToast(`🌴 ${newProp.name} успешно размещена на (${w.x}, ${w.z})!`);
+    });
+
+    // --- 8. ОТРИСОВКА ВЕКТОРНЫХ ПРОПСОВ И ДОРОГ НА ХОЛСТЕ ---
     function render() {
       const rect = viewport.getBoundingClientRect();
       const w = rect.width;
       const h = rect.height;
 
-      ctx.clearRect(0, 0, w, h);
+      const dpr = window.devicePixelRatio || 1;
+      const targetW = Math.round(w * dpr);
+      const targetH = Math.round(h * dpr);
+      if (canvas.width !== targetW || canvas.height !== targetH) {
+        canvas.width = targetW;
+        canvas.height = targetH;
+      }
+      ctx.resetTransform();
+      ctx.scale(dpr, dpr);
 
-      // Фон за пределами карты
+      ctx.clearRect(0, 0, w, h);
       ctx.fillStyle = '#090a0c';
       ctx.fillRect(0, 0, w, h);
 
       ctx.save();
-      // Центрирование + pan + zoom
       ctx.translate(w / 2 + panX, h / 2 + panY);
       ctx.scale(zoom, zoom);
       ctx.translate(-MAP_TEX_SIZE / 2, -MAP_TEX_SIZE / 2);
 
-      // 1. Отрисовка спутниковой текстуры карты
+      // 1. Спутниковая подложка
       if (mapImg.complete && mapImg.naturalWidth > 0) {
         ctx.drawImage(mapImg, 0, 0, MAP_TEX_SIZE, MAP_TEX_SIZE);
       } else {
@@ -451,9 +2303,9 @@
         ctx.fillRect(0, 0, MAP_TEX_SIZE, MAP_TEX_SIZE);
       }
 
-      // 2. Сетка 50 метров
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
-      ctx.lineWidth = 1 / zoom;
+      // Сетка 50м
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+      ctx.lineWidth = 1;
       const stepPx = 50 / METERS_PER_TEX_PX;
       for (let x = 0; x <= MAP_TEX_SIZE; x += stepPx) {
         ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, MAP_TEX_SIZE); ctx.stroke();
@@ -462,324 +2314,1065 @@
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(MAP_TEX_SIZE, y); ctx.stroke();
       }
 
-      // 3. Главные оси координат X и Z
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-      ctx.lineWidth = 1.5 / zoom;
-      ctx.beginPath(); ctx.moveTo(MAP_TEX_SIZE / 2, 0); ctx.lineTo(MAP_TEX_SIZE / 2, MAP_TEX_SIZE); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(0, MAP_TEX_SIZE / 2); ctx.lineTo(MAP_TEX_SIZE, MAP_TEX_SIZE / 2); ctx.stroke();
-
-      // Отрисовка всех трасс в мировом пространстве текстуры
-      Object.keys(routesData).forEach(id => {
-        const r = routesData[id];
-        const isActive = (id === activeRouteId);
-        if (r.points.length < 2) return;
-
-        // Полотно дороги
-        ctx.strokeStyle = r.color;
-        const roadWidthPx = (r.width / METERS_PER_TEX_PX);
-        ctx.lineWidth = isActive ? Math.max(3 / zoom, roadWidthPx * 0.75) : (roadWidthPx * 0.45);
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.globalAlpha = isActive ? 0.85 : 0.40;
-
+      // 1.5. Отрисовка зон грунта из Тайги (SoilSim zones)
+      soilZones.forEach(z => {
+        const { tx, ty } = metersToTexPx(z.x, z.z);
+        const rPx = (z.radius || 12.0) / METERS_PER_TEX_PX;
+        const col = SOIL_COLORS[z.type] || '#6a3f24';
+        const str = z.strength !== undefined ? z.strength : 0.8;
+        const grad = ctx.createRadialGradient(tx, ty, rPx * 0.15, tx, ty, rPx);
+        grad.addColorStop(0, hexToRgba(col, str * 0.85));
+        grad.addColorStop(0.65, hexToRgba(col, str * 0.50));
+        grad.addColorStop(1, hexToRgba(col, 0));
+        ctx.fillStyle = grad;
         ctx.beginPath();
-        r.points.forEach((pt, i) => {
-          const { tx, ty } = metersToTexPx(pt.x, pt.z);
-          if (i === 0) ctx.moveTo(tx, ty);
-          else ctx.lineTo(tx, ty);
-        });
-        ctx.stroke();
-        ctx.globalAlpha = 1.0;
+        ctx.arc(tx, ty, rPx, 0, Math.PI * 2);
+        ctx.fill();
       });
 
-      ctx.restore();
+      // 2. Отрисовка дорожных маршрутов
+      Object.keys(routesData).forEach(id => {
+        const r = routesData[id];
+        if (!r || !r.points || r.points.length === 0) return;
+        const isActive = (id === activeRouteId);
+        const roadWidthPx = (r.width || 8.0) / METERS_PER_TEX_PX;
+        const isDirtRoad = (r.surfaceType && r.surfaceType !== 'asphalt');
 
-      // 4. Отрисовка интерактивных точек активного трека поверх в экранных координатах
-      // (чтобы маркеры всегда имели идеальный фиксированный размер для удобства клика)
-      const curRoute = routesData[activeRouteId];
-      if (curRoute && curRoute.points) {
-        curRoute.points.forEach((pt, i) => {
-          const { sx, sy } = worldToScreen(pt.x, pt.z);
-          const isSelected = (draggedPoint === pt || hoveredPoint === pt);
-
+        // Полотно дороги
+        if (r.points.length >= 2) {
           ctx.beginPath();
-          ctx.arc(sx, sy, isSelected ? 8 : 5.5, 0, Math.PI * 2);
-          ctx.fillStyle = isSelected ? '#ffffff' : curRoute.color;
-          ctx.fill();
-          ctx.strokeStyle = '#000000';
-          ctx.lineWidth = 2;
+          r.points.forEach((p, idx) => {
+            const { tx, ty } = metersToTexPx(p.x, p.z);
+            if (idx === 0) ctx.moveTo(tx, ty);
+            else ctx.lineTo(tx, ty);
+          });
+          const roadColor = isDirtRoad
+            ? (SOIL_COLORS[r.surfaceType] || '#6a3f24')
+            : (isActive ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.4)');
+          ctx.strokeStyle = roadColor;
+          ctx.lineWidth = roadWidthPx;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
           ctx.stroke();
 
-          // Текстовая метка точки
-          ctx.fillStyle = '#ffffff';
-          ctx.font = 'bold 11px monospace';
-          ctx.shadowColor = 'rgba(0,0,0,0.8)';
-          ctx.shadowBlur = 4;
-          ctx.fillText(i + 1, sx + 9, sy - 5);
-          ctx.shadowBlur = 0;
+          // Для грунтовых дорог: две наезженные темные колеи
+          if (isDirtRoad) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(0,0,0,0.30)';
+            ctx.lineWidth = roadWidthPx * 0.28;
+            ctx.stroke();
+            ctx.restore();
+          }
+
+          // Осевая линия
+          ctx.beginPath();
+          r.points.forEach((p, idx) => {
+            const { tx, ty } = metersToTexPx(p.x, p.z);
+            if (idx === 0) ctx.moveTo(tx, ty);
+            else ctx.lineTo(tx, ty);
+          });
+          ctx.strokeStyle = r.color;
+          if (!isDirtRoad) {
+            ctx.lineWidth = isActive ? 3.5 : 2.0;
+            ctx.setLineDash(id === 'mactan_boulevard' ? [] : [8, 6]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+          } else {
+            ctx.lineWidth = 1.8;
+            ctx.setLineDash([4, 10]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+          }
+
+          // Стрелочки направления трассы между точками
+          if (isActive && r.points.length >= 2) {
+            for (let i = 0; i < r.points.length - 1; i++) {
+              const p1 = metersToTexPx(r.points[i].x, r.points[i].z);
+              const p2 = metersToTexPx(r.points[i + 1].x, r.points[i + 1].z);
+              const midX = (p1.tx + p2.tx) / 2;
+              const midY = (p1.ty + p2.ty) / 2;
+              const angle = Math.atan2(p2.ty - p1.ty, p2.tx - p1.tx);
+              const segLen = Math.hypot(p2.tx - p1.tx, p2.ty - p1.ty);
+              if (segLen > 22) {
+                ctx.save();
+                ctx.translate(midX, midY);
+                ctx.rotate(angle);
+                ctx.fillStyle = r.color;
+                ctx.beginPath();
+                ctx.moveTo(5, 0);
+                ctx.lineTo(-4, -3.5);
+                ctx.lineTo(-2, 0);
+                ctx.lineTo(-4, 3.5);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+              }
+            }
+          }
+        }
+
+        // Маркеры точек
+        r.points.forEach((p, idx) => {
+          const { tx, ty } = metersToTexPx(p.x, p.z);
+          const isHover = (hoveredPoint && hoveredPoint.routeId === id && hoveredPoint.idx === idx);
+          const isSel = (selectedPoint && selectedPoint.routeId === id && selectedPoint.idx === idx);
+
+          ctx.beginPath();
+          ctx.arc(tx, ty, isSel ? 9 : (isHover ? 7.5 : (isActive ? 5.5 : 4)), 0, Math.PI * 2);
+          ctx.fillStyle = isSel ? '#00f0ff' : (isHover ? '#ffffff' : r.color);
+          ctx.fill();
+          ctx.strokeStyle = isSel ? '#ffffff' : '#000000';
+          ctx.lineWidth = isSel ? 2.5 : 1.5;
+          ctx.stroke();
+
+          // Кольцо выделения
+          if (isSel) {
+            ctx.beginPath();
+            ctx.arc(tx, ty, 15, 0, Math.PI * 2);
+            ctx.strokeStyle = '#00f0ff';
+            ctx.lineWidth = 2.0;
+            ctx.setLineDash([4, 3]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+          }
+
+          if (isActive) {
+            ctx.fillStyle = isSel ? '#00f0ff' : '#ffffff';
+            ctx.font = 'bold 9px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(idx + 1, tx, ty - (isSel ? 12 : 8));
+          }
         });
+      });
+
+      // 2b. Предпросмотр умной вставки точки в режиме 'roads' ТОЛЬКО когда включен режим рисования
+      if (activeTab === 'roads' && roadToolMode === 'draw' && ghostInsertInfo && ghostInsertInfo.routeId === activeRouteId) {
+        const { tx, ty } = metersToTexPx(ghostInsertInfo.wx, ghostInsertInfo.wz);
+        const cur = routesData[activeRouteId];
+        const pts = cur ? cur.points || [] : [];
+
+        ctx.save();
+        ctx.strokeStyle = '#00f0ff';
+        ctx.lineWidth = 1.8;
+        ctx.setLineDash([4, 4]);
+
+        const prevIdx = ghostInsertInfo.index - 1;
+        const nextIdx = ghostInsertInfo.index;
+
+        if (prevIdx >= 0 && prevIdx < pts.length) {
+          const prevP = metersToTexPx(pts[prevIdx].x, pts[prevIdx].z);
+          ctx.beginPath(); ctx.moveTo(prevP.tx, prevP.ty); ctx.lineTo(tx, ty); ctx.stroke();
+        }
+        if (nextIdx >= 0 && nextIdx < pts.length) {
+          const nextP = metersToTexPx(pts[nextIdx].x, pts[nextIdx].z);
+          ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(nextP.tx, nextP.ty); ctx.stroke();
+        }
+        ctx.setLineDash([]);
+
+        ctx.beginPath();
+        ctx.arc(tx, ty, 6, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0, 240, 255, 0.6)';
+        ctx.fill();
+        ctx.strokeStyle = '#00f0ff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        let label = `+ Точка ${ghostInsertInfo.index + 1}`;
+        if (ghostInsertInfo.mode === 'smart-segment') {
+          label += ` (между ${ghostInsertInfo.index} и ${ghostInsertInfo.index + 1})`;
+        } else if (ghostInsertInfo.mode === 'prepend') {
+          label += ` (в начало)`;
+        } else {
+          label += ` (в конец)`;
+        }
+
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+        ctx.fillRect(tx + 10, ty - 18, ctx.measureText(label).width + 14, 20);
+        ctx.fillStyle = '#00f0ff';
+        ctx.font = 'bold 10px monospace';
+        ctx.fillText(label, tx + 16, ty - 4);
+        ctx.restore();
       }
 
-      // Обновление индикатора зума
-      zoomIndicator.textContent = `${Math.round(zoom * 100)}%`;
+      // 3. Отрисовка расставленных пропсов (Props)
+      propsData.forEach(prop => {
+        const { tx, ty } = metersToTexPx(prop.x, prop.z);
+        const isSelected = (selectedProp === prop);
+        const isHovered = (hoveredProp === prop && !isSelected);
+        const rot = prop.rot || 0;
+        const scale = prop.scale || 1.0;
+
+        ctx.save();
+        ctx.translate(tx, ty);
+        ctx.rotate(rot);
+        ctx.scale(scale, scale);
+
+        drawPropIcon(ctx, prop.type, prop.color, isSelected);
+
+        ctx.restore();
+
+        // Подсветка при наведении (Hover)
+        if (isHovered) {
+          ctx.save();
+          ctx.translate(tx, ty);
+          ctx.strokeStyle = '#00f0ff';
+          ctx.lineWidth = 1.8 / zoom;
+          ctx.setLineDash([4 / zoom, 3 / zoom]);
+          ctx.beginPath();
+          ctx.arc(0, 0, 18 / zoom, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.restore();
+        }
+
+        // Интерактивный Move Gizmo и бейдж для выбранного объекта
+        if (isSelected) {
+          const gizmoScale = 1.0 / zoom;
+          ctx.save();
+          ctx.translate(tx, ty);
+
+          // 1. Внешнее мерцающее янтарное кольцо выделения
+          ctx.beginPath();
+          ctx.arc(0, 0, 20 * gizmoScale, 0, Math.PI * 2);
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 2.4 * gizmoScale;
+          ctx.setLineDash([5 * gizmoScale, 3 * gizmoScale]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          // 2. Стрелки осей перемещения (North, South, East, West)
+          const armLen = 34 * gizmoScale;
+          const headSz = 5 * gizmoScale;
+          ctx.strokeStyle = '#f59e0b';
+          ctx.fillStyle = '#f59e0b';
+          ctx.lineWidth = 1.6 * gizmoScale;
+
+          // Север (-Z)
+          ctx.beginPath(); ctx.moveTo(0, -18 * gizmoScale); ctx.lineTo(0, -armLen); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(0, -armLen - 3 * gizmoScale); ctx.lineTo(-headSz, -armLen + 2 * gizmoScale); ctx.lineTo(headSz, -armLen + 2 * gizmoScale); ctx.closePath(); ctx.fill();
+
+          // Юг (+Z)
+          ctx.beginPath(); ctx.moveTo(0, 18 * gizmoScale); ctx.lineTo(0, armLen); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(0, armLen + 3 * gizmoScale); ctx.lineTo(-headSz, armLen - 2 * gizmoScale); ctx.lineTo(headSz, armLen - 2 * gizmoScale); ctx.closePath(); ctx.fill();
+
+          // Восток (+X)
+          ctx.beginPath(); ctx.moveTo(18 * gizmoScale, 0); ctx.lineTo(armLen, 0); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(armLen + 3 * gizmoScale, 0); ctx.lineTo(armLen - 2 * gizmoScale, -headSz); ctx.lineTo(armLen - 2 * gizmoScale, headSz); ctx.closePath(); ctx.fill();
+
+          // Запад (-X)
+          ctx.beginPath(); ctx.moveTo(-18 * gizmoScale, 0); ctx.lineTo(-armLen, 0); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(-armLen - 3 * gizmoScale, 0); ctx.lineTo(-armLen + 2 * gizmoScale, -headSz); ctx.lineTo(-armLen + 2 * gizmoScale, headSz); ctx.closePath(); ctx.fill();
+
+          // 3. Указатель направления поворота (Heading line)
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(Math.sin(-rot) * 28 * gizmoScale, -Math.cos(-rot) * 28 * gizmoScale);
+          ctx.strokeStyle = '#00f0ff';
+          ctx.lineWidth = 2.2 * gizmoScale;
+          ctx.stroke();
+
+          // 4. Плавающий информационный бейдж с координатами
+          ctx.save();
+          ctx.scale(gizmoScale, gizmoScale);
+          const def = PROPS_CATALOG.find(c => c.type === prop.type);
+          const badgeText = `${def ? def.icon : '📦'} ${prop.name || prop.type} [${prop.x.toFixed(1)}, ${prop.z.toFixed(1)}]`;
+          ctx.font = 'bold 11px monospace';
+          const tw = ctx.measureText(badgeText).width;
+          const badgeY = -48;
+
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.94)';
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          if (ctx.roundRect) {
+            ctx.roundRect(-tw / 2 - 8, badgeY - 14, tw + 16, 20, 5);
+          } else {
+            ctx.rect(-tw / 2 - 8, badgeY - 14, tw + 16, 20);
+          }
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = '#f59e0b';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(badgeText, 0, badgeY - 4);
+          ctx.restore();
+
+          ctx.restore();
+        }
+      });
+
+      // 4. Отрисовка полупрозрачного силуэта штампа под курсором
+      if (ghostPos) {
+        const { tx, ty } = metersToTexPx(ghostPos.x, ghostPos.z);
+        const typeToDraw = stampPropType || ghostPos.type || 'palm';
+
+        ctx.save();
+        ctx.translate(tx, ty);
+        ctx.globalAlpha = 0.65;
+        drawPropIcon(ctx, typeToDraw, '#00f0ff', false);
+        ctx.restore();
+
+        // Координатный бейдж
+        ctx.fillStyle = 'rgba(0,0,0,0.85)';
+        ctx.fillRect(tx + 12, ty - 18, 90, 20);
+        ctx.fillStyle = '#00f0ff';
+        ctx.font = '10px monospace';
+        ctx.fillText(`X:${ghostPos.x.toFixed(1)} Z:${ghostPos.z.toFixed(1)}`, tx + 16, ty - 4);
+      }
+
+      // 5. Отрисовка курсора кисти грунта в режиме вкладки "Грунт"
+      if (activeTab === 'soil' && soilMouseWorldPos) {
+        const { tx, ty } = metersToTexPx(soilMouseWorldPos.x, soilMouseWorldPos.z);
+        const rPx = soilBrushRadius / METERS_PER_TEX_PX;
+        ctx.save();
+        ctx.strokeStyle = (currentSoilType === 'eraser') ? '#ffffff' : (SOIL_COLORS[currentSoilType] || '#f59e0b');
+        ctx.lineWidth = Math.max(1.5, 2.0 / zoom);
+        ctx.setLineDash([6 / zoom, 4 / zoom]);
+        ctx.beginPath();
+        ctx.arc(tx, ty, rPx, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Метка центра
+        ctx.fillStyle = ctx.strokeStyle;
+        ctx.beginPath();
+        ctx.arc(tx, ty, Math.max(2, 3 / zoom), 0, Math.PI * 2);
+        ctx.fill();
+
+        // Подпись радиуса
+        ctx.font = 'bold 11px monospace';
+        const txt = `${currentSoilType.toUpperCase()} (R=${soilBrushRadius}м)`;
+        const tw = ctx.measureText(txt).width;
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.90)';
+        ctx.fillRect(tx + rPx + 4, ty - 10, tw + 8, 18);
+        ctx.fillStyle = ctx.strokeStyle;
+        ctx.fillText(txt, tx + rPx + 8, ty + 3);
+        ctx.restore();
+      }
+
+      ctx.restore();
     }
 
-    // =========================================================================
-    // ОБРАБОТКА МЫШИ: КОЛЁСИКО (ZOOM), ПАНОРАМИРОВАНИЕ (PAN) И РЕДАКТИРОВАНИЕ
-    // =========================================================================
+    // Векторная отрисовка иконки пропса в локальных координатах
+    function drawPropIcon(c, type, color, isSelected) {
+      switch (type) {
+        case 'palm': {
+          // Тень
+          c.fillStyle = 'rgba(0,0,0,0.3)';
+          c.beginPath(); c.ellipse(3, 4, 8, 4, 0.2, 0, Math.PI * 2); c.fill();
+          // Ствол
+          c.fillStyle = '#78350f';
+          c.beginPath(); c.arc(0, 0, 3, 0, Math.PI * 2); c.fill();
+          // Листья кроны (7 лучей)
+          c.fillStyle = '#22c55e';
+          c.strokeStyle = '#15803d';
+          c.lineWidth = 1;
+          for (let i = 0; i < 7; i++) {
+            const a = (i / 7) * Math.PI * 2;
+            c.beginPath();
+            c.ellipse(Math.cos(a) * 8, Math.sin(a) * 8, 8, 3, a, 0, Math.PI * 2);
+            c.fill(); c.stroke();
+          }
+          break;
+        }
+        case 'bungalow':
+        case 'hut': {
+          // Терраса
+          c.fillStyle = '#a16207';
+          c.fillRect(-10, -10, 20, 20);
+          // Крыша Nipa
+          c.fillStyle = '#d97706';
+          c.beginPath();
+          c.moveTo(-9, -9); c.lineTo(9, -9); c.lineTo(9, 9); c.lineTo(-9, 9); c.closePath();
+          c.fill();
+          // Диагонали конька
+          c.strokeStyle = '#fef3c7';
+          c.lineWidth = 1.5;
+          c.beginPath(); c.moveTo(-9, -9); c.lineTo(9, 9); c.moveTo(9, -9); c.lineTo(-9, 9); c.stroke();
+          break;
+        }
+        case 'umbrella': {
+          c.fillStyle = color || '#06b6d4';
+          c.beginPath(); c.arc(0, 0, 7, 0, Math.PI * 2); c.fill();
+          c.strokeStyle = '#ffffff'; c.lineWidth = 1; c.stroke();
+          c.fillStyle = '#ffffff'; c.beginPath(); c.arc(0, 0, 1.5, 0, Math.PI * 2); c.fill();
+          break;
+        }
+        case 'lounger': {
+          c.fillStyle = '#78350f';
+          c.fillRect(-3, -7, 6, 14);
+          c.fillStyle = color || '#06b6d4';
+          c.fillRect(-2.5, -6, 5, 4);
+          break;
+        }
+        case 'lamp': {
+          c.fillStyle = '#334155';
+          c.fillRect(-1.5, -4, 3, 8);
+          // Плафоны
+          c.fillStyle = '#fbbf24';
+          c.beginPath(); c.arc(-3, 0, 2.5, 0, Math.PI * 2); c.fill();
+          c.beginPath(); c.arc(3, 0, 2.5, 0, Math.PI * 2); c.fill();
+          break;
+        }
+        case 'boat': {
+          // Корпус
+          c.fillStyle = '#f8fafc';
+          c.beginPath();
+          c.moveTo(0, -14); c.lineTo(4, -4); c.lineTo(4, 10); c.lineTo(0, 14);
+          c.lineTo(-4, 10); c.lineTo(-4, -4); c.closePath();
+          c.fill();
+          // Тент
+          c.fillStyle = '#f97316';
+          c.fillRect(-3, -2, 6, 7);
+          // Балки и поплавки (аутригеры)
+          c.strokeStyle = '#d97706'; c.lineWidth = 1.2;
+          c.beginPath(); c.moveTo(-10, -4); c.lineTo(10, -4); c.moveTo(-10, 6); c.lineTo(10, 6); c.stroke();
+          c.fillStyle = '#d97706';
+          c.fillRect(-11, -12, 2, 24);
+          c.fillRect(9, -12, 2, 24);
+          break;
+        }
+        case 'pier': {
+          c.fillStyle = '#854d0e';
+          c.fillRect(-4, -28, 8, 56);
+          c.fillStyle = '#a16207';
+          c.fillRect(-14, -32, 28, 8);
+          break;
+        }
+        case 'buoy': {
+          c.fillStyle = '#f97316';
+          c.beginPath(); c.arc(0, 0, 5, 0, Math.PI * 2); c.fill();
+          c.fillStyle = '#ffffff';
+          c.beginPath(); c.arc(0, 0, 2, 0, Math.PI * 2); c.fill();
+          break;
+        }
+        case 'rock': {
+          c.fillStyle = '#64748b';
+          c.beginPath();
+          c.moveTo(-6, -4); c.lineTo(2, -7); c.lineTo(7, -2); c.lineTo(5, 5); c.lineTo(-3, 6); c.closePath();
+          c.fill();
+          break;
+        }
+        case 'checkpoint': {
+          c.fillStyle = '#f59e0b';
+          c.fillRect(-12, -2, 24, 4);
+          c.fillStyle = '#ef4444';
+          c.beginPath(); c.arc(-12, 0, 3, 0, Math.PI * 2); c.fill();
+          c.beginPath(); c.arc(12, 0, 3, 0, Math.PI * 2); c.fill();
+          break;
+        }
+        default: {
+          c.fillStyle = '#f59e0b';
+          c.beginPath(); c.arc(0, 0, 5, 0, Math.PI * 2); c.fill();
+        }
+      }
+    }
 
-    // 1. Колёсико мыши: Зум строго в точку под курсором
-    viewport.addEventListener('wheel', (e) => {
+    // --- 9. ИНТЕРАКТИВНОСТЬ МЫШИ НА ХОЛСТЕ ---
+    viewport.addEventListener('mousedown', (e) => {
+      mouseDownPos = { x: e.clientX, y: e.clientY };
+      hasMovedDuringMouseDown = false;
+
+      // Панорамирование колесиком или Space+ЛКМ
+      if (e.button === 1 || (e.button === 0 && isSpaceHeld)) {
+        isPanning = true;
+        panStartX = e.clientX - panX;
+        panStartY = e.clientY - panY;
+        viewport.classList.add('panning');
+        return;
+      }
+
+      if (e.button === 0) {
+        const w = screenToWorld(e.clientX, e.clientY);
+
+        // 0. Режим рисования грунта (активна вкладка "Грунт")
+        if (activeTab === 'soil') {
+          isPaintingSoil = true;
+          pushUndoState();
+          applySoilBrush(w.x, w.z);
+          return;
+        }
+
+        // 1. Режим Штампа: ставим новый объект
+        if (stampPropType) {
+          pushUndoState();
+          const def = PROPS_CATALOG.find(p => p.type === stampPropType);
+          const newProp = {
+            id: stampPropType + '_' + Date.now(),
+            type: stampPropType,
+            name: def ? def.name : stampPropType,
+            x: w.x,
+            z: w.z,
+            rot: 0,
+            scale: def ? def.defaultScale : 1.0,
+            color: def?.defaultColor || undefined
+          };
+          propsData.push(newProp);
+          selectProp(newProp);
+          updateStats();
+          return;
+        }
+
+        // 2. Проверка клика по существующему объекту (выделение и перемещение)
+        const hitProp = findPropAt(e.clientX, e.clientY);
+        if (hitProp) {
+          pushUndoState();
+          selectProp(hitProp);
+          isDraggingProp = true;
+          dragPropOffset = { x: hitProp.x - w.x, z: hitProp.z - w.z };
+          document.body.style.cursor = 'grabbing';
+          return;
+        }
+
+        // 3. Проверка клика по точке дороги
+        const hitPt = findPointAt(e.clientX, e.clientY);
+        if (hitPt) {
+          draggedPoint = hitPt;
+          selectedPoint = hitPt;
+          activeRouteId = hitPt.routeId;
+          buildRoutesUI();
+          updatePointControlCard();
+          selectProp(null);
+          render();
+          return;
+        }
+
+        // 4. Клик в пустое место:
+        if (activeTab === 'roads') {
+          if (roadToolMode === 'draw') {
+            // Добавляем точку к активной дороге с учётом выбранного режима
+            const cur = routesData[activeRouteId];
+            if (cur) {
+              pushUndoState();
+              const ins = findBestInsertionIndex(cur, w.x, w.z);
+              const insertIdx = (ins && typeof ins.index === 'number') ? ins.index : cur.points.length;
+              const newPt = { x: w.x, z: w.z };
+              cur.points.splice(insertIdx, 0, newPt);
+              selectedPoint = { routeId: activeRouteId, idx: insertIdx };
+              buildRoutesUI();
+              updatePointControlCard();
+              render();
+              showToast(`Точка #${insertIdx + 1} добавлена (${ins?.mode === 'smart-segment' ? 'в середину' : ins?.mode === 'prepend' ? 'в начало' : 'в конец'})`);
+            }
+          } else {
+            // Режим 'select' (по умолчанию): клик в пустое место просто снимает выделение!
+            selectedPoint = null;
+            updatePointControlCard();
+            render();
+          }
+        } else {
+          selectProp(null);
+          selectedPoint = null;
+          updatePointControlCard();
+          render();
+        }
+      }
+    });
+
+    viewport.addEventListener('mousemove', (e) => {
+      const dx = Math.abs(e.clientX - mouseDownPos.x);
+      const dy = Math.abs(e.clientY - mouseDownPos.y);
+      if (dx > 3 || dy > 3) hasMovedDuringMouseDown = true;
+
+      // Панорамирование
+      if (isPanning) {
+        panX = e.clientX - panStartX;
+        panY = e.clientY - panStartY;
+        render();
+        return;
+      }
+
+      const w = screenToWorld(e.clientX, e.clientY);
+      soilMouseWorldPos = { x: w.x, z: w.z };
+      if (statusCoords) statusCoords.textContent = `X: ${w.x.toFixed(2)} м | Z: ${w.z.toFixed(2)} м`;
+
+      if (activeTab === 'soil') {
+        viewport.style.cursor = 'crosshair';
+        if (isPaintingSoil) {
+          applySoilBrush(w.x, w.z);
+        }
+        render();
+        return;
+      }
+
+      // Перетаскивание пропса (локальный обработчик)
+      if (isDraggingProp && selectedProp) {
+        selectedProp.x = Math.round((w.x + dragPropOffset.x) * 10) / 10;
+        selectedProp.z = Math.round((w.z + dragPropOffset.z) * 10) / 10;
+        const inX = document.getElementById('insp-x');
+        const inZ = document.getElementById('insp-z');
+        if (inX) inX.value = selectedProp.x.toFixed(2);
+        if (inZ) inZ.value = selectedProp.z.toFixed(2);
+        render();
+        return;
+      }
+
+      // Перетаскивание точки дороги
+      if (draggedPoint) {
+        const cur = routesData[draggedPoint.routeId];
+        if (cur && cur.points[draggedPoint.idx]) {
+          cur.points[draggedPoint.idx] = { x: w.x, z: w.z };
+          updatePointControlCard();
+          render();
+        }
+        return;
+      }
+
+      // Обновление превью штампа
+      if (stampPropType) {
+        ghostPos = { x: w.x, z: w.z, type: stampPropType };
+        render();
+        return;
+      }
+
+      // Превью умной вставки точки в режиме 'roads' (ТОЛЬКО при включенном режиме рисования 'draw')
+      if (activeTab === 'roads' && roadToolMode === 'draw' && !draggedPoint && !isPanning && !isDraggingProp && !stampPropType) {
+        const cur = routesData[activeRouteId];
+        if (cur && cur.points && cur.points.length > 0) {
+          const ins = findBestInsertionIndex(cur, w.x, w.z);
+          if (ins && (ins.dist <= 65.0 || cur.points.length < 2)) {
+            ghostInsertInfo = { ...ins, wx: w.x, wz: w.z };
+          } else {
+            ghostInsertInfo = null;
+          }
+        } else {
+          ghostInsertInfo = null;
+        }
+      } else {
+        ghostInsertInfo = null;
+      }
+
+      // Проверка ховера над пропсами и точками
+      if (!isPanning && !draggedPoint && !isDraggingProp && !stampPropType) {
+        const propHover = findPropAt(e.clientX, e.clientY);
+        if (propHover !== hoveredProp) {
+          hoveredProp = propHover;
+        }
+        if (hoveredProp) {
+          viewport.style.cursor = 'grab';
+        } else if (findPointAt(e.clientX, e.clientY)) {
+          viewport.style.cursor = 'pointer';
+        } else {
+          viewport.style.cursor = (roadToolMode === 'draw' && activeTab === 'roads') ? 'crosshair' : 'default';
+        }
+      } else {
+        hoveredProp = null;
+      }
+
+      // Ховер над точкой дороги
+      const hit = findPointAt(e.clientX, e.clientY);
+      if (hit !== hoveredPoint) {
+        hoveredPoint = hit;
+      }
+      render();
+    });
+
+    // Глобальное окно для перетаскивания объектов без срыва курсора
+    window.addEventListener('mousemove', (e) => {
+      if (isDraggingProp && selectedProp) {
+        const w = screenToWorld(e.clientX, e.clientY);
+        selectedProp.x = Math.round((w.x + dragPropOffset.x) * 10) / 10;
+        selectedProp.z = Math.round((w.z + dragPropOffset.z) * 10) / 10;
+        const inX = document.getElementById('insp-x');
+        const inZ = document.getElementById('insp-z');
+        if (inX) inX.value = selectedProp.x.toFixed(2);
+        if (inZ) inZ.value = selectedProp.z.toFixed(2);
+        if (statusCoords) statusCoords.textContent = `X: ${selectedProp.x.toFixed(2)} м | Z: ${selectedProp.z.toFixed(2)} м`;
+        render();
+      }
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (isDraggingProp) {
+        isDraggingProp = false;
+        document.body.style.cursor = '';
+        updateAllPropsListUI();
+        render();
+      }
+      if (isPaintingSoil) {
+        isPaintingSoil = false;
+        lastSoilPaintPos = null;
+        updateSoilCountBadge();
+        render();
+      }
+    });
+
+    viewport.addEventListener('mouseup', () => {
+      if (isPanning) {
+        isPanning = false;
+        viewport.classList.remove('panning');
+      }
+      if (isDraggingProp) {
+        isDraggingProp = false;
+        document.body.style.cursor = '';
+        updateAllPropsListUI();
+        render();
+      }
+      if (draggedPoint) {
+        draggedPoint = null;
+        updatePointControlCard();
+        pushUndoState();
+      }
+      if (isPaintingSoil) {
+        isPaintingSoil = false;
+        lastSoilPaintPos = null;
+        updateSoilCountBadge();
+        render();
+      }
+    });
+
+    // Поиск пропса по экранным координатам клика/ховера (с удобным хитбоксом min 28-50px + бейдж)
+    function findPropAt(sx, sy) {
+      if (selectedProp) {
+        const sp = worldToScreen(selectedProp.x, selectedProp.z);
+        const def = PROPS_CATALOG.find(c => c.type === selectedProp.type);
+        const worldR = (def ? def.radius : 4.0) * (selectedProp.scale || 1.0);
+        const screenR = Math.max(50, (worldR / METERS_PER_TEX_PX) * zoom);
+        if (Math.hypot(sp.clientX - sx, sp.clientY - sy) <= screenR) {
+          return selectedProp;
+        }
+        // Также проверяем попадание по плавающему бейджу с координатами сверху
+        const badgeY = sp.clientY - 48;
+        if (Math.abs(sx - sp.clientX) <= 100 && Math.abs(sy - badgeY) <= 18) {
+          return selectedProp;
+        }
+      }
+
+      for (let i = propsData.length - 1; i >= 0; i--) {
+        const p = propsData[i];
+        const sp = worldToScreen(p.x, p.z);
+        const def = PROPS_CATALOG.find(c => c.type === p.type);
+        const worldR = (def ? def.radius : 4.0) * (p.scale || 1.0);
+        const screenR = Math.max(28, (worldR / METERS_PER_TEX_PX) * zoom);
+        const dist = Math.hypot(sp.clientX - sx, sp.clientY - sy);
+        if (dist <= screenR) return p;
+      }
+      return null;
+    }
+
+    // Поиск точки дороги по экранным координатам (радиус клика 18px)
+    function findPointAt(sx, sy) {
+      const cur = routesData[activeRouteId];
+      if (!cur || !cur.points) return null;
+      for (let i = 0; i < cur.points.length; i++) {
+        const p = cur.points[i];
+        const sp = worldToScreen(p.x, p.z);
+        const dist = Math.hypot(sp.clientX - sx, sp.clientY - sy);
+        if (dist <= 18) return { routeId: activeRouteId, idx: i };
+      }
+      return null;
+    }
+
+    // Правый клик: удаление точки дороги, объекта или мазка грунта
+    viewport.addEventListener('contextmenu', (e) => {
       e.preventDefault();
 
-      const rect = viewport.getBoundingClientRect();
-      const mouseScreenX = e.clientX - rect.left;
-      const mouseScreenY = e.clientY - rect.top;
+      if (activeTab === 'soil') {
+        const w = screenToWorld(e.clientX, e.clientY);
+        const prevType = currentSoilType;
+        currentSoilType = 'eraser';
+        applySoilBrush(w.x, w.z);
+        currentSoilType = prevType;
+        showToast('Грунт стёрт (ПКМ)');
+        return;
+      }
 
-      // Получаем координаты мира под курсором ДО зума
-      const worldUnderCursor = screenToWorld(mouseScreenX, mouseScreenY);
-
-      // Коэффициент масштабирования
-      const zoomFactor = e.deltaY < 0 ? 1.15 : (1 / 1.15);
-      const newZoom = Math.max(0.35, Math.min(8.0, zoom * zoomFactor));
-
-      if (newZoom !== zoom) {
-        zoom = newZoom;
-        // Корректируем смещение так, чтобы точка мира осталась под курсором ПОСЛЕ зума
-        const cx = rect.width / 2;
-        const cy = rect.height / 2;
-        const { tx, ty } = metersToTexPx(worldUnderCursor.x, worldUnderCursor.z);
-        panX = mouseScreenX - cx - (tx - MAP_TEX_SIZE / 2) * zoom;
-        panY = mouseScreenY - cy - (ty - MAP_TEX_SIZE / 2) * zoom;
-
+      const hitProp = findPropAt(e.clientX, e.clientY);
+      if (hitProp) {
+        pushUndoState();
+        propsData.splice(propsData.indexOf(hitProp), 1);
+        if (selectedProp === hitProp) selectProp(null);
+        updateStats();
+        updateAllPropsListUI();
         render();
+        showToast('Объект удалён (ПКМ)');
+        return;
+      }
+
+      const hitPt = findPointAt(e.clientX, e.clientY);
+      if (hitPt) {
+        pushUndoState();
+        routesData[hitPt.routeId].points.splice(hitPt.idx, 1);
+        if (selectedPoint && selectedPoint.idx === hitPt.idx) {
+          selectedPoint = null;
+        }
+        buildRoutesUI();
+        updatePointControlCard();
+        render();
+        showToast('Точка удалена (ПКМ)');
+      }
+    });
+
+    // Блокировка стандартного браузерного масштабирования при Ctrl + Wheel
+    window.addEventListener('wheel', (e) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
       }
     }, { passive: false });
 
-    // 2. Отслеживание клавиши Пробел для панорамирования
+    function updateZoomUI() {
+      if (zoomIndicator) {
+        zoomIndicator.textContent = Math.round(zoom * 100) + '%';
+      }
+    }
+
+    // Зум колёсиком мыши (поддерживает как обычный скролл, так и Ctrl + Колесо)
+    viewport.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      // Если зажат R или Shift и выделен объект — вращаем его
+      if ((isRHeld || e.shiftKey) && selectedProp) {
+        const deltaRot = e.deltaY > 0 ? 0.15 : -0.15;
+        selectedProp.rot = (selectedProp.rot || 0) + deltaRot;
+        const deg = Math.round((selectedProp.rot * 180 / Math.PI) % 360);
+        document.getElementById('insp-rot-slider').value = (deg < 0 ? deg + 360 : deg);
+        document.getElementById('insp-rot-val').textContent = (deg < 0 ? deg + 360 : deg) + '°';
+        render();
+        return;
+      }
+
+      const rect = viewport.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      const cx = rect.width / 2;
+      const cy = rect.height / 2;
+
+      const oldZoom = zoom;
+      let delta = e.deltaY;
+      if (e.deltaMode === 1) delta *= 20;
+      else if (e.deltaMode === 2) delta *= 400;
+
+      const factor = delta < 0 ? 1.18 : 1 / 1.18;
+      // Диапазон масштабирования: от 0.08 (8% - весь остров и окрестности) до 12.0 (1200% - детальный зум)
+      const newZoom = Math.min(12.0, Math.max(0.08, zoom * factor));
+      if (Math.abs(newZoom - oldZoom) < 0.0001) return;
+
+      const tx = (mouseX - cx - panX) / oldZoom;
+      const ty = (mouseY - cy - panY) / oldZoom;
+
+      panX = mouseX - cx - tx * newZoom;
+      panY = mouseY - cy - ty * newZoom;
+      zoom = newZoom;
+
+      updateZoomUI();
+      render();
+    }, { passive: false });
+
+    function applyZoom(direction) {
+      const factor = direction < 0 ? 0.75 : 1.33;
+      zoom = Math.min(12.0, Math.max(0.08, zoom * factor));
+      updateZoomUI();
+      render();
+    }
+    window.applyZoom = applyZoom;
+
+    function resetZoomAndPan() {
+      zoom = 1.0; panX = 0; panY = 0;
+      updateZoomUI();
+      render();
+    }
+    window.resetZoomAndPan = resetZoomAndPan;
+
+    function fitMapToScreen() {
+      const rect = viewport.getBoundingClientRect();
+      const margin = 40;
+      const availW = Math.max(100, rect.width - margin * 2);
+      const availH = Math.max(100, rect.height - margin * 2);
+      const fitZoom = Math.min(availW / MAP_TEX_SIZE, availH / MAP_TEX_SIZE);
+      zoom = Math.max(0.08, Math.min(3.0, fitZoom));
+      panX = 0;
+      panY = 0;
+      updateZoomUI();
+      render();
+      showToast(`Вся карта острова (${Math.round(zoom * 100)}%)`);
+    }
+    window.fitMapToScreen = fitMapToScreen;
+
+    // Горячие клавиши
     window.addEventListener('keydown', (e) => {
-      if (e.code === 'Space' && !isSpaceHeld) {
+      if (e.code === 'Space') {
         isSpaceHeld = true;
-        viewport.classList.add('space-held');
+        if (!isPanning) viewport.classList.add('space-held');
+      }
+      if (e.key === 'r' || e.key === 'R') isRHeld = true;
+
+      if (e.key === 'Escape') {
+        if (stampPropType) {
+          cancelStampMode();
+        } else if (roadToolMode === 'draw') {
+          setRoadToolMode('select');
+        } else {
+          selectProp(null);
+          deselectPoint();
+          ghostInsertInfo = null;
+          render();
+        }
+      }
+
+      if (!['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+        if (e.key === 'v' || e.key === 'V') {
+          setRoadToolMode('select');
+        } else if (e.key === 'b' || e.key === 'B') {
+          setRoadToolMode('draw');
+        } else if (e.key === 'f' || e.key === 'F') {
+          fitMapToScreen();
+        }
+
+        // Перемещение выбранного объекта стрелками клавиатуры
+        if (selectedProp) {
+          let step = currentNudgeStep;
+          if (e.shiftKey) step *= 5;
+          if (e.altKey || e.ctrlKey) step *= 0.2;
+
+          if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            nudgeSelectedProp(0, -step);
+          } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            nudgeSelectedProp(0, step);
+          } else if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            nudgeSelectedProp(-step, 0);
+          } else if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            nudgeSelectedProp(step, 0);
+          } else if (e.key === 'q' || e.key === 'Q') {
+            e.preventDefault();
+            rotateSelectedPropDelta(-15);
+          } else if (e.key === 'e' || e.key === 'E') {
+            e.preventDefault();
+            rotateSelectedPropDelta(15);
+          } else if (e.key === '[') {
+            e.preventDefault();
+            scaleSelectedPropDelta(0.9);
+          } else if (e.key === ']') {
+            e.preventDefault();
+            scaleSelectedPropDelta(1.1);
+          }
+        }
+      }
+
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (!['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+          if (selectedPoint) {
+            deleteSelectedPoint();
+          } else if (selectedProp) {
+            deleteSelectedProp();
+          }
+        }
+      }
+
+      // Порядок точек дороги через Shift + ArrowUp/Down
+      if (selectedPoint && !selectedProp) {
+        if (e.shiftKey && e.key === 'ArrowUp') {
+          e.preventDefault();
+          moveSelectedPointOrder(-1);
+        } else if (e.shiftKey && e.key === 'ArrowDown') {
+          e.preventDefault();
+          moveSelectedPointOrder(1);
+        }
+      }
+
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'd' || e.key === 'D')) {
+        e.preventDefault();
+        duplicateSelectedProp();
+      }
+
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+        e.preventDefault();
+        if (undoStack.length > 0) {
+          const prev = undoStack.pop();
+          routesData = prev.routes;
+          propsData = prev.props;
+          if (prev.soil) {
+            soilZones = prev.soil;
+            window.soilZones = soilZones;
+          }
+          buildRoutesUI();
+          updateStats();
+          updateAllPropsListUI();
+          updateSoilCountBadge();
+          selectProp(null);
+          render();
+          showToast('Действие отменено (Undo)');
+        }
       }
     });
+
     window.addEventListener('keyup', (e) => {
       if (e.code === 'Space') {
         isSpaceHeld = false;
         viewport.classList.remove('space-held');
       }
+      if (e.key === 'r' || e.key === 'R') isRHeld = false;
     });
 
-    // 3. Mouse Down
-    viewport.addEventListener('mousedown', (e) => {
-      const rect = viewport.getBoundingClientRect();
-      const sx = e.clientX - rect.left;
-      const sy = e.clientY - rect.top;
-      mouseDownPos = { x: sx, y: sy };
-      hasMovedDuringMouseDown = false;
-
-      // Панорамирование: средняя кнопка мыши (СКМ) ИЛИ зажатый Пробел + ЛКМ
-      if (e.button === 1 || (e.button === 0 && isSpaceHeld)) {
-        isPanning = true;
-        panStartX = sx - panX;
-        panStartY = sy - panY;
-        viewport.classList.add('panning');
-        e.preventDefault();
-        return;
-      }
-
-      // ЛКМ — проверка захвата существующей точки
-      if (e.button === 0) {
-        const curRoute = routesData[activeRouteId];
-        if (curRoute) {
-          for (let i = curRoute.points.length - 1; i >= 0; i--) {
-            const pt = curRoute.points[i];
-            const { sx: ptSx, sy: ptSy } = worldToScreen(pt.x, pt.z);
-            if (Math.hypot(sx - ptSx, sy - ptSy) <= 12) {
-              draggedPoint = pt;
-              render();
-              return;
-            }
-          }
-        }
-      }
-    });
-
-    // 4. Mouse Move
-    viewport.addEventListener('mousemove', (e) => {
-      const rect = viewport.getBoundingClientRect();
-      const sx = e.clientX - rect.left;
-      const sy = e.clientY - rect.top;
-
-      if (Math.hypot(sx - mouseDownPos.x, sy - mouseDownPos.y) > 3) {
-        hasMovedDuringMouseDown = true;
-      }
-
-      // Если в режиме панорамирования
-      if (isPanning) {
-        panX = sx - panStartX;
-        panY = sy - panStartY;
-        render();
-        return;
-      }
-
-      // Обновление координат курсора
-      const worldPos = screenToWorld(sx, sy);
-      coordsInfo.innerHTML = `
-        <div>Координаты Three.js:</div>
-        <div><b>X: ${worldPos.x.toFixed(2)} м | Z: ${worldPos.z.toFixed(2)} м</b></div>
-      `;
-
-      // Если тащим точку
-      if (draggedPoint) {
-        draggedPoint.x = worldPos.x;
-        draggedPoint.z = worldPos.z;
-        render();
-        return;
-      }
-
-      // Подсветка точки под курсором
-      const curRoute = routesData[activeRouteId];
-      let newHovered = null;
-      if (curRoute && !isSpaceHeld) {
-        for (const pt of curRoute.points) {
-          const { sx: ptSx, sy: ptSy } = worldToScreen(pt.x, pt.z);
-          if (Math.hypot(sx - ptSx, sy - ptSy) <= 12) {
-            newHovered = pt;
-            break;
-          }
-        }
-      }
-      if (hoveredPoint !== newHovered) {
-        hoveredPoint = newHovered;
-        render();
-      }
-    });
-
-    // 5. Mouse Up
-    window.addEventListener('mouseup', (e) => {
-      if (isPanning) {
-        isPanning = false;
-        viewport.classList.remove('panning');
-      }
-
-      // Если кликнули ЛКМ без перетаскивания и не на точку — добавляем новую точку
-      if (e.button === 0 && !isSpaceHeld && !draggedPoint && !hasMovedDuringMouseDown) {
-        const rect = viewport.getBoundingClientRect();
-        if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
-          const sx = e.clientX - rect.left;
-          const sy = e.clientY - rect.top;
-          const worldPos = screenToWorld(sx, sy);
-          const curRoute = routesData[activeRouteId];
-          if (curRoute) {
-            curRoute.points.push({ x: worldPos.x, z: worldPos.z });
-            buildUI();
-            render();
-          }
-        }
-      }
-
-      draggedPoint = null;
-    });
-
-    // 6. ПКМ — удаление точки
-    viewport.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
-      const rect = viewport.getBoundingClientRect();
-      const sx = e.clientX - rect.left;
-      const sy = e.clientY - rect.top;
-      const curRoute = routesData[activeRouteId];
-      if (!curRoute) return;
-
-      const idx = curRoute.points.findIndex(pt => {
-        const { sx: ptSx, sy: ptSy } = worldToScreen(pt.x, pt.z);
-        return Math.hypot(sx - ptSx, sy - ptSy) <= 12;
-      });
-
-      if (idx !== -1) {
-        curRoute.points.splice(idx, 1);
-        buildUI();
-        render();
-      }
-    });
-
-    // Кнопки тулбара зума
-    function applyZoom(delta) {
-      const rect = viewport.getBoundingClientRect();
-      const cx = rect.width / 2;
-      const cy = rect.height / 2;
-      const worldCenter = screenToWorld(cx, cy);
-
-      const zoomFactor = delta > 0 ? 1.25 : (1 / 1.25);
-      zoom = Math.max(0.35, Math.min(8.0, zoom * zoomFactor));
-
-      const { tx, ty } = metersToTexPx(worldCenter.x, worldCenter.z);
-      panX = -(tx - MAP_TEX_SIZE / 2) * zoom;
-      panY = -(ty - MAP_TEX_SIZE / 2) * zoom;
-
-      render();
+    // --- 10. СОХРАНЕНИЕ И ЭКСПОРТ (DIRECT API + FALLBACK) ---
+    function prepareFullJson() {
+      return {
+        meta: {
+          map: "Mactan Tropical Island 500x500",
+          scale: 500,
+          updatedAt: new Date().toISOString()
+        },
+        routes: routesData,
+        props: propsData,
+        soilZones: soilZones || []
+      };
     }
 
-    document.getElementById('btn-zoom-in').onclick = () => applyZoom(1);
-    document.getElementById('btn-zoom-out').onclick = () => applyZoom(-1);
-    document.getElementById('btn-zoom-fit').onclick = () => {
-      zoom = 1.0; panX = 0; panY = 0; render();
-    };
-    document.getElementById('btn-reset-view').onclick = () => {
-      zoom = 1.0; panX = 0; panY = 0; render();
-    };
+    async function saveToProject() {
+      const fullData = prepareFullJson();
+      const jsonStr = JSON.stringify(fullData, null, 2);
 
-    // Управление треком
-    document.getElementById('btn-delete-last').onclick = () => {
-      const curRoute = routesData[activeRouteId];
-      if (curRoute && curRoute.points.length > 0) {
-        curRoute.points.pop();
-        buildUI();
-        render();
+      try {
+        const res = await fetch('/api/save-roads', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: jsonStr
+        });
+
+        if (res.ok) {
+          showToast('✅ Успешно сохранено в models/philippines_roads.json!');
+        } else {
+          throw new Error('API returned ' + res.status);
+        }
+      } catch (err) {
+        console.warn('Локальный API недоступен, выполняю прямое скачивание:', err);
+        downloadRoadsJson();
       }
-    };
+    }
+    window.saveToProject = saveToProject;
 
-    document.getElementById('btn-clear-route').onclick = () => {
-      const curRoute = routesData[activeRouteId];
-      if (curRoute && confirm(`Очистить все точки трека "${curRoute.name}"?`)) {
-        curRoute.points = [];
-        buildUI();
-        render();
-      }
-    };
+    function downloadRoadsJson() {
+      const fullData = prepareFullJson();
+      const str = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(fullData, null, 2));
+      const dl = document.createElement('a');
+      dl.setAttribute("href", str);
+      dl.setAttribute("download", "philippines_roads.json");
+      document.body.appendChild(dl);
+      dl.click();
+      dl.remove();
+      showToast('📥 Файл philippines_roads.json скачан!');
+    }
+    window.downloadRoadsJson = downloadRoadsJson;
 
-    document.getElementById('btn-save-json').onclick = () => {
-      const exportJson = {
-        meta: {
-          map: "Mactan Tropical Island 500x500",
-          scale: ORTHO_METERS,
-          updatedAt: new Date().toISOString()
-        },
-        routes: routesData
-      };
-      const blob = new Blob([JSON.stringify(exportJson, null, 2)], { type: 'application/json' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'philippines_roads.json';
-      a.click();
-    };
+    function copyJsonToClipboard() {
+      const fullData = prepareFullJson();
+      navigator.clipboard.writeText(JSON.stringify(fullData, null, 2))
+        .then(() => showToast('📋 JSON скопирован в буфер обмена!'))
+        .catch(err => alert('Ошибка копирования: ' + err));
+    }
+    window.copyJsonToClipboard = copyJsonToClipboard;
 
-    document.getElementById('btn-copy-json').onclick = () => {
-      const exportJson = {
-        meta: {
-          map: "Mactan Tropical Island 500x500",
-          scale: ORTHO_METERS,
-          updatedAt: new Date().toISOString()
-        },
-        routes: routesData
-      };
-      navigator.clipboard.writeText(JSON.stringify(exportJson, null, 2)).then(() => {
-        alert('Координаты маршрутов скопированы в буфер обмена!');
-      });
-    };
-
-    // Начальный запуск
-    resizeCanvas();
+    function showToast(msg) {
+      if (!toast) return;
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2800);
+    }
   </script>
 </body>
 </html>

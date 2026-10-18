@@ -12,53 +12,160 @@ window.PhilippinesTracks = (function() {
   let bancaBaseY = 2.5;
   let buoys = [];
   let philippinesCheckpoints = [];
+  let philippinesSoilZones = [];
 
-  // Процедурная текстура асфальта с разметкой
-  function createRoadTexture(isBoulevard = true) {
+  // Поиск зоны грунта из Тайги под координатами (x, z)
+  function getSoilZoneAt(x, z) {
+    if (!philippinesSoilZones || !philippinesSoilZones.length) return null;
+    for (let i = philippinesSoilZones.length - 1; i >= 0; i--) {
+      const sz = philippinesSoilZones[i];
+      const dx = Math.abs(x - sz.x);
+      if (dx > sz.radius) continue;
+      const dz = Math.abs(z - sz.z);
+      if (dz > sz.radius) continue;
+      const dist = Math.hypot(dx, dz);
+      if (dist <= sz.radius) {
+        return sz;
+      }
+    }
+    return null;
+  }
+
+  // Процедурная текстура дороги (асфальт или грунтовые колеи из Тайги)
+  function createRoadTexture(isBoulevard = true, surfaceType = 'asphalt') {
     const canvas = document.createElement('canvas');
     canvas.width = 512;
     canvas.height = 512;
     const ctx = canvas.getContext('2d');
 
-    // Тёмный зернистый асфальт (полотно)
-    ctx.fillStyle = '#22262e';
-    ctx.fillRect(0, 0, 512, 512);
+    if (surfaceType === 'clay') {
+      // Насыщенная коричневая глина полигона Тайга
+      ctx.fillStyle = '#54321b';
+      ctx.fillRect(0, 0, 512, 512);
 
-    // Бетонные боковые бордюры (0..36px и 476..512px)
-    ctx.fillStyle = '#94a3b8';
-    ctx.fillRect(0, 0, 36, 512);
-    ctx.fillRect(476, 0, 36, 512);
+      // Грязевой шум и комья земли
+      const imgData = ctx.getImageData(0, 0, 512, 512);
+      const data = imgData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        const noise = (Math.random() - 0.5) * 35;
+        data[i] = Math.min(255, Math.max(0, data[i] + noise + 10));
+        data[i + 1] = Math.min(255, Math.max(0, data[i + 1] + noise * 0.6));
+        data[i + 2] = Math.min(255, Math.max(0, data[i + 2] + noise * 0.4));
+      }
+      ctx.putImageData(imgData, 0, 0);
 
-    // Шум гравия и фактура покрытия
-    const imgData = ctx.getImageData(0, 0, 512, 512);
-    const data = imgData.data;
-    for (let i = 0; i < data.length; i += 4) {
-      const noise = (Math.random() - 0.5) * 20;
-      data[i] = Math.min(255, Math.max(0, data[i] + noise));
-      data[i + 1] = Math.min(255, Math.max(0, data[i + 1] + noise));
-      data[i + 2] = Math.min(255, Math.max(0, data[i + 2] + noise));
-    }
-    ctx.putImageData(imgData, 0, 0);
+      // Две темные влажные выдавленные колеи колес (слева 110..170px, справа 340..400px)
+      ctx.fillStyle = 'rgba(40, 20, 10, 0.55)';
+      ctx.fillRect(110, 0, 65, 512);
+      ctx.fillRect(340, 0, 65, 512);
 
-    // Краевые сплошные белые линии (вдоль бордюра на асфальте)
-    ctx.fillStyle = '#f8fafc';
-    ctx.fillRect(36, 0, 8, 512);
-    ctx.fillRect(468, 0, 8, 512);
+      // Блеск влажной грязи в центре колеи
+      ctx.fillStyle = 'rgba(30, 15, 8, 0.40)';
+      ctx.fillRect(125, 0, 35, 512);
+      ctx.fillRect(355, 0, 35, 512);
 
-    if (isBoulevard) {
-      // Центральная двойная сплошная полоса (бульвар, ярко-янтарная)
-      ctx.fillStyle = '#f59e0b';
-      ctx.fillRect(256 - 9, 0, 6, 512);
-      ctx.fillRect(256 + 3, 0, 6, 512);
+      // Неровные травянистые обочины
+      ctx.fillStyle = 'rgba(56, 102, 65, 0.45)';
+      ctx.fillRect(0, 0, 28, 512);
+      ctx.fillRect(484, 0, 28, 512);
+    } else if (surfaceType === 'sand') {
+      // Золотистый сыпучий песок пляжа
+      ctx.fillStyle = '#c79a5b';
+      ctx.fillRect(0, 0, 512, 512);
 
-      // Прерывистые белые разделители полос движения (4м штрих, 4м интервал)
-      ctx.fillStyle = '#f8fafc';
-      ctx.fillRect(146, 0, 6, 260);
-      ctx.fillRect(360, 0, 6, 260);
+      const imgData = ctx.getImageData(0, 0, 512, 512);
+      const data = imgData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        const noise = (Math.random() - 0.5) * 22;
+        data[i] = Math.min(255, Math.max(0, data[i] + noise));
+        data[i + 1] = Math.min(255, Math.max(0, data[i + 1] + noise * 0.8));
+        data[i + 2] = Math.min(255, Math.max(0, data[i + 2] + noise * 0.6));
+      }
+      ctx.putImageData(imgData, 0, 0);
+
+      // Песчаные выдавленные волны / следы шин
+      ctx.fillStyle = 'rgba(160, 120, 65, 0.35)';
+      ctx.fillRect(115, 0, 60, 512);
+      ctx.fillRect(345, 0, 60, 512);
+    } else if (surfaceType === 'forest') {
+      // Лесной грунт, хвоя и корни
+      ctx.fillStyle = '#5c4033';
+      ctx.fillRect(0, 0, 512, 512);
+
+      const imgData = ctx.getImageData(0, 0, 512, 512);
+      const data = imgData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        const noise = (Math.random() - 0.5) * 26;
+        data[i] = Math.min(255, Math.max(0, data[i] + noise));
+        data[i + 1] = Math.min(255, Math.max(0, data[i + 1] + noise * 0.7));
+        data[i + 2] = Math.min(255, Math.max(0, data[i + 2] + noise * 0.5));
+      }
+      ctx.putImageData(imgData, 0, 0);
+
+      // Травянистые вкрапления мха
+      ctx.fillStyle = 'rgba(45, 106, 79, 0.35)';
+      ctx.fillRect(230, 0, 52, 512);
+    } else if (surfaceType === 'swamp') {
+      // Торфяное болото и жижа с лужами
+      ctx.fillStyle = '#403020';
+      ctx.fillRect(0, 0, 512, 512);
+
+      ctx.fillStyle = 'rgba(25, 18, 12, 0.70)';
+      ctx.fillRect(95, 0, 90, 512);
+      ctx.fillRect(325, 0, 90, 512);
+
+      ctx.fillStyle = 'rgba(30, 45, 45, 0.60)';
+      ctx.fillRect(115, 0, 50, 512);
+      ctx.fillRect(345, 0, 50, 512);
+    } else if (surfaceType === 'snow') {
+      // Заснеженная колея
+      ctx.fillStyle = '#e8eff5';
+      ctx.fillRect(0, 0, 512, 512);
+
+      ctx.fillStyle = 'rgba(160, 180, 200, 0.40)';
+      ctx.fillRect(115, 0, 60, 512);
+      ctx.fillRect(345, 0, 60, 512);
     } else {
-      // Набережная / курорт: одинарная прерывистая жёлтая линия
-      ctx.fillStyle = '#f59e0b';
-      ctx.fillRect(256 - 4, 0, 8, 260);
+      // Асфальт (городской бульвар / шоссе)
+      ctx.fillStyle = '#22262e';
+      ctx.fillRect(0, 0, 512, 512);
+
+      // Бетонные боковые бордюры (0..36px и 476..512px)
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(0, 0, 36, 512);
+      ctx.fillRect(476, 0, 36, 512);
+
+      // Шум гравия и фактура покрытия
+      const imgData = ctx.getImageData(0, 0, 512, 512);
+      const data = imgData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        const noise = (Math.random() - 0.5) * 20;
+        data[i] = Math.min(255, Math.max(0, data[i] + noise));
+        data[i + 1] = Math.min(255, Math.max(0, data[i + 1] + noise));
+        data[i + 2] = Math.min(255, Math.max(0, data[i + 2] + noise));
+      }
+      ctx.putImageData(imgData, 0, 0);
+
+      // Краевые сплошные белые линии (вдоль бордюра на асфальте)
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(36, 0, 8, 512);
+      ctx.fillRect(468, 0, 8, 512);
+
+      if (isBoulevard) {
+        // Центральная двойная сплошная полоса (бульвар, ярко-янтарная)
+        ctx.fillStyle = '#f59e0b';
+        ctx.fillRect(256 - 9, 0, 6, 512);
+        ctx.fillRect(256 + 3, 0, 6, 512);
+
+        // Прерывистые белые разделители полос движения (4м штрих, 4м интервал)
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillRect(146, 0, 6, 260);
+        ctx.fillRect(360, 0, 6, 260);
+      } else {
+        // Набережная / курорт: одинарная прерывистая жёлтая линия
+        ctx.fillStyle = '#f59e0b';
+        ctx.fillRect(256 - 4, 0, 8, 260);
+      }
     }
 
     const tex = new THREE.CanvasTexture(canvas);
@@ -70,27 +177,21 @@ window.PhilippinesTracks = (function() {
   }
 
   // Создание меша дороги по CatmullRomCurve3
-  function buildSplineRoadMesh(curve, width, isBoulevard = true) {
+  function buildSplineRoadMesh(curve, width, isBoulevard = true, surfaceType = 'asphalt') {
     const numSteps = Math.max(60, Math.floor(curve.getLength() * 1.5));
     const halfW = width / 2;
-    const curbW = 0.45;
-    const curbH = 0.12;
+    const isDirt = (surfaceType && surfaceType !== 'asphalt');
+    const curbW = isDirt ? 0.20 : 0.45;
+    const curbH = isDirt ? 0.02 : 0.12;
 
     const geometry = new THREE.BufferGeometry();
     const positions = [];
+    const colors = [];
     const uvs = [];
     const normals = [];
     const indices = [];
 
-    // Поперечное сечение из 7 точек:
-    // 0: левый скос бордюра
-    // 1: верхний левый бордюр
-    // 2: левый край асфальта
-    // 3: центр дороги
-    // 4: правый край асфальта
-    // 5: верхний правый бордюр
-    // 6: правый скос бордюра
-    // Поперечное сечение с боковыми откосами (исключает клиппинг со сканом):
+    // Поперечное сечение с боковыми откосами:
     const profileOffsets = [
       { offset: -halfW - curbW - 0.40, h: -0.45, u: 0.0 },
       { offset: -halfW - curbW,        h: -0.08, u: 0.04 },
@@ -122,6 +223,31 @@ window.PhilippinesTracks = (function() {
         positions.push(vert.x, vert.y, vert.z);
         normals.push(realNormal.x, realNormal.y, realNormal.z);
         uvs.push(p.u, v);
+
+        // Окрашивание полотна дороги грязью из нарисованных зон Тайги
+        let vColR = 1.0, vColG = 1.0, vColB = 1.0;
+        if (philippinesSoilZones && philippinesSoilZones.length > 0) {
+          for (let s = 0; s < philippinesSoilZones.length; s++) {
+            const sz = philippinesSoilZones[s];
+            const dx = Math.abs(vert.x - sz.x);
+            if (dx > sz.radius) continue;
+            const dz = Math.abs(vert.z - sz.z);
+            if (dz > sz.radius) continue;
+            const dist = Math.hypot(dx, dz);
+            if (dist <= sz.radius) {
+              const factor = Math.max(0, 1.0 - dist / sz.radius) * (sz.strength || 0.8) * 0.75;
+              let tr = 0.42, tg = 0.25, tb = 0.14; // clay
+              if (sz.type === 'swamp') { tr = 0.29; tg = 0.23; tb = 0.16; }
+              else if (sz.type === 'sand') { tr = 0.87; tg = 0.69; tb = 0.48; }
+              else if (sz.type === 'forest') { tr = 0.36; tg = 0.25; tb = 0.20; }
+              else if (sz.type === 'snow') { tr = 0.93; tg = 0.95; tb = 0.97; }
+              vColR = vColR * (1.0 - factor) + tr * factor;
+              vColG = vColG * (1.0 - factor) + tg * factor;
+              vColB = vColB * (1.0 - factor) + tb * factor;
+            }
+          }
+        }
+        colors.push(vColR, vColG, vColB);
       }
 
       if (i < numSteps) {
@@ -137,14 +263,16 @@ window.PhilippinesTracks = (function() {
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
     geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
     geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
     geometry.setIndex(indices);
     geometry.computeVertexNormals();
 
-    const roadTex = createRoadTexture(isBoulevard);
+    const roadTex = createRoadTexture(isBoulevard, surfaceType);
     const material = new THREE.MeshStandardMaterial({
       map: roadTex,
-      roughness: 0.85,
-      metalness: 0.10,
+      vertexColors: true,
+      roughness: isDirt ? 0.95 : 0.85,
+      metalness: isDirt ? 0.02 : 0.10,
       side: THREE.DoubleSide
     });
 
@@ -155,6 +283,7 @@ window.PhilippinesTracks = (function() {
   }
 
   // Чистый стилизованный террейн (пляж, зелень, холмы в стиле Over the Hill)
+  // Чистый стилизованный террейн (пляж, тропическая зелень без искусственных гор)
   function buildStylizedTerrain(targetGroup, getGroundH) {
     const size = 500;
     const segments = 96;
@@ -164,27 +293,81 @@ window.PhilippinesTracks = (function() {
     const pos = geo.attributes.position;
     const colors = [];
     const colorSand = new THREE.Color('#dfb17b'); // золотистый песок
-    const colorGrass = new THREE.Color('#386641'); // тропическая трава
-    const colorRock = new THREE.Color('#6c757d'); // холмы
+    const colorGrass = new THREE.Color('#386641'); // тропическая сочная трава
+    const colorMeadow = new THREE.Color('#4d7c0f'); // светлая зелень холмов
+    const colorClay = new THREE.Color('#6a3f24'); // глина Тайги
+    const colorSwamp = new THREE.Color('#4a3b2a'); // торфяное болото
+    const colorForest = new THREE.Color('#5c4033'); // лесной перегной
+    const colorSnow = new THREE.Color('#eef3f8'); // снег
+
+    const soilColorsMap = {
+      clay: colorClay,
+      swamp: colorSwamp,
+      sand: colorSand,
+      forest: colorForest,
+      snow: colorSnow
+    };
 
     for (let i = 0; i < pos.count; i++) {
       const vx = pos.getX(i);
       const vz = pos.getZ(i);
-      let vy = getGroundH(vx, vz);
+      let vy = Math.min(getGroundH(vx, vz), 14.5);
 
       // В северной лагуне рельеф плавно уходит под воду
       if (vz < -160 && vx > 50) {
         vy = Math.min(vy, 12.0);
       }
+
+      // Автоматическая выемка грунта под дорогами (исключает прорезание полигонами полотна дороги)
+      if (activeRoads && activeRoads.length > 0) {
+        for (let r = 0; r < activeRoads.length; r++) {
+          const road = activeRoads[r];
+          const halfCorridor = (road.width / 2) + 1.2;
+          const halfCorridorSq = halfCorridor * halfCorridor;
+          for (let s = 0; s < road.samples.length; s += 2) {
+            const sp = road.samples[s];
+            const distSq = (vx - sp.x) * (vx - sp.x) + (vz - sp.z) * (vz - sp.z);
+            if (distSq < halfCorridorSq) {
+              vy = Math.min(vy, sp.y - 0.25);
+              break;
+            }
+          }
+        }
+      }
+
       pos.setY(i, vy - 0.05);
 
+      let baseCol = colorGrass;
       if (vz < -125 && vx > 65) {
-        colors.push(colorSand.r, colorSand.g, colorSand.b);
-      } else if (vy > 14.0) {
-        colors.push(colorRock.r, colorRock.g, colorRock.b);
-      } else {
-        colors.push(colorGrass.r, colorGrass.g, colorGrass.b);
+        baseCol = colorSand;
+      } else if (vy > 13.5) {
+        baseCol = colorMeadow;
       }
+
+      // Наложение нарисованных зон грунта SoilSim из Тайги
+      if (philippinesSoilZones && philippinesSoilZones.length > 0) {
+        let blendedCol = null;
+        for (let s = 0; s < philippinesSoilZones.length; s++) {
+          const sz = philippinesSoilZones[s];
+          const dx = Math.abs(vx - sz.x);
+          if (dx > sz.radius) continue;
+          const dz = Math.abs(vz - sz.z);
+          if (dz > sz.radius) continue;
+          const dist = Math.hypot(dx, dz);
+          if (dist <= sz.radius) {
+            const factor = Math.max(0, 1.0 - dist / sz.radius) * (sz.strength || 0.8);
+            const targetCol = soilColorsMap[sz.type] || colorClay;
+            if (!blendedCol) {
+              blendedCol = baseCol.clone().lerp(targetCol, factor);
+            } else {
+              blendedCol.lerp(targetCol, factor);
+            }
+          }
+        }
+        if (blendedCol) baseCol = blendedCol;
+      }
+
+      colors.push(baseCol.r, baseCol.g, baseCol.b);
     }
 
     geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
@@ -630,108 +813,60 @@ window.PhilippinesTracks = (function() {
     roadsGroup.name = "Philippines_Active_Roads";
     targetGroup.add(roadsGroup);
 
-    fetch('models/philippines_roads.json')
+    fetch('models/philippines_roads.json?v=' + Date.now())
       .then(res => res.json())
       .then(data => {
         const routes = data.routes || {};
+        philippinesSoilZones = data.soilZones || [];
         activeRoads = [];
 
-        // 0. Построение чистого стилизованного рельефа острова
+        // 1. Построение всех дорог из JSON (включая любые новые добавленные маршруты)
+        Object.keys(routes).forEach(routeId => {
+          const r = routes[routeId];
+          if (!r || !r.points || r.points.length < 2) return;
+          const surfaceType = r.surfaceType || 'asphalt';
+          const isBoulevard = (routeId === 'mactan_boulevard') || (r.width >= 9.5) || (r.isBoulevard === true);
+          const pts = r.points.map(p => {
+            const h = getGroundH(p.x, p.z);
+            return new THREE.Vector3(p.x, h + 0.40, p.z);
+          });
+          const curve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', isBoulevard ? 0.15 : 0.20);
+          const roadWidth = r.width || (isBoulevard ? 10.0 : 8.0);
+          const roadMesh = buildSplineRoadMesh(curve, roadWidth, isBoulevard, surfaceType);
+          roadsGroup.add(roadMesh);
+
+          activeRoads.push({
+            id: routeId,
+            name: r.name,
+            surfaceType: surfaceType,
+            curve: curve,
+            width: roadWidth,
+            samples: curve.getPoints(Math.max(80, Math.floor(curve.getLength() * 1.5)))
+          });
+
+          // Автоматическая расстановка фонарей вдоль широких проспектов
+          if (isBoulevard && surfaceType === 'asphalt') {
+            const lampCount = Math.max(3, Math.floor(curve.getLength() / 25));
+            const lampSamples = curve.getPoints(lampCount);
+            lampSamples.forEach((lp, idx) => {
+              if (idx === 0 || idx === lampSamples.length - 1) return;
+              const t = idx / lampSamples.length;
+              const tang = curve.getTangent(t).normalize();
+              const norm = new THREE.Vector3(-tang.z, 0, tang.x).normalize();
+              const lamp = createBoulevardLamp(lp.x + norm.x * (roadWidth / 2 + 0.8), lp.y, lp.z + norm.z * (roadWidth / 2 + 0.8));
+              roadsGroup.add(lamp);
+            });
+          }
+        });
+
+        // 2. Построение чистого стилизованного рельефа острова с автоматической выемкой под дорогами
         buildStylizedTerrain(roadsGroup, getGroundH);
-
-        // 1. Построение Mactan Boulevard
-        if (routes.mactan_boulevard && routes.mactan_boulevard.points.length >= 2) {
-          const pts = routes.mactan_boulevard.points.map(p => {
-            const h = getGroundH(p.x, p.z);
-            return new THREE.Vector3(p.x, h + 0.40, p.z);
-          });
-          const curve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.15);
-          const roadMesh = buildSplineRoadMesh(curve, routes.mactan_boulevard.width || 10.0, true);
-          roadsGroup.add(roadMesh);
-
-          activeRoads.push({
-            id: 'mactan_boulevard',
-            curve: curve,
-            width: routes.mactan_boulevard.width || 10.0,
-            samples: curve.getPoints(200)
-          });
-
-          // Расстановка уличных фонарей вдоль бульвара
-          const lampSamples = curve.getPoints(12);
-          lampSamples.forEach((lp, idx) => {
-            if (idx === 0 || idx === lampSamples.length - 1) return;
-            const t = idx / lampSamples.length;
-            const tang = curve.getTangent(t).normalize();
-            const norm = new THREE.Vector3(-tang.z, 0, tang.x).normalize();
-            const leftLamp = createBoulevardLamp(lp.x + norm.x * 5.8, lp.y, lp.z + norm.z * 5.8);
-            roadsGroup.add(leftLamp);
-          });
-        }
-
-        // 2. Построение Coastal Loop (Набережная и спуск к пляжу)
-        if (routes.coastal_loop && routes.coastal_loop.points.length >= 2) {
-          const pts = routes.coastal_loop.points.map(p => {
-            const h = getGroundH(p.x, p.z);
-            return new THREE.Vector3(p.x, h + 0.40, p.z);
-          });
-          const curve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.20);
-          const roadMesh = buildSplineRoadMesh(curve, routes.coastal_loop.width || 8.0, false);
-          roadsGroup.add(roadMesh);
-
-          activeRoads.push({
-            id: 'coastal_loop',
-            curve: curve,
-            width: routes.coastal_loop.width || 8.0,
-            samples: curve.getPoints(160)
-          });
-
-          // Пальмы вдоль курортной набережной
-          const palmSamples = curve.getPoints(14);
-          palmSamples.forEach((pp, idx) => {
-            const t = idx / palmSamples.length;
-            const tang = curve.getTangent(t).normalize();
-            const norm = new THREE.Vector3(-tang.z, 0, tang.x).normalize();
-            const side = (idx % 2 === 0) ? 5.2 : -5.2;
-            const palm = createPalmTree(
-              pp.x + norm.x * side,
-              getGroundH(pp.x + norm.x * side, pp.z + norm.z * side),
-              pp.z + norm.z * side,
-              0.85 + Math.random() * 0.35
-            );
-            roadsGroup.add(palm);
-          });
-        }
 
         // 3. Бирюзовый океан на севере
         const ocean = buildOcean();
         roadsGroup.add(ocean);
 
-        // 4. Деревянный пирс курорта в конце Coastal Loop
-        const pier = createResortPier(137.14, getGroundH(137.14, -166.33), -166.33);
-        roadsGroup.add(pier);
-
-        // 5. Лодка Banca у пирса
-        bancaBoat = createBancaBoat(143.5, 12.80, -182.0);
-        bancaBaseY = 12.80;
-        roadsGroup.add(bancaBoat);
-
-        // Вторая лодка на якорной стоянке в лагуне
-        const banca2 = createBancaBoat(95.0, 12.80, -195.0);
-        banca2.rotation.y = 0.45;
-        roadsGroup.add(banca2);
-
-        // 6. Курортные бунгало вдоль песчаного берега
-        const bungalowCoords = [
-          { x: 110.0, z: -148.0, rot: -0.2 },
-          { x: 124.0, z: -142.0, rot: 0.15 },
-          { x: 152.0, z: -152.0, rot: -0.4 }
-        ];
-        bungalowCoords.forEach(b => {
-          const bg = createResortBungalow(b.x, getGroundH(b.x, b.z), b.z, b.rot);
-          roadsGroup.add(bg);
-        });
-
-        // 7. Контрольные ворота ралли (чекпоинты экспедиции Лапу-Лапу)
+        // 3. Контрольные ворота ралли (чекпоинты экспедиции Лапу-Лапу)
         philippinesCheckpoints = [];
         const checkpointDefs = [
           { index: 0, x: 38.04,  z: 143.82,  yaw: -2.99, span: 13.0, title: 'СТАРТ: MACTAN BOULEVARD', isFinish: false },
@@ -757,51 +892,84 @@ window.PhilippinesTracks = (function() {
           });
         });
 
-        // 8. Пляжная зона отдыха: шезлонги и солнцезащитные зонты
-        const beachSpots = [
-          { x: 112.0, z: -144.0, uColor: 0x06b6d4, rot: 0.2 },
-          { x: 116.0, z: -145.5, uColor: 0xf97316, rot: 0.1 },
-          { x: 126.0, z: -138.0, uColor: 0xeab308, rot: -0.15 },
-          { x: 130.0, z: -140.0, uColor: 0xec4899, rot: -0.3 },
-          { x: 145.0, z: -147.0, uColor: 0x10b981, rot: 0.35 }
-        ];
-        beachSpots.forEach(s => {
-          const gy = getGroundH(s.x, s.z);
-          const umb = createBeachUmbrella(s.x, gy, s.z, s.uColor);
-          const lounger = createSunLounger(s.x + 1.2, gy, s.z + 0.4, s.rot);
-          roadsGroup.add(umb);
-          roadsGroup.add(lounger);
-        });
-
-        // 9. Якорные сигнальные буи в лагуне
+        // 4. Расстановка объектов и моделей (Props) из JSON или дефолтных
         buoys = [];
-        const buoyCoords = [
-          { x: 125.0, z: -180.0 },
-          { x: 135.0, z: -198.0 },
-          { x: 155.0, z: -175.0 },
-          { x: 80.0,  z: -188.0 }
+        const propsList = (data.props && Array.isArray(data.props) && data.props.length > 0) ? data.props : [
+          { id: 'pier_1', type: 'pier', x: 137.14, z: -166.33, rot: 0 },
+          { id: 'boat_1', type: 'boat', x: 143.5, z: -182.0, rot: 0 },
+          { id: 'boat_2', type: 'boat', x: 95.0, z: -195.0, rot: 0.45 },
+          { id: 'bg_1', type: 'bungalow', x: 110.0, z: -148.0, rot: -0.2 },
+          { id: 'bg_2', type: 'bungalow', x: 124.0, z: -142.0, rot: 0.15 },
+          { id: 'bg_3', type: 'bungalow', x: 152.0, z: -152.0, rot: -0.4 },
+          { id: 'palm_1', type: 'palm', x: 105.0, z: -155.0, scale: 1.1 }
         ];
-        buoyCoords.forEach(bc => {
-          const b = createMooringBuoy(bc.x, 12.80, bc.z);
-          roadsGroup.add(b);
-          buoys.push(b);
-        });
 
-        // 10. Дополнительные рощи кокосовых пальм вокруг пляжа курорта
-        const groveCoords = [
-          { x: 105.0, z: -155.0 },
-          { x: 108.0, z: -160.0 },
-          { x: 120.0, z: -158.0 },
-          { x: 140.0, z: -156.0 },
-          { x: 148.0, z: -162.0 },
-          { x: 160.0, z: -154.0 },
-          { x: 165.0, z: -165.0 },
-          { x: 35.0,  z: 130.0 },
-          { x: 22.0,  z: 55.0 }
-        ];
-        groveCoords.forEach(g => {
-          const palm = createPalmTree(g.x, getGroundH(g.x, g.z), g.z, 0.9 + Math.random() * 0.4);
-          roadsGroup.add(palm);
+        propsList.forEach(prop => {
+          const px = Number(prop.x) || 0;
+          const pz = Number(prop.z) || 0;
+          const py = getGroundH(px, pz);
+          const rot = Number(prop.rot) || 0;
+          const scale = Number(prop.scale) || 1.0;
+
+          switch (prop.type) {
+            case 'palm': {
+              const palm = createPalmTree(px, py, pz, scale);
+              palm.rotation.y = rot;
+              roadsGroup.add(palm);
+              break;
+            }
+            case 'bungalow':
+            case 'hut': {
+              const bg = createResortBungalow(px, py, pz, rot);
+              bg.scale.set(scale, scale, scale);
+              roadsGroup.add(bg);
+              break;
+            }
+            case 'umbrella': {
+              let c = prop.color || 0xf97316;
+              if (typeof c === 'string' && c.startsWith('#')) c = parseInt(c.slice(1), 16);
+              const umb = createBeachUmbrella(px, py, pz, c);
+              umb.rotation.y = rot;
+              umb.scale.set(scale, scale, scale);
+              roadsGroup.add(umb);
+              break;
+            }
+            case 'lounger': {
+              const lounger = createSunLounger(px, py, pz, rot);
+              lounger.scale.set(scale, scale, scale);
+              roadsGroup.add(lounger);
+              break;
+            }
+            case 'lamp': {
+              const lamp = createBoulevardLamp(px, py, pz);
+              lamp.rotation.y = rot;
+              roadsGroup.add(lamp);
+              break;
+            }
+            case 'pier': {
+              const pier = createResortPier(px, py, pz);
+              pier.rotation.y = rot;
+              roadsGroup.add(pier);
+              break;
+            }
+            case 'boat': {
+              const boat = createBancaBoat(px, 12.80, pz);
+              boat.rotation.y = rot;
+              boat.scale.set(scale, scale, scale);
+              roadsGroup.add(boat);
+              if (!bancaBoat) {
+                bancaBoat = boat;
+                bancaBaseY = 12.80;
+              }
+              break;
+            }
+            case 'buoy': {
+              const buoy = createMooringBuoy(px, 12.80, pz);
+              roadsGroup.add(buoy);
+              buoys.push(buoy);
+              break;
+            }
+          }
         });
 
         console.log('[PhilippinesTracks] Чистые сплайн-дороги, океан, пирс, курорт и чекпоинты успешно построены!');
@@ -841,25 +1009,61 @@ window.PhilippinesTracks = (function() {
       // В пределах полотна дороги
       if (dist <= halfW) {
         const roadPt = samples[bestIdx];
+        const sType = road.surfaceType || 'asphalt';
+        let drag = 0.82;
+        let slipMult = 0.18;
+        let label = road.name || (road.id === 'mactan_boulevard' ? 'ПРОСПЕКТ MACTAN BOULEVARD (АСФАЛЬТ)' : 'ПРИБРЕЖНАЯ НАБЕРЕЖНАЯ');
+        let color = '#00f0ff';
+
+        if (sType === 'clay') {
+          drag = 2.45;
+          slipMult = 1.35;
+          label = road.name ? `${road.name} (ВЯЗКАЯ ГЛИНА)` : 'ГРУНТОВАЯ ДОРОГА (ВЯЗКАЯ ГЛИНА)';
+          color = '#f97316';
+        } else if (sType === 'sand') {
+          drag = 1.70;
+          slipMult = 1.30;
+          label = road.name ? `${road.name} (ПЕСЧАНАЯ КОЛЕЯ)` : 'ПЕСЧАНАЯ КОЛЕЯ';
+          color = '#eab308';
+        } else if (sType === 'forest') {
+          drag = 1.30;
+          slipMult = 0.85;
+          label = road.name ? `${road.name} (ЛЕСНОЙ ГРУНТ)` : 'ЛЕСНАЯ ТРОПА';
+          color = '#84cc16';
+        } else if (sType === 'swamp') {
+          drag = 3.75;
+          slipMult = 1.95;
+          label = road.name ? `${road.name} (ГРЯЗЕВОЙ БРОД)` : 'ГРЯЗЕВОЙ БРОД / БОЛОТО';
+          color = '#ef4444';
+        } else if (sType === 'snow') {
+          drag = 1.95;
+          slipMult = 1.55;
+          label = road.name ? `${road.name} (ЗАСНЕЖЕННАЯ КОЛЕЯ)` : 'ЗАСНЕЖЕННАЯ КОЛЕЯ';
+          color = '#38bdf8';
+        }
+
         return {
           onRoad: true,
-          height: roadPt.y + 0.08,
-          drag: 0.82,
-          slipMult: 0.18,
-          label: road.id === 'mactan_boulevard' ? 'ПРОСПЕКТ MACTAN BOULEVARD (АСФАЛЬТ)' : 'ПРИБРЕЖНАЯ НАБЕРЕЖНАЯ (КУРОРТ)',
-          color: '#00f0ff'
+          surfaceType: sType,
+          height: roadPt.y + (sType === 'asphalt' ? 0.08 : 0.02),
+          drag: drag,
+          slipMult: slipMult,
+          label: label,
+          color: color
         };
       } else if (dist <= halfW + 1.2) {
         // Плавный сход с бордюра на обочину
         const tEdge = (dist - halfW) / 1.2;
         const roadPt = samples[bestIdx];
+        const sType = road.surfaceType || 'asphalt';
         return {
           onRoad: true,
-          height: roadPt.y + 0.08 * (1.0 - tEdge),
+          surfaceType: sType,
+          height: roadPt.y + (sType === 'asphalt' ? 0.08 * (1.0 - tEdge) : 0.02),
           edgeFactor: tEdge,
-          drag: 0.90,
-          slipMult: 0.28,
-          label: 'ОБОЧИНА ПРОСПЕКТА',
+          drag: sType === 'clay' ? 2.10 : 0.90,
+          slipMult: sType === 'clay' ? 1.05 : 0.28,
+          label: 'ОБОЧИНА ТРАССЫ',
           color: '#f59e0b'
         };
       }
@@ -906,6 +1110,8 @@ window.PhilippinesTracks = (function() {
   return {
     buildTracks: buildTracks,
     getRoadElevation: getRoadElevation,
+    getSoilZoneAt: getSoilZoneAt,
+    getSoilZones: () => philippinesSoilZones,
     updateWater: updateWater,
     getCheckpoints: () => philippinesCheckpoints
   };

@@ -15,5 +15,16 @@ tools/blender/out/
 tools/blender/j40/cache/
 __pycache__/
 
+# Тяжёлые исходные архивы, zip и временные дампы (>100MB)
+asset_sources/
+источники_ассетов/
+Новы окружения/
+Новые модели/
+tools/textures/
+tools/sat_tiles/
+tools/*.jpg
+tools/*.png
+tools/research_wip/
+
 # Результаты автопилота
 tools/autopilot/out/

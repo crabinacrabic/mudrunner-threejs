@@ -1,0 +1,83 @@
+{
+  "id": "landcruiser_1985",
+  "name": "Toyota Land Cruiser FJ60 1985 4WD",
+  "shortName": "Land Cruiser '85",
+  "typeLabel": "Экспедиционник • 4WD",
+  "mass": 2150,
+  "power": 26,
+  "maxSpeed": 42,
+  "lowMaxSpeed": 17,
+  "torqueMult": 2.8,
+  "clearance": 0.32,
+  "sinkFactor": 0.52,
+  "tireBite": 0.96,
+  "hasAWD": true,
+  "hasDiffLock": true,
+  "drivenAxles": "all",
+  "soundType": "jeep",
+  "badge": "Heavy 4x4",
+  "defaultPaintHex": 12092939,
+  "file": "models/landcruiser_1985.glb",
+  "dims": {
+    "length": 4.675,
+    "width": 1.915,
+    "height": 1.634
+  },
+  "wheels": [
+    {
+      "name": "Wheel_FL",
+      "x": -0.74,
+      "y": 0.44,
+      "z": 1.365,
+      "radius": 0.44,
+      "width": 0.32,
+      "front": true
+    },
+    {
+      "name": "Wheel_FR",
+      "x": 0.74,
+      "y": 0.44,
+      "z": 1.365,
+      "radius": 0.44,
+      "width": 0.32,
+      "front": true
+    },
+    {
+      "name": "Wheel_RL",
+      "x": -0.74,
+      "y": 0.44,
+      "z": -1.365,
+      "radius": 0.44,
+      "width": 0.32,
+      "front": false
+    },
+    {
+      "name": "Wheel_RR",
+      "x": 0.74,
+      "y": 0.44,
+      "z": -1.365,
+      "radius": 0.44,
+      "width": 0.32,
+      "front": false
+    }
+  ],
+  "frontAxleZ": 1.365,
+  "rearAxleZ": -1.365,
+  "trackHalfWidth": 0.74,
+  "bumperZ": 2.338,
+  "exhaust": [
+    0.55,
+    0.35,
+    -2.338
+  ],
+  "winch": [
+    0.0,
+    0.5,
+    2.338
+  ],
+  "roofHeight": 1.954,
+  "paintMaterial": "paint",
+  "hasLowGear": true,
+  "hasAirBrakes": false,
+  "physWidth": 0.32
+}
