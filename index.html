@@ -663,10 +663,14 @@
     const sunDirection = new THREE.Vector3(48, 75, -35).normalize();
     const SUN_SHADOW_DIST = 96;
     // Оси света для привязки центра теневой карты к сетке текселей в системе света (привязка по осям мира даёт мерцание краёв теней)
-    const sunAxF = sunDirection.clone().negate();                              // направление света
-    const sunAxR = new THREE.Vector3().crossVectors(sunAxF, new THREE.Vector3(0, 1, 0)).normalize();
-    const sunAxU = new THREE.Vector3().crossVectors(sunAxR, sunAxF);
+    const sunAxF = new THREE.Vector3(), sunAxR = new THREE.Vector3(), sunAxU = new THREE.Vector3();
     const sunShadowTexel = 2 * shadowD / sunLight.shadow.mapSize.width;
+    function updateSunAxes() {   // вызывать после любого изменения sunDirection (стиль Over the Hill меняет его ниже)
+      sunAxF.copy(sunDirection).negate();                                      // направление света
+      sunAxR.crossVectors(sunAxF, new THREE.Vector3(0, 1, 0)).normalize();
+      sunAxU.crossVectors(sunAxR, sunAxF);
+    }
+    updateSunAxes();
 
     // --- 1B. СТИЛЬ «OVER THE HILL»: градиентное небо с горами, тёплая дымка, золотой час с холодными тенями, свечение и цветокоррекция ---
     // Параметры в URL: ?nolook — прежний вид, ?nopost — без пост-обработки (для слабых видеокарт)
@@ -681,6 +685,7 @@
         }
         const lookInfo = applyLook(scene, renderer, { hemi: hemiLight, sun: sunLight, fill: fillLight }, OVER_THE_HILL_LOOK, skyDome);
         sunDirection.copy(lookInfo.sunDirection);
+        updateSunAxes();
       } catch (err) {
         console.error('Стиль Over the Hill не подключён:', err);
         skyDome = null; postFX = null;
