@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>MudRunner & SnowRunner 3D - Тестовый Полигон "Тайга-6x6"</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%231a140e'/><path d='M6 18 L10 10 L22 10 L26 18 L27 23 L5 23 Z' fill='%23ffaa00'/><circle cx='10' cy='23' r='3.5' fill='%23000'/><circle cx='22' cy='23' r='3.5' fill='%23000'/></svg>">
   <style>
     * {
       box-sizing: border-box;
@@ -27,98 +28,131 @@
       z-index: 1;
     }
 
-    /* Верхний логотип */
+    /* Верхний логотип (скрыт в игре для максимального обзора) */
     #header-bar {
-      position: absolute;
-      top: 20px;
-      left: 24px;
-      z-index: 10;
-      pointer-events: none;
-    }
-    h1 {
-      font-size: 26px;
-      font-weight: 900;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      color: #ff9f1c;
-      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9), 0 0 20px rgba(255, 159, 28, 0.4);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .badge-tag {
-      background: #e71d36;
-      color: #fff;
-      font-size: 11px;
-      padding: 3px 8px;
-      border-radius: 4px;
-      letter-spacing: 1px;
-    }
-    .subtitle {
-      font-size: 13px;
-      color: #b5aa99;
-      margin-top: 4px;
-      font-weight: 600;
-      text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+      display: none;
     }
 
-    /* Выбор техники (Сверху по центру) */
+    /* Селектор техники: выдвижной нижний док (Tab) */
     #vehicle-selector {
-      position: absolute;
-      top: 18px;
+      position: fixed;
+      bottom: 24px;
       left: 50%;
-      transform: translateX(-50%);
+      transform: translateX(-50%) translateY(160%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      z-index: 50;
+      background: rgba(18, 14, 10, 0.90);
+      border: 1.5px solid rgba(255, 170, 0, 0.45);
+      border-radius: 16px;
+      padding: 12px 18px;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85), 0 0 25px rgba(255, 170, 0, 0.15);
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+      opacity: 0;
+      pointer-events: none;
+      max-width: min(1140px, calc(100vw - 32px));
+    }
+    #vehicle-selector.open {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .v-dock-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: #ffaa00;
+      text-transform: uppercase;
+      border-bottom: 1px solid rgba(255, 170, 0, 0.2);
+      padding-bottom: 6px;
+      margin-bottom: 6px;
+    }
+    .dock-tab-buttons {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .dock-tab-btn {
+      background: rgba(30, 24, 18, 0.85);
+      border: 1px solid rgba(255, 170, 0, 0.35);
+      color: #eedfc8;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s ease;
+    }
+    .dock-tab-btn:hover {
+      background: rgba(255, 170, 0, 0.2);
+      border-color: #ffaa00;
+      color: #ffaa00;
+    }
+    .dock-tab-btn.active {
+      background: #ffaa00;
+      border-color: #ffd166;
+      color: #120e0a;
+      box-shadow: 0 0 10px rgba(255, 170, 0, 0.4);
+    }
+    .v-dock-scroll {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
-      max-width: min(1140px, calc(100vw - 400px));
       gap: 6px 8px;
-      z-index: 20;
-      background: rgba(16, 14, 12, 0.92);
-      border: 1.5px solid #4a3e30;
-      border-radius: 28px;
-      padding: 5px 8px;
-      backdrop-filter: blur(12px);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+      max-height: 42vh;
+      overflow-y: auto;
     }
     .v-card {
       display: flex;
       align-items: center;
-      gap: 9px;
-      background: transparent;
-      border: 1px solid transparent;
-      color: #c9bea9;
-      padding: 4px 10px;
-      border-radius: 18px;
+      gap: 8px;
+      background: rgba(28, 22, 16, 0.65);
+      border: 1px solid rgba(255, 170, 0, 0.2);
+      color: #d6c6b2;
+      padding: 6px 12px;
+      border-radius: 10px;
       cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+      transition: all 0.18s ease;
       font-family: inherit;
     }
     .v-card:hover {
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(255, 170, 0, 0.16);
+      border-color: #ffaa00;
       color: #fff;
+      transform: translateY(-1px);
     }
     .v-card.active {
-      background: #ff9f1c;
-      color: #140f0a;
-      border-color: #ffb703;
-      box-shadow: 0 4px 16px rgba(255, 159, 28, 0.45);
+      background: rgba(255, 170, 0, 0.28);
+      border-color: #ffaa00;
+      color: #fff;
+      box-shadow: 0 0 14px rgba(255, 170, 0, 0.45);
       font-weight: 800;
     }
     .v-num {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: rgba(0, 0, 0, 0.35);
-      font-size: 11px;
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.45);
+      color: #ffaa00;
+      font-size: 10.5px;
       font-weight: 900;
+      font-family: 'Courier New', monospace;
+      border: 1px solid rgba(255, 170, 0, 0.3);
     }
     .v-card.active .v-num {
-      background: #140f0a;
-      color: #ff9f1c;
+      background: #ffaa00;
+      color: #120e0a;
     }
     .v-info {
       display: flex;
@@ -131,56 +165,58 @@
       line-height: 1.2;
     }
     .v-type {
-      font-size: 9.5px;
-      opacity: 0.82;
+      font-size: 9px;
+      opacity: 0.85;
       letter-spacing: 0.3px;
+      color: #ffaa00;
     }
 
     /* Кнопки в правом верхнем углу */
     #top-right-controls {
-      position: absolute;
-      top: 20px;
-      right: 24px;
+      position: fixed;
+      top: 14px;
+      right: 18px;
       display: flex;
-      gap: 10px;
-      z-index: 10;
+      gap: 6px;
+      z-index: 20;
     }
     .hud-btn {
-      background: rgba(22, 19, 16, 0.9);
-      border: 1px solid #4a3e30;
-      color: #e0d5c1;
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 700;
+      background: rgba(18, 14, 10, 0.75);
+      border: 1px solid rgba(255, 170, 0, 0.3);
+      color: #eedfc8;
+      padding: 6px 12px;
+      border-radius: 14px;
+      font-size: 11px;
+      font-weight: 800;
       cursor: pointer;
       backdrop-filter: blur(8px);
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
-      transition: all 0.2s ease;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+      transition: all 0.18s ease;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
+      font-family: inherit;
     }
     .hud-btn:hover {
-      background: #382f25;
-      border-color: #ff9f1c;
+      background: rgba(255, 170, 0, 0.22);
+      border-color: #ffaa00;
       color: #fff;
       transform: translateY(-1px);
     }
 
-    /* Панель приборов MudRunner (Справа внизу) */
+    /* Янтарный приборный блок MudRunner (East African Safari Rally 89 / Toyota Digital Dash) */
     #dashboard {
-      position: absolute;
-      bottom: 24px;
-      right: 24px;
-      background: rgba(16, 14, 12, 0.92);
-      border: 2px solid #3d3326;
-      border-radius: 14px;
-      padding: 16px 20px;
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(18, 14, 10, 0.76);
+      border: 1.5px solid rgba(255, 170, 0, 0.38);
+      border-radius: 12px;
+      padding: 14px 18px;
       z-index: 10;
       backdrop-filter: blur(12px);
-      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.8);
-      width: 300px;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.75), inset 0 0 16px rgba(255, 170, 0, 0.05);
+      width: 280px;
     }
     .dash-top {
       display: flex;
@@ -189,255 +225,445 @@
       margin-bottom: 8px;
     }
     .speed-gauge {
-      font-size: 38px;
+      font-size: 42px;
       font-weight: 900;
-      font-family: 'Courier New', monospace;
-      color: #fff;
+      font-family: 'Courier New', Consolas, monospace;
+      color: #ffaa00;
       line-height: 1;
+      text-shadow: 0 0 16px rgba(255, 170, 0, 0.65), 0 0 2px #fff;
+      letter-spacing: -1px;
     }
     .speed-unit {
-      font-size: 12px;
-      color: #8f8574;
-      font-weight: 700;
+      font-size: 11px;
+      color: #d4a054;
+      font-weight: 900;
       margin-left: 4px;
+      letter-spacing: 0.5px;
+      font-family: 'Courier New', monospace;
     }
     .gear-box {
-      background: #261f17;
-      border: 2px solid #5a4835;
-      border-radius: 8px;
-      padding: 4px 12px;
+      background: rgba(20, 16, 12, 0.85);
+      border: 1.5px solid #ffaa00;
+      border-radius: 6px;
+      padding: 2px 10px;
       font-weight: 900;
-      font-size: 18px;
-      color: #ff9f1c;
-      box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+      font-size: 20px;
+      color: #ffaa00;
+      text-shadow: 0 0 10px rgba(255, 170, 0, 0.6);
+      font-family: 'Courier New', monospace;
+      box-shadow: 0 0 10px rgba(255, 170, 0, 0.25);
     }
     .rpm-container {
       width: 100%;
-      height: 7px;
-      background: #221c17;
-      border-radius: 4px;
+      height: 6px;
+      background: rgba(30, 24, 18, 0.9);
+      border-radius: 3px;
       overflow: hidden;
-      margin-bottom: 12px;
-      border: 1px solid #382e23;
+      margin-bottom: 10px;
+      border: 1px solid rgba(255, 170, 0, 0.25);
+      position: relative;
     }
     .rpm-bar {
       height: 100%;
       width: 0%;
-      background: linear-gradient(90deg, #2ec4b6, #ff9f1c, #e71d36);
+      background: linear-gradient(90deg, #d48b16, #ffaa00, #ff4d00);
+      box-shadow: 0 0 8px rgba(255, 170, 0, 0.6);
       transition: width 0.06s ease;
     }
 
-    /* Сетка кнопок 6x6 систем */
+    /* Сетка кнопок оффроуд-систем */
     .controls-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px;
+      gap: 6px;
     }
     .ctrl-badge {
-      background: #1e1914;
-      border: 1px solid #3a2f23;
-      padding: 8px 10px;
-      border-radius: 8px;
+      background: rgba(14, 11, 8, 0.7);
+      border: 1px solid rgba(255, 170, 0, 0.2);
+      padding: 6px 8px;
+      border-radius: 6px;
       cursor: pointer;
       pointer-events: auto;
       transition: all 0.15s ease;
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 1px;
     }
     .ctrl-badge:hover {
-      border-color: #ff9f1c;
-      background: #2b241c;
+      border-color: #ffaa00;
+      background: rgba(255, 170, 0, 0.12);
     }
     .ctrl-badge .key-label {
-      font-size: 10px;
-      font-weight: 800;
-      color: #8c7e6c;
+      font-size: 9px;
+      font-weight: 900;
+      color: #8c7255;
       text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
     .ctrl-badge .state-label {
-      font-size: 12px;
-      font-weight: 800;
-      color: #555;
+      font-size: 11px;
+      font-weight: 900;
+      color: #665442;
+      font-family: 'Courier New', monospace;
     }
     .ctrl-badge.active {
-      border-color: #ff9f1c;
-      background: rgba(255, 159, 28, 0.18);
+      border-color: #ffaa00;
+      background: rgba(255, 170, 0, 0.22);
+      box-shadow: 0 0 10px rgba(255, 170, 0, 0.25);
     }
     .ctrl-badge.active .state-label {
-      color: #2ec4b6;
+      color: #ffcc00;
+      text-shadow: 0 0 6px rgba(255, 170, 0, 0.6);
     }
     .ctrl-badge.warn.active .state-label {
-      color: #ff9f1c;
+      color: #ffaa00;
     }
     .ctrl-badge.alert.active .state-label {
-      color: #e71d36;
+      color: #ff5533;
     }
 
     /* Индикатор сектора и грунта */
     .surface-row {
-      margin-top: 10px;
-      padding-top: 10px;
-      border-top: 1px solid #33291e;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 170, 0, 0.2);
       display: flex;
       flex-direction: column;
-      gap: 3px;
-      font-size: 11px;
-      font-weight: 700;
-      color: #ad9f8a;
+      gap: 2px;
+      font-size: 10px;
+      font-weight: 800;
+      color: #8c7255;
+      letter-spacing: 0.5px;
     }
     .surface-val {
-      font-size: 13px;
+      font-size: 11.5px;
       font-weight: 900;
-      color: #2ec4b6;
+      color: #ffaa00;
+      font-family: 'Courier New', monospace;
+    }
+    .mud-bar {
+      height: 4px;
+      margin-top: 4px;
+      background: rgba(20, 16, 12, 0.9);
+      border: 1px solid rgba(255, 170, 0, 0.2);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .mud-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #8c6a3f, #ffaa00);
+      transition: width 0.12s ease;
     }
 
-    .mud-bar { height: 5px; margin-top: 4px; background: #221c17; border: 1px solid #382e23; border-radius: 3px; overflow: hidden; }
-    .mud-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #8c6a3f, #5a3a22); transition: width 0.12s ease; }
-
-    /* Подсказки управления слева */
+    /* Подсказки управления слева внизу */
+    #tips-toggle {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      z-index: 20;
+      background: rgba(18, 14, 10, 0.75);
+      border: 1px solid rgba(255, 170, 0, 0.3);
+      color: #eedfc8;
+      padding: 6px 14px;
+      border-radius: 14px;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      transition: all 0.18s ease;
+      font-family: inherit;
+    }
+    #tips-toggle:hover {
+      background: rgba(255, 170, 0, 0.22);
+      border-color: #ffaa00;
+      color: #fff;
+    }
     #tips-panel {
-      position: absolute;
-      bottom: 24px;
-      left: 24px;
-      z-index: 10;
-      background: rgba(16, 14, 12, 0.9);
-      border: 1px solid #3d3326;
-      padding: 16px 20px;
+      position: fixed;
+      bottom: 56px;
+      left: 20px;
+      z-index: 25;
+      background: rgba(18, 14, 10, 0.94);
+      border: 1px solid rgba(255, 170, 0, 0.4);
+      padding: 14px 18px;
       border-radius: 12px;
-      font-size: 12px;
-      color: #c2b7a5;
-      backdrop-filter: blur(10px);
-      max-width: 340px;
-      line-height: 1.55;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
+      font-size: 11.5px;
+      color: #eedfc8;
+      backdrop-filter: blur(12px);
+      max-width: 330px;
+      line-height: 1.5;
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.85);
+      display: none;
+    }
+    #tips-panel.open {
+      display: block;
     }
     .tip-title {
-      font-weight: 800;
-      color: #ff9f1c;
+      font-weight: 900;
+      color: #ffaa00;
       margin-bottom: 8px;
-      font-size: 13px;
+      font-size: 12px;
       letter-spacing: 0.5px;
       display: flex;
       justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 170, 0, 0.2);
+      padding-bottom: 4px;
     }
     .key {
       display: inline-block;
-      background: #2b231a;
+      background: rgba(40, 32, 22, 0.9);
       padding: 1px 6px;
       border-radius: 4px;
-      border: 1px solid #4a3e30;
-      color: #fff;
+      border: 1px solid rgba(255, 170, 0, 0.3);
+      color: #ffaa00;
       font-family: monospace;
       font-weight: bold;
     }
 
     /* Всплывающее уведомление */
     #hud-alert {
-      position: absolute;
-      top: 22%;
+      position: fixed;
+      top: 18%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background: rgba(18, 15, 12, 0.95);
-      border: 2px solid #ff9f1c;
+      background: rgba(18, 14, 10, 0.95);
+      border: 1.5px solid #ffaa00;
       border-radius: 10px;
-      padding: 12px 28px;
+      padding: 10px 24px;
       color: #fff;
       font-weight: 900;
-      font-size: 18px;
-      z-index: 30;
+      font-size: 16px;
+      z-index: 60;
       pointer-events: none;
       opacity: 0;
       transition: opacity 0.25s ease;
       text-align: center;
       text-shadow: 0 2px 8px #000;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9), 0 0 20px rgba(255, 170, 0, 0.3);
+      font-family: 'Courier New', monospace;
     }
 
-    /* Прогресс экспедиции по 7 секторам */
+    /* Прогресс экспедиции по 7 секторам (минималистичная тонкая линия) */
     #expedition-bar {
-      position: absolute;
-      top: 78px;
+      position: fixed;
+      top: 14px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 15;
-      background: rgba(16, 14, 12, 0.88);
-      border: 1px solid #4a3e30;
+      background: rgba(18, 14, 10, 0.72);
+      border: 1px solid rgba(255, 170, 0, 0.35);
       border-radius: 20px;
-      padding: 6px 16px;
+      padding: 5px 14px;
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
       backdrop-filter: blur(10px);
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55);
-      font-size: 12px;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+      font-size: 11.5px;
       font-weight: 800;
       pointer-events: none;
     }
     .cp-dots {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
     }
     .cp-dot {
-      width: 18px;
-      height: 8px;
-      border-radius: 4px;
-      background: #2e261d;
-      border: 1px solid #524332;
+      width: 14px;
+      height: 5px;
+      border-radius: 2px;
+      background: rgba(255, 170, 0, 0.15);
+      border: 1px solid rgba(255, 170, 0, 0.3);
       transition: all 0.25s ease;
     }
     .cp-dot.passed {
-      background: #2ec4b6;
-      border-color: #64dfdf;
-      box-shadow: 0 0 8px rgba(46, 196, 182, 0.65);
+      background: #ffaa00;
+      border-color: #ffd166;
+      box-shadow: 0 0 6px rgba(255, 170, 0, 0.65);
     }
     .cp-dot.current {
-      background: #ff9f1c;
-      border-color: #ffd166;
-      box-shadow: 0 0 8px rgba(255, 159, 28, 0.7);
+      background: #fff;
+      border-color: #ffaa00;
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
     }
     .exp-timer {
       font-family: 'Courier New', monospace;
       font-size: 13px;
-      color: #ff9f1c;
+      font-weight: 900;
+      color: #ffaa00;
       letter-spacing: 0.5px;
+      text-shadow: 0 0 8px rgba(255, 170, 0, 0.4);
     }
 
-    /* Креноскоп (тангаж и крен в стиле SnowRunner) */
+    /* Креноскоп кузова */
     .clino-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-top: 10px;
+      margin-top: 8px;
       padding-top: 8px;
-      border-top: 1px solid #33291e;
-      font-size: 11px;
+      border-top: 1px solid rgba(255, 170, 0, 0.2);
+      font-size: 10px;
       font-weight: 800;
-      color: #b5aa99;
+      color: #8c7255;
     }
     .clino-dial {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
     .clino-circle {
-      width: 26px;
-      height: 26px;
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
-      border: 1.5px solid #5a4835;
-      background: #14110e;
+      border: 1px solid rgba(255, 170, 0, 0.4);
+      background: rgba(14, 11, 8, 0.8);
       position: relative;
       display: flex;
       align-items: center;
       justify-content: center;
     }
     .clino-bar {
-      width: 18px;
-      height: 3px;
-      background: #ff9f1c;
+      width: 14px;
+      height: 2.5px;
+      background: #ffaa00;
       border-radius: 2px;
       transition: transform 0.05s linear;
+    }
+
+    /* Модальное окно кастомизации метрик (HUD SETTINGS) */
+    #hud-modal-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(6px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    #hud-modal-overlay.open {
+      display: flex;
+    }
+    #hud-settings-modal {
+      background: rgba(18, 14, 10, 0.95);
+      border: 1.5px solid rgba(255, 170, 0, 0.5);
+      border-radius: 16px;
+      padding: 20px 24px;
+      width: min(440px, 92vw);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(255, 170, 0, 0.15);
+      color: #eedfc8;
+      font-family: inherit;
+    }
+    .modal-title {
+      font-size: 13.5px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      color: #ffaa00;
+      text-transform: uppercase;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 170, 0, 0.25);
+      padding-bottom: 10px;
+      margin-bottom: 14px;
+    }
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: #ffaa00;
+      font-size: 18px;
+      cursor: pointer;
+      padding: 2px 6px;
+    }
+    .preset-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .preset-btn {
+      flex: 1;
+      background: rgba(30, 24, 18, 0.7);
+      border: 1px solid rgba(255, 170, 0, 0.3);
+      color: #eedfc8;
+      padding: 6px 8px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .preset-btn.active, .preset-btn:hover {
+      background: #ffaa00;
+      color: #120e0a;
+      border-color: #ffd166;
+      box-shadow: 0 0 10px rgba(255, 170, 0, 0.4);
+    }
+    .toggles-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .toggle-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: #d6c6b2;
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 38px;
+      height: 20px;
+    }
+    .switch input {
+      opacity: 0; width: 0; height: 0;
+    }
+    .slider {
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #2b2218;
+      border: 1px solid rgba(255, 170, 0, 0.3);
+      transition: .2s;
+      border-radius: 20px;
+    }
+    .slider:before {
+      position: absolute; content: ""; height: 12px; width: 12px; left: 3px; bottom: 3px;
+      background-color: #eedfc8;
+      transition: .2s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: #ffaa00;
+      border-color: #ffd166;
+    }
+    input:checked + .slider:before {
+      transform: translateX(18px);
+      background-color: #120e0a;
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: space-between;
+      border-top: 1px solid rgba(255, 170, 0, 0.2);
+      padding-top: 12px;
+    }
+    .act-btn {
+      background: rgba(30, 24, 18, 0.8);
+      border: 1px solid rgba(255, 170, 0, 0.3);
+      color: #eedfc8;
+      padding: 7px 16px;
+      border-radius: 8px;
+      font-size: 11.5px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .act-btn.primary {
+      background: #ffaa00;
+      color: #120e0a;
+      border-color: #ffd166;
     }
   </style>
   <!-- Three.js (r128), DRACOLoader & GLTFLoader -->
@@ -457,57 +683,21 @@
   <script src="js/mud_visuals.js"></script>
   <!-- Стиль «Over the Hill»: небо, дымка, золотой час, свечение и цветокоррекция -->
   <script src="js/look.js"></script>
+  <!-- Филиппины: сплайн-дороги, бирюзовый океан, пирс, лодки banca и курорт -->
+  <script src="js/philippines_tracks.js"></script>
 </head>
 <body>
   <div id="canvas-container"></div>
 
+  <!-- Верхний логотип (скрыт по умолчанию для чистоты экрана) -->
   <div id="header-bar">
-    <h1>Полигон "Тайга" <span class="badge-tag">SNOWRUNNER</span></h1>
-    <div class="subtitle">7 секторов грунта &bull; 5 3D авто &bull; Диорама в стиле Bruno Simon</div>
+    <h1>SAFARI RALLY '89 <span class="badge-tag">EAST AFRICA</span></h1>
+    <div class="subtitle">7 секторов бездорожья &bull; 10 авто &bull; Toyota Digital Dash 80s</div>
   </div>
 
-  <!-- Выбор техники в стиле Bruno Simon -->
-  <div id="vehicle-selector">
-    <button class="v-card active" id="vbtn-0" onclick="switchVehicle(0)">
-      <span class="v-num">1</span>
-      <div class="v-info">
-        <span class="v-name">Тягач 6x6</span>
-        <span class="v-type">Тайга &bull; 6WD</span>
-      </div>
-    </button>
-    <button class="v-card" id="vbtn-1" onclick="switchVehicle(1)">
-      <span class="v-num">2</span>
-      <div class="v-info">
-        <span class="v-name">Джип 4x4</span>
-        <span class="v-type">Следопыт &bull; 3D SUV</span>
-      </div>
-    </button>
-    <button class="v-card" id="vbtn-2" onclick="switchVehicle(2)">
-      <span class="v-num">3</span>
-      <div class="v-info">
-        <span class="v-name">Седан "Классика"</span>
-        <span class="v-type">Городской &bull; RWD</span>
-      </div>
-    </button>
-    <button class="v-card" id="vbtn-3" onclick="switchVehicle(3)">
-      <span class="v-num">4</span>
-      <div class="v-info">
-        <span class="v-name">Ретро-Автобус</span>
-        <span class="v-type">ПАЗ &bull; Twin 4x2</span>
-      </div>
-    </button>
-    <button class="v-card" id="vbtn-4" onclick="switchVehicle(4)">
-      <span class="v-num">5</span>
-      <div class="v-info">
-        <span class="v-name">Спорткупе GT</span>
-        <span class="v-type">Racer &bull; 4x2</span>
-      </div>
-    </button>
-  </div>
-
-  <!-- Шкала чекпоинтов экспедиции -->
+  <!-- Шкала чекпоинтов экспедиции (минималистичная тонкая линия) -->
   <div id="expedition-bar">
-    <span id="cp-text">🏁 ЧЕКПОИНТ: 0 / 7</span>
+    <span id="cp-text">КП 0/7</span>
     <div class="cp-dots" id="cp-dots">
       <div class="cp-dot current" id="cp-dot-0" title="Сектор 1: Бетон"></div>
       <div class="cp-dot" id="cp-dot-1" title="Сектор 2: Лес"></div>
@@ -517,51 +707,122 @@
       <div class="cp-dot" id="cp-dot-5" title="Сектор 6: Бревенчатый мост"></div>
       <div class="cp-dot" id="cp-dot-6" title="Сектор 7: Вершина перевала"></div>
     </div>
-    <span class="exp-timer" id="exp-timer">00:00</span>
+    <span class="exp-timer" id="exp-timer">00:00.0</span>
   </div>
 
+  <!-- Кнопки в правом верхнем углу -->
   <div id="top-right-controls">
-    <button class="hud-btn" id="btn-lights" onclick="toggleHeadlights()">💡 Фары [L]: <span id="lights-state">ВКЛ</span></button>
-    <button class="hud-btn" id="btn-audio" onclick="toggleAudio()">🔊 Звук: <span id="audio-state">ВКЛ (Клик)</span></button>
-    <button class="hud-btn" onclick="cycleCamera()">📷 Камера [C]</button>
-    <button class="hud-btn" onclick="resetTruck()">🔄 На Старт [V]</button>
+    <button class="hud-btn" id="btn-settings" onclick="toggleHudModal()" title="Настройки интерфейса [O]">⚙️ <span class="btn-txt">HUD [O]</span></button>
+    <button class="hud-btn" id="btn-dock" onclick="switchDockTab('vehicles'); toggleVehicleDock(true);" title="Гараж / Выбор техники [Tab]">🚙 <span class="btn-txt">Гараж [Tab]</span></button>
+    <button class="hud-btn" id="btn-maps" onclick="switchDockTab('maps'); toggleVehicleDock(true);" title="Выбор локации [M]">🗺️ <span id="current-map-label" class="btn-txt">Тайга [M]</span></button>
+    <button class="hud-btn" id="btn-lights" onclick="toggleHeadlights()" title="Фары [L]">💡 <span id="lights-state">ВКЛ</span></button>
+    <button class="hud-btn" id="btn-audio" onclick="toggleAudio()" title="Звук">🔊 <span id="audio-state">ВКЛ</span></button>
+    <button class="hud-btn" onclick="cycleCamera()" title="Камера [C]">📷 <span class="btn-txt">[C]</span></button>
+    <button class="hud-btn" onclick="resetTruck()" title="На старт [V]">🔄 <span class="btn-txt">[V]</span></button>
   </div>
 
+  <!-- Сворачиваемая кнопка подсказок в левом нижнем углу -->
+  <button id="tips-toggle" onclick="toggleTipsPanel()">⌨️ [H] Управление</button>
   <div id="tips-panel">
     <div class="tip-title">
-      <span>ПОЛИГОН ТЕСТА ГРУНТОВ</span>
-      <span style="color:#8c7e6c;">v5.0 FINAL</span>
+      <span>SAFARI RALLY 89 &bull; УПРАВЛЕНИЕ</span>
+      <span style="cursor:pointer; color:#ffaa00;" onclick="toggleTipsPanel()">✕</span>
     </div>
-    <div style="color:#ff9f1c; margin-bottom: 6px;"><span class="key">1 - 0</span> &mdash; Выбор 3D авто (Тягач, Джип, Седан, Автобус, Спорткар, Land Cruiser J40, Delica, HiAce)</div>
-    <div><span class="key">W / S</span> &mdash; Газ / Тормоз / Задний ход</div>
+    <div style="color:#ffaa00; margin-bottom: 6px;"><span class="key">Tab</span> &mdash; Селектор техники &bull; <span class="key">1-0, -, =</span> &mdash; Быстрый выбор</div>
+    <div style="color:#ffaa00; margin-bottom: 6px;"><span class="key">M</span> &mdash; Выбор карты (Тайга / Филиппины)</div>
+    <div><span class="key">W / S</span> &mdash; Газ / Тормоз / Реверс</div>
     <div><span class="key">A / D</span> &mdash; Рулевое управление</div>
-    <div><span class="key">Пробел</span> &mdash; Ручной / пневмотормоз</div>
-    <div><span class="key">Q / E / R</span> &mdash; Полный привод / Дифф-лок / Понижайка</div>
-    <div><span class="key">F</span> &mdash; Лебёдка &bull; <span class="key">L</span> &mdash; Ближний/дальний свет фар</div>
+    <div><span class="key">Пробел</span> &mdash; Стояночный тормоз</div>
+    <div><span class="key">Q / E / R</span> &mdash; AWD / Диф-лок / Понижайка</div>
+    <div><span class="key">F</span> &mdash; Лебёдка &bull; <span class="key">L</span> &mdash; Свет фар</div>
+    <div><span class="key">O</span> &mdash; Настройки метрик &bull; <span class="key">C</span> &mdash; Камера &bull; <span class="key">V</span> &mdash; Рестарт</div>
     <div><span class="key">Мышь + Колесо</span> &mdash; Вращение камеры и зум</div>
-    <div style="margin-top: 8px; font-size: 11px; color:#ff9f1c;">
-      🏁 <b>Цель экспедиции:</b> Пройдите все 7 контрольных ворот от старта до вершины <b>Снежного перевала</b>!
-    </div>
-    <div style="margin-top: 6px; font-size: 10px; color:#8c7e6c;">
-      Модели Land Cruiser J40, Delica Mk3, HiAce H50 &copy; Nieve5677 (Sketchfab, CC BY 4.0), упрощены для игры.
+    <div style="margin-top: 8px; font-size: 11px; color:#ffaa00;">
+      🏁 <b>Цель экспедиции:</b> Пройдите все контрольные ворота до финиша!
     </div>
   </div>
 
+  <!-- Селектор техники и локаций: выдвижной нижний док (Tab) -->
+  <div id="vehicle-selector">
+    <div class="v-dock-header">
+      <div class="dock-tab-buttons">
+        <button id="dock-tab-vehicles" class="dock-tab-btn active" onclick="switchDockTab('vehicles')">🚙 АВТОПАРК (12)</button>
+        <button id="dock-tab-maps" class="dock-tab-btn" onclick="switchDockTab('maps')">🗺️ ЛОКАЦИИ (2)</button>
+      </div>
+      <span style="cursor:pointer; color:#ffaa00; font-size:11px;" onclick="toggleVehicleDock()">✕ ЗАКРЫТЬ [TAB / ESC]</span>
+    </div>
+    <div class="v-dock-scroll" id="vehicle-cards-container">
+      <button class="v-card active" id="vbtn-0" onclick="switchVehicle(0)">
+        <span class="v-num">1</span>
+        <div class="v-info">
+          <span class="v-name">Тягач 6x6</span>
+          <span class="v-type">Тайга &bull; 6WD</span>
+        </div>
+      </button>
+      <button class="v-card" id="vbtn-1" onclick="switchVehicle(1)">
+        <span class="v-num">2</span>
+        <div class="v-info">
+          <span class="v-name">Джип 4x4</span>
+          <span class="v-type">Следопыт &bull; SUV</span>
+        </div>
+      </button>
+      <button class="v-card" id="vbtn-2" onclick="switchVehicle(2)">
+        <span class="v-num">3</span>
+        <div class="v-info">
+          <span class="v-name">Седан Классика</span>
+          <span class="v-type">Городской &bull; RWD</span>
+        </div>
+      </button>
+      <button class="v-card" id="vbtn-3" onclick="switchVehicle(3)">
+        <span class="v-num">4</span>
+        <div class="v-info">
+          <span class="v-name">Ретро-Автобус</span>
+          <span class="v-type">ПАЗ &bull; Twin 4x2</span>
+        </div>
+      </button>
+      <button class="v-card" id="vbtn-4" onclick="switchVehicle(4)">
+        <span class="v-num">5</span>
+        <div class="v-info">
+          <span class="v-name">Спорткупе GT</span>
+          <span class="v-type">Racer &bull; 4x2</span>
+        </div>
+      </button>
+    </div>
+    <div class="v-dock-scroll" id="map-cards-container" style="display:none;">
+      <button class="v-card active" id="mbtn-default" onclick="switchMap('default')">
+        <span class="v-num">1</span>
+        <div class="v-info">
+          <span class="v-name">Полигон «Тайга-6x6»</span>
+          <span class="v-type">Оффроуд &bull; Грязь &bull; Мост &bull; 7 секторов</span>
+        </div>
+      </button>
+      <button class="v-card" id="mbtn-philippines" onclick="switchMap('philippines')">
+        <span class="v-num">2</span>
+        <div class="v-info">
+          <span class="v-name">Филиппины: Лапу-Лапу</span>
+          <span class="v-type">Mactan New Town &bull; 3D-город &bull; Побережье</span>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Янтарный приборный блок Toyota Digital Dash 80-х -->
   <div id="dashboard">
-    <div class="dash-top">
+    <div class="dash-top" id="dash-speed-block">
       <div>
         <span class="speed-gauge" id="speed-display">0</span>
-        <span class="speed-unit">КМ/Ч</span>
+        <span class="speed-unit">KM/H</span>
       </div>
       <div class="gear-box" id="gear-display">1</div>
     </div>
 
-    <!-- Тахометр / Обороты двигателя -->
-    <div class="rpm-container">
+    <!-- Тахометр / Обороты двигателя (янтарная светодиодная шкала) -->
+    <div class="rpm-container" id="dash-rpm-block">
       <div class="rpm-bar" id="rpm-display"></div>
     </div>
 
-    <div class="controls-grid">
+    <!-- Сетка оффроуд-систем -->
+    <div class="controls-grid" id="dash-systems-block">
       <div class="ctrl-badge active" id="badge-awd" onclick="toggleAWD()">
         <span class="key-label">[Q] AWD ПРИВОД</span>
         <span class="state-label" id="state-awd">АКТИВЕН</span>
@@ -580,26 +841,77 @@
       </div>
     </div>
 
-    <!-- Креноскоп кузова -->
-    <div class="clino-row">
+    <!-- Модуль креноскопа (опциональный) -->
+    <div class="clino-row" id="dash-clino-block">
       <div class="clino-dial">
         <div class="clino-circle"><div class="clino-bar" id="clino-roll-bar"></div></div>
-        <span>КРЕН: <b id="roll-val" style="color:#fff;">0°</b></span>
+        <span>КРЕН: <b id="roll-val" style="color:#ffaa00;">0°</b></span>
       </div>
       <div class="clino-dial">
         <div class="clino-circle"><div class="clino-bar" id="clino-pitch-bar"></div></div>
-        <span>УКЛОН: <b id="pitch-val" style="color:#fff;">0°</b></span>
+        <span>УКЛОН: <b id="pitch-val" style="color:#ffaa00;">0°</b></span>
       </div>
     </div>
 
-    <div class="surface-row">
-      <span>ТЕКУЩИЙ СЕКТОР ПОЛИГОНА:</span>
-      <span class="surface-val" id="surface-display">СЕКТОР 1: БЕТОН / СТАРТ</span>
+    <!-- Модуль телеметрии грунта (опциональный) -->
+    <div id="dash-soil-block">
+      <div class="surface-row">
+        <span>СЕКТОР:</span>
+        <span class="surface-val" id="surface-display">СЕКТОР 1: БЕТОН / СТАРТ</span>
+      </div>
+      <div class="surface-row">
+        <span>ГРУНТ / КОЛЕЯ:</span>
+        <span class="surface-val" id="soil-display" style="font-size:11px;color:#eedfc8;">—</span>
+        <div class="mud-bar"><div class="mud-bar-fill" id="mud-bar-fill"></div></div>
+      </div>
     </div>
-    <div class="surface-row">
-      <span>ГРУНТ ПОД КОЛЁСАМИ:</span>
-      <span class="surface-val" id="soil-display" style="font-size:12px;color:#d6c3a1;">—</span>
-      <div class="mud-bar"><div class="mud-bar-fill" id="mud-bar-fill"></div></div>
+  </div>
+
+  <!-- Модальное окно кастомизации метрик (HUD SETTINGS) -->
+  <div id="hud-modal-overlay" onclick="onOverlayClick(event)">
+    <div id="hud-settings-modal">
+      <div class="modal-title">
+        <span>⚙️ НАСТРОЙКА ИНТЕРФЕЙСА (HUD)</span>
+        <button class="modal-close" onclick="toggleHudModal()">✕</button>
+      </div>
+
+      <div class="preset-row">
+        <button class="preset-btn" id="preset-expedition" onclick="applyPreset('expedition')">Экспедиция</button>
+        <button class="preset-btn" id="preset-minimal" onclick="applyPreset('minimal')">Минимал</button>
+        <button class="preset-btn" id="preset-pro" onclick="applyPreset('pro')">Pro Телеметрия</button>
+      </div>
+
+      <div class="toggles-list">
+        <div class="toggle-item">
+          <span>Спидометр и передача</span>
+          <label class="switch"><input type="checkbox" id="cfg-speedometer" onchange="onToggleChange()"><span class="slider"></span></label>
+        </div>
+        <div class="toggle-item">
+          <span>Обороты двигателя (Тахометр)</span>
+          <label class="switch"><input type="checkbox" id="cfg-rpm" onchange="onToggleChange()"><span class="slider"></span></label>
+        </div>
+        <div class="toggle-item">
+          <span>Статусы привода (AWD / Диф-лок / Лебёдка)</span>
+          <label class="switch"><input type="checkbox" id="cfg-systems" onchange="onToggleChange()"><span class="slider"></span></label>
+        </div>
+        <div class="toggle-item">
+          <span>Креноскоп (Крен и дифферент)</span>
+          <label class="switch"><input type="checkbox" id="cfg-inclinometer" onchange="onToggleChange()"><span class="slider"></span></label>
+        </div>
+        <div class="toggle-item">
+          <span>Телеметрия грунта и налипание грязи</span>
+          <label class="switch"><input type="checkbox" id="cfg-soil" onchange="onToggleChange()"><span class="slider"></span></label>
+        </div>
+        <div class="toggle-item">
+          <span>Линия чекпоинтов и таймер</span>
+          <label class="switch"><input type="checkbox" id="cfg-expeditionBar" onchange="onToggleChange()"><span class="slider"></span></label>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="act-btn" onclick="resetHudConfig()">По умолчанию</button>
+        <button class="act-btn primary" onclick="toggleHudModal()">Применить и закрыть</button>
+      </div>
     </div>
   </div>
 
@@ -1339,6 +1651,16 @@
     }
     loadCozyPolyHavenTextures();
 
+    // --- 2B. МЕНЕДЖЕР КАРТ (ТАЙГА 6x6 И ФИЛИППИНЫ MACTAN) ---
+    let currentMapId = 'taiga';
+    const taigaObjects = [];
+    const philippinesGroup = new THREE.Group();
+    philippinesGroup.visible = false;
+    scene.add(philippinesGroup);
+    let philippinesMeta = null;
+    let philippinesLoaded = false;
+    let philippinesLoading = false;
+
     // --- 3. ГЛАДКИЙ РЕЛЬЕФ БЕЗ СТУПЕНЕК (SEGS 128x256, C1-SMOOTH, FLATSHADING: FALSE) ---
     const SEGS_X = 256;
     const SEGS_Z = 512;
@@ -1472,6 +1794,7 @@
     const terrainMesh = new THREE.Mesh(terrainGeo, terrainMat);
     terrainMesh.receiveShadow = true;
     scene.add(terrainMesh);
+    taigaObjects.push(terrainMesh);
 
     // --- 3A. ОБЪЁМНЫЕ ЛУЖИ ГЛИНЯНОГО СЕКТОРА ---
     // Чаши уже вырезаны в рельефе (puddleCarve), здесь — поверхность воды на уровне p.wl. Береговую линию даёт
@@ -1581,6 +1904,7 @@
     pudMesh.receiveShadow = true;
     pudMesh.renderOrder = -1;   // первой среди прозрачных: лучи фар, стёкла и дым рисуются поверх воды (depthWrite выключен)
     scene.add(pudMesh);
+    taigaObjects.push(pudMesh);
 
     const PUD = {
       ri: 0,
@@ -1695,6 +2019,7 @@
     waterMesh.position.set(0, waterBaseY, waterCenterZ);
     waterMesh.receiveShadow = true;
     scene.add(waterMesh);
+    taigaObjects.push(waterMesh);
 
     // Ручей под бревенчатым мостом в Секторе 6
     const streamGeo = new THREE.PlaneGeometry(34, 10);
@@ -1713,6 +2038,7 @@
     }));
     streamMesh.position.set(0, -0.78, 51.0);
     scene.add(streamMesh);
+    taigaObjects.push(streamMesh);
 
     // Возмущение 3D-воды колёсами: вода расступается в колее, смешивается с грязью и выплёскивается валиком!
     let waterDirty = false;
@@ -1798,8 +2124,55 @@
       };
     }
 
+    // Билинейная выборка высоты по предрассчитанной сетке Филиппин (models/philippines_meta.json)
+    function getPhilippinesGroundHeight(x, z) {
+      // Приоритет 1: Аналитическая высота гладкой сплайн-дороги (без ступенек и невидимых препятствий)
+      if (window.PhilippinesTracks && window.PhilippinesTracks.getRoadElevation) {
+        const rElev = window.PhilippinesTracks.getRoadElevation(x, z);
+        if (rElev && rElev.onRoad) {
+          return rElev.height;
+        }
+      }
+
+      if (!philippinesMeta) return 12.0;
+      const b = philippinesMeta.bounds;
+      if (!b) return 12.0;
+      const width = b.width || (b.maxX - b.minX);
+      const length = b.length || (b.maxZ - b.minZ);
+      const res = philippinesMeta.res || philippinesMeta.gridRes || 128;
+      const u = THREE.MathUtils.clamp((x - b.minX) / width, 0, 0.9999);
+      const v = THREE.MathUtils.clamp((z - b.minZ) / length, 0, 0.9999);
+      const gx = u * (res - 1);
+      const gz = v * (res - 1);
+      const ix = Math.floor(gx), iz = Math.floor(gz);
+      const tx = gx - ix, tz = gz - iz;
+      const grid = philippinesMeta.grid || philippinesMeta.elevationGrid;
+      if (!grid) return 12.0;
+
+      let h00 = 12.0, h10 = 12.0, h01 = 12.0, h11 = 12.0;
+      if (Array.isArray(grid[0])) {
+        // 2D сетка: grid[row][col], где row — координата Z, col — координата X
+        const nextIz = Math.min(iz + 1, res - 1);
+        const nextIx = Math.min(ix + 1, res - 1);
+        h00 = grid[iz][ix];
+        h10 = grid[iz][nextIx];
+        h01 = grid[nextIz][ix];
+        h11 = grid[nextIz][nextIx];
+      } else {
+        // 1D сплющенный массив
+        const nextIz = Math.min(iz + 1, res - 1);
+        const nextIx = Math.min(ix + 1, res - 1);
+        h00 = grid[iz * res + ix];
+        h10 = grid[iz * res + nextIx];
+        h01 = grid[nextIz * res + ix];
+        h11 = grid[nextIz * res + nextIx];
+      }
+      return (h00 * (1 - tx) + h10 * tx) * (1 - tz) + (h01 * (1 - tx) + h11 * tx) * tz;
+    }
+
     // Высота НЕДЕФОРМИРОВАННОЙ сетки грунта (для деревьев, камней, опор моста): билинейная выборка без ступенек
     function getGroundMeshHeight(x, z) {
+      if (currentMapId === 'philippines') return getPhilippinesGroundHeight(x, z);
       let fx = ((x + MAP_WIDTH / 2) / MAP_WIDTH) * SEGS_X;
       let fz = ((z + MAP_LENGTH / 2) / MAP_LENGTH) * SEGS_Z;
       fx = THREE.MathUtils.clamp(fx, 0, SEGS_X - 0.0001);
@@ -1814,6 +2187,7 @@
 
     // Физическая высота поверхности под колёсами: рельеф + деформация грунта SoilSim (колея / валики) + настил моста
     function getTerrainHeight(x, z) {
+      if (currentMapId === 'philippines') return getPhilippinesGroundHeight(x, z);
       const groundH = getGroundMeshHeight(x, z) + SOIL.getDH(x, z);
 
       // Если автомобиль едет по бревенчатому мосту (Z: 44.5 .. 57.5, |X| < 3.95м):
@@ -1833,6 +2207,7 @@
     }
 
     function getMudFactor(x, z) {
+      if (currentMapId === 'philippines') return 0.01;
       if (z >= 45.0 && z <= 57.0 && Math.abs(x) < 3.95) return 0.02; // На брёвнах моста грязи нет
       const { gx, gz } = worldToGrid(x, z);
       const idx = gz * (SEGS_X + 1) + gx;
@@ -1840,6 +2215,21 @@
     }
 
     function getSectorData(x, z) {
+      if (currentMapId === 'philippines') {
+        if (window.PhilippinesTracks && window.PhilippinesTracks.getRoadElevation) {
+          const rElev = window.PhilippinesTracks.getRoadElevation(x, z);
+          if (rElev && rElev.onRoad) {
+            return { type: 'asphalt', drag: rElev.drag, slipMult: rElev.slipMult, label: rElev.label, color: rElev.color };
+          }
+        }
+        if (z < -160 && x > 60 && x < 180) {
+          return { type: 'ocean_shallows', drag: 2.2, slipMult: 0.95, label: 'ПРИБОЙ ЛАГУНЫ (МЕЛКОВОДЬЕ И ПИРС)', color: '#00b4d8' };
+        } else if (z < -120 && x > 70) {
+          return { type: 'beach_sand', drag: 1.65, slipMult: 1.35, label: 'ПЕСОК ПЛЯЖА КУРОРТА', color: '#fbbf24' };
+        } else {
+          return { type: 'coastal', drag: 0.95, slipMult: 0.35, label: 'ОБОЧИНА И ТРОПИКИ ЛАПУ-ЛАПУ', color: '#06d6a0' };
+        }
+      }
       if (z < -60) {
         return { type: 'concrete', drag: 0.85, slipMult: 0.25, label: 'СЕКТОР 1: БЕТОН / СТАРТ', color: '#2ec4b6' };
       } else if (z < -35) {
@@ -1966,6 +2356,7 @@
       signGroup.add(board);
 
       scene.add(signGroup);
+      taigaObjects.push(signGroup);
     }
 
     createRoadSign(-85, 'СЕКТОР 1: БЕТОН', 'СТАРТОВАЯ ПРЯМАЯ');
@@ -2955,6 +3346,7 @@
 
       if (winchActive) toggleWinch();
 
+      if (typeof closeVehicleDock === 'function') closeVehicleDock();
       playSwitchVehicleSound(currentVehicleConfig.soundType);
       showPopup('ВЫБРАН: ' + currentVehicleConfig.name.toUpperCase());
     }
@@ -3486,7 +3878,9 @@
       {"id": "j40_hardtop", "name": "Land Cruiser J40 Хардтоп", "shortName": "J40 Хардтоп", "typeLabel": "BJ44 • 4x4", "mass": 1850, "power": 22, "maxSpeed": 40, "lowMaxSpeed": 17, "torqueMult": 2.6, "clearance": 0.28, "sinkFactor": 0.55, "tireBite": 0.95, "hasAWD": true, "hasDiffLock": true, "drivenAxles": "all", "soundType": "jeep", "badge": "4x4 AWD", "defaultPaintHex": 4165515, "file": "models/j40_hardtop.glb", "dims": {"length": 4.389, "width": 1.874, "height": 1.929}, "wheels": [{"name": "Wheel_FL", "x": -0.7371, "y": 0.3579, "z": 1.2338, "radius": 0.3579, "width": 0.2165, "front": true}, {"name": "Wheel_FR", "x": 0.7371, "y": 0.3579, "z": 1.2338, "radius": 0.3579, "width": 0.2165, "front": true}, {"name": "Wheel_RL", "x": -0.7371, "y": 0.3579, "z": -1.2338, "radius": 0.3579, "width": 0.2165, "front": false}, {"name": "Wheel_RR", "x": 0.7371, "y": 0.3579, "z": -1.2338, "radius": 0.3579, "width": 0.2165, "front": false}], "frontAxleZ": 1.2338, "rearAxleZ": -1.2338, "trackHalfWidth": 0.7371, "bumperZ": 1.9474, "exhaust": [0.447, 0.3, -2.392], "winch": [0.0, 0.5, 1.947], "roofHeight": 1.918, "paintMaterial": "paint", "hasLowGear": true, "hasAirBrakes": false, "physWidth": 0.3},
       {"id": "j40_canvas", "name": "Land Cruiser J40 Тент", "shortName": "J40 Тент", "typeLabel": "BJ40 • 4x4", "mass": 1600, "power": 21, "maxSpeed": 40, "lowMaxSpeed": 17, "torqueMult": 2.6, "clearance": 0.28, "sinkFactor": 0.52, "tireBite": 0.95, "hasAWD": true, "hasDiffLock": true, "drivenAxles": "all", "soundType": "jeep", "badge": "4x4 AWD", "defaultPaintHex": 12731693, "file": "models/j40_canvas.glb", "dims": {"length": 4.131, "width": 1.905, "height": 1.951}, "wheels": [{"name": "Wheel_FL", "x": -0.7372, "y": 0.3579, "z": 1.2338, "radius": 0.3579, "width": 0.2165, "front": true}, {"name": "Wheel_FR", "x": 0.7372, "y": 0.3579, "z": 1.2338, "radius": 0.3579, "width": 0.2165, "front": true}, {"name": "Wheel_RL", "x": -0.7372, "y": 0.3579, "z": -1.2338, "radius": 0.3579, "width": 0.2165, "front": false}, {"name": "Wheel_RR", "x": 0.7372, "y": 0.3579, "z": -1.2338, "radius": 0.3579, "width": 0.2165, "front": false}], "frontAxleZ": 1.2338, "rearAxleZ": -1.2338, "trackHalfWidth": 0.7372, "bumperZ": 1.9474, "exhaust": [0.453, 0.3, -2.133], "winch": [0.0, 0.5, 1.947], "roofHeight": 1.94, "paintMaterial": "paint", "hasLowGear": true, "hasAirBrakes": false, "physWidth": 0.3},
       {"id": "delica", "name": "Mitsubishi Delica Star Wagon 4WD", "shortName": "Delica 4x4", "typeLabel": "Минивэн • 4WD", "mass": 1900, "power": 21, "maxSpeed": 40, "lowMaxSpeed": 16, "torqueMult": 2.3, "clearance": 0.3, "sinkFactor": 0.6, "tireBite": 0.9, "hasAWD": true, "hasDiffLock": true, "drivenAxles": "all", "soundType": "jeep", "badge": "4x4 AWD", "defaultPaintHex": 8231516, "file": "models/delica.glb", "dims": {"length": 4.365, "width": 2.09, "height": 1.858}, "wheels": [{"name": "Wheel_FL", "x": -0.6758, "y": 0.3602, "z": 1.0952, "radius": 0.3602, "width": 0.2672, "front": true}, {"name": "Wheel_FR", "x": 0.6758, "y": 0.3602, "z": 1.0952, "radius": 0.3602, "width": 0.2672, "front": true}, {"name": "Wheel_RL", "x": -0.6758, "y": 0.3602, "z": -1.0952, "radius": 0.3602, "width": 0.2672, "front": false}, {"name": "Wheel_RR", "x": 0.6758, "y": 0.3602, "z": -1.0952, "radius": 0.3602, "width": 0.2672, "front": false}], "frontAxleZ": 1.0952, "rearAxleZ": -1.0952, "trackHalfWidth": 0.6758, "bumperZ": 2.3066, "exhaust": [0.578, 0.3, -2.008], "winch": [0.0, 0.45, 2.307], "roofHeight": 2.068, "paintMaterial": "paint", "hasLowGear": true, "hasAirBrakes": false, "physWidth": 0.3},
-      {"id": "hiace", "name": "Toyota HiAce H50 Фургон", "shortName": "HiAce H50", "typeLabel": "Фургон • RWD", "mass": 1750, "power": 17, "maxSpeed": 40, "lowMaxSpeed": 15, "torqueMult": 1.9, "clearance": 0.18, "sinkFactor": 1.1, "tireBite": 0.45, "hasAWD": false, "hasDiffLock": false, "drivenAxles": "rear", "soundType": "bus", "badge": "4x2 RWD", "defaultPaintHex": 15327695, "file": "models/hiace.glb", "dims": {"length": 4.734, "width": 2.154, "height": 1.67}, "wheels": [{"name": "Wheel_FL", "x": -0.7339, "y": 0.3461, "z": 1.2503, "radius": 0.3461, "width": 0.1991, "front": true}, {"name": "Wheel_FR", "x": 0.7339, "y": 0.3461, "z": 1.2503, "radius": 0.3461, "width": 0.1991, "front": true}, {"name": "Wheel_RL", "x": -0.7339, "y": 0.3461, "z": -1.2503, "radius": 0.3461, "width": 0.1991, "front": false}, {"name": "Wheel_RR", "x": 0.7339, "y": 0.3461, "z": -1.2503, "radius": 0.3461, "width": 0.1991, "front": false}], "frontAxleZ": 1.2503, "rearAxleZ": -1.2503, "trackHalfWidth": 0.7339, "bumperZ": 2.2954, "exhaust": [0.592, 0.3, -2.389], "winch": [0.0, 0.45, 2.295], "roofHeight": 1.93, "paintMaterial": "paint", "hasLowGear": true, "hasAirBrakes": false, "physWidth": 0.25}
+      {"id": "hiace", "name": "Toyota HiAce H50 Фургон", "shortName": "HiAce H50", "typeLabel": "Фургон • RWD", "mass": 1750, "power": 17, "maxSpeed": 40, "lowMaxSpeed": 15, "torqueMult": 1.9, "clearance": 0.18, "sinkFactor": 1.1, "tireBite": 0.45, "hasAWD": false, "hasDiffLock": false, "drivenAxles": "rear", "soundType": "bus", "badge": "4x2 RWD", "defaultPaintHex": 15327695, "file": "models/hiace.glb", "dims": {"length": 4.734, "width": 2.154, "height": 1.67}, "wheels": [{"name": "Wheel_FL", "x": -0.7339, "y": 0.3461, "z": 1.2503, "radius": 0.3461, "width": 0.1991, "front": true}, {"name": "Wheel_FR", "x": 0.7339, "y": 0.3461, "z": 1.2503, "radius": 0.3461, "width": 0.1991, "front": true}, {"name": "Wheel_RL", "x": -0.7339, "y": 0.3461, "z": -1.2503, "radius": 0.3461, "width": 0.1991, "front": false}, {"name": "Wheel_RR", "x": 0.7339, "y": 0.3461, "z": -1.2503, "radius": 0.3461, "width": 0.1991, "front": false}], "frontAxleZ": 1.2503, "rearAxleZ": -1.2503, "trackHalfWidth": 0.7339, "bumperZ": 2.2954, "exhaust": [0.592, 0.3, -2.389], "winch": [0.0, 0.45, 2.295], "roofHeight": 1.93, "paintMaterial": "paint", "hasLowGear": true, "hasAirBrakes": false, "physWidth": 0.25},
+      {"id": "subaru_l_series", "name": "Subaru L-Series 1990 4WD Sports Wagon", "shortName": "Subaru 4WD", "typeLabel": "Универсал • 4WD", "mass": 1250, "power": 24, "maxSpeed": 48, "lowMaxSpeed": 20, "torqueMult": 2.2, "clearance": 0.22, "sinkFactor": 0.65, "tireBite": 0.85, "hasAWD": true, "hasDiffLock": true, "drivenAxles": "all", "soundType": "jeep", "badge": "4WD Boxer", "defaultPaintHex": 13123883, "file": "models/subaru_l_series.glb", "dims": {"length": 4.411, "width": 1.66, "height": 1.45}, "wheels": [{"name": "Wheel_FL", "x": -0.71, "y": 0.31, "z": 1.235, "radius": 0.31, "width": 0.20, "front": true}, {"name": "Wheel_FR", "x": 0.71, "y": 0.31, "z": 1.235, "radius": 0.31, "width": 0.20, "front": true}, {"name": "Wheel_RL", "x": -0.71, "y": 0.31, "z": -1.235, "radius": 0.31, "width": 0.20, "front": false}, {"name": "Wheel_RR", "x": 0.71, "y": 0.31, "z": -1.235, "radius": 0.31, "width": 0.20, "front": false}], "frontAxleZ": 1.235, "rearAxleZ": -1.235, "trackHalfWidth": 0.71, "bumperZ": 2.205, "exhaust": [0.45, 0.25, -2.205], "winch": [0.0, 0.4, 2.205], "roofHeight": 1.45, "paintMaterial": "subaru_l_body", "hasLowGear": true, "hasAirBrakes": false, "physWidth": 0.24},
+      {"id": "landcruiser_1985", "name": "Toyota Land Cruiser FJ60 1985 4WD", "shortName": "Land Cruiser '85", "typeLabel": "Экспедиционник • 4WD", "mass": 2150, "power": 26, "maxSpeed": 42, "lowMaxSpeed": 17, "torqueMult": 2.8, "clearance": 0.30, "sinkFactor": 0.52, "tireBite": 0.96, "hasAWD": true, "hasDiffLock": true, "drivenAxles": "all", "soundType": "jeep", "badge": "Heavy 4x4", "defaultPaintHex": 12092939, "file": "models/landcruiser_1985.glb", "dims": {"length": 4.675, "width": 1.80, "height": 1.75}, "wheels": [{"name": "Wheel_FL", "x": -0.74, "y": 0.40, "z": 1.37, "radius": 0.40, "width": 0.30, "front": true}, {"name": "Wheel_FR", "x": 0.74, "y": 0.40, "z": 1.37, "radius": 0.40, "width": 0.30, "front": true}, {"name": "Wheel_RL", "x": -0.74, "y": 0.40, "z": -1.37, "radius": 0.40, "width": 0.30, "front": false}, {"name": "Wheel_RR", "x": 0.74, "y": 0.40, "z": -1.37, "radius": 0.40, "width": 0.30, "front": false}], "frontAxleZ": 1.37, "rearAxleZ": -1.37, "trackHalfWidth": 0.74, "bumperZ": 2.338, "exhaust": [0.55, 0.35, -2.338], "winch": [0.0, 0.5, 2.338], "roofHeight": 1.75, "paintMaterial": "paint", "hasLowGear": true, "hasAirBrakes": false, "physWidth": 0.30}
     ]/*SPECS_END*/;
 
     function registerSpecVehicle(spec) {
@@ -3507,15 +3901,19 @@
       });
       vehicleDirt[idx] = 0;
 
-      // Кнопка выбора в верхней панели
-      const sel = document.getElementById('vehicle-selector');
+      // Кнопка выбора в доке техники
+      const sel = document.getElementById('vehicle-cards-container') || document.getElementById('vehicle-selector');
       if (sel) {
         const btn = document.createElement('button');
         btn.className = 'v-card';
         btn.id = 'vbtn-' + idx;
         btn.onclick = () => switchVehicle(idx);
-        const num = (idx + 1) % 10;
-        btn.innerHTML = '<span class="v-num">' + num + '</span><div class="v-info"><span class="v-name">' + (spec.shortName || spec.name) + '</span><span class="v-type">' + (spec.typeLabel || '') + '</span></div>';
+        let keyChar = String((idx + 1) % 10);
+        if (idx === 9) keyChar = '0';
+        else if (idx === 10) keyChar = '-';
+        else if (idx === 11) keyChar = '=';
+        else if (idx > 11) keyChar = String(idx + 1);
+        btn.innerHTML = '<span class="v-num">' + keyChar + '</span><div class="v-info"><span class="v-name">' + (spec.shortName || spec.name) + '</span><span class="v-type">' + (spec.typeLabel || '') + '</span></div>';
         sel.appendChild(btn);
         model.button = btn;
         layoutTopBars();
@@ -3544,7 +3942,14 @@
       // Колёса: каждый узел Wheel_* оборачиваем в группу в ступице (вращение вокруг X) + оболочка налипшей грязи
       model.wheelsData.length = 0;
       spec.wheels.forEach(wd => {
-        const node = root.getObjectByName(wd.name);
+        let node = root.getObjectByName(wd.name);
+        if (!node) {
+          root.traverse(c => {
+            if (!node && c.name && (c.name === wd.name || c.name.startsWith(wd.name) || c.name.toLowerCase().includes(wd.name.toLowerCase()))) {
+              node = c;
+            }
+          });
+        }
         const g = new THREE.Group();
         const spin = new THREE.Group();
         g.add(spin);
@@ -3585,14 +3990,39 @@
           const m = mats[i].clone();
           m.flatShading = false;
           const nm = (m.name || '').toLowerCase();
-          if (nm === (spec.paintMaterial || 'paint').toLowerCase()) {
+          const meshNm = (c.name || '').toLowerCase();
+          if (spec.id === 'subaru_l_series') {
+            if (meshNm.includes('body')) {
+              m.color.setHex(paintHex);
+              m.roughness = 0.32;
+              m.metalness = 0.15;
+            } else if (meshNm.includes('accessory') || meshNm.includes('antenna')) {
+              m.color.setHex(0x1e2022); // Чёрный матовый пластик: бамперы, шноркель, решетка, зеркала
+              m.roughness = 0.85;
+              m.metalness = 0.08;
+            } else if (meshNm.includes('rooftop')) {
+              m.color.setHex(0xb89f7d); // Тент экспедиционного багажника (сафари-брезент)
+              m.roughness = 0.90;
+              m.metalness = 0.04;
+            } else if (meshNm.includes('chassis') || meshNm.includes('boot')) {
+              m.color.setHex(0x181a1c); // Стальная рама и подвеска
+              m.roughness = 0.85;
+              m.metalness = 0.18;
+            } else if (meshNm.includes('wheel') || nm.includes('wheel')) {
+              m.color.setHex(0x222426); // Резина шин
+              m.roughness = 0.88;
+              m.metalness = 0.08;
+            }
+          } else if (nm === (spec.paintMaterial || 'paint').toLowerCase()) {
             m.color.setHex(paintHex);
-            m.roughness = 0.34;
+            m.roughness = 0.35;
             m.metalness = 0.12;
-          } else if (nm.indexOf('glass') === 0) {
+          } else if (nm.indexOf('glass') === 0 || nm.includes('glass') || nm.includes('window')) {
             m.transparent = true;
             m.depthWrite = false;
-            if (m.opacity > 0.85) m.opacity = 0.7;
+            m.opacity = 0.65;
+            m.roughness = 0.1;
+            m.metalness = 0.8;
           }
           mats[i] = m;
         }
@@ -3605,11 +4035,9 @@
       if (typeof refreshVehicleDirtPatches === 'function') refreshVehicleDirtPatches();
     }
 
-    // Верхние панели: селектор машин может занимать несколько строк, полоса чекпоинтов опускается под него
+    // Верхние панели: в новом дизайне полоса чекпоинтов зафиксирована сверху по центру (top: 14px)
     function layoutTopBars() {
-      const sel = document.getElementById('vehicle-selector');
-      const bar = document.getElementById('expedition-bar');
-      if (sel && bar) bar.style.top = (sel.offsetTop + sel.offsetHeight + 10) + 'px';
+      // Сохранено для совместимости
     }
     window.addEventListener('resize', layoutTopBars);
 
@@ -3899,6 +4327,7 @@
         mesh.receiveShadow = receive;
         mesh.matrixAutoUpdate = false;
         scene.add(mesh);
+        taigaObjects.push(mesh);
         ovhInstanceStats.meshes++; ovhInstanceStats.instances += arr.length;
       });
     }
@@ -4076,6 +4505,7 @@
       m.castShadow = true;
       m.receiveShadow = true;
       scene.add(m);
+      taigaObjects.push(m);
       ovhAddTreeRecord(x, y, z, scale);
     }
 
@@ -4103,6 +4533,7 @@
     bridgeLogs.receiveShadow = true;
     bridgeLogs.frustumCulled = false;
     scene.add(bridgeLogs);
+    taigaObjects.push(bridgeLogs);
     // Боковые отбойные брёвна (колесоотбойники вдоль краёв моста)
     const curbLogGeo = new THREE.CylinderGeometry(0.18, 0.18, 11.8, 10);
     curbLogGeo.rotateX(Math.PI / 2);
@@ -4112,6 +4543,7 @@
       curb.castShadow = true;
       curb.receiveShadow = true;
       scene.add(curb);
+      taigaObjects.push(curb);
     }
     // Вертикальные деревянные сваи-опоры под мостом, уходящие в русло ручья
     const pileGeo = new THREE.CylinderGeometry(0.22, 0.24, 1.8, 10);
@@ -4126,6 +4558,7 @@
     bridgePiles.castShadow = true;
     bridgePiles.frustumCulled = false;
     scene.add(bridgePiles);
+    taigaObjects.push(bridgePiles);
 
     // --- 7B. КОНТРОЛЬНЫЕ ВОРОТА (ЧЕКПОИНТЫ) И ФИНИШНАЯ АРКА ЭКСПЕДИЦИИ ---
     const checkpoints = [];
@@ -4211,6 +4644,7 @@
       cpGroup.add(bL, bR);
 
       scene.add(cpGroup);
+      taigaObjects.push(cpGroup);
       checkpoints.push({
         index: idx,
         z: def.z,
@@ -4297,6 +4731,7 @@
     });
     const snowPoints = new THREE.Points(snowGeo, snowParticlesMat);
     scene.add(snowPoints);
+    taigaObjects.push(snowPoints);
 
     // --- 8. НАСТОЯЩИЙ ЗВУК ДИЗЕЛЯ ЯМЗ-238 (СТУК ЦИЛИНДРОВ + ТУРБИНА + ПНЕВМОТОРМОЗ) ---
     let audioCtx = null;
@@ -4961,7 +5396,7 @@
 
     // потеря фокуса окна (Alt-Tab с зажатой клавишей) не должна оставлять педаль/руль «залипшими»
     window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
-    const REPEAT_BLOCKED = new Set(['KeyQ', 'KeyE', 'KeyR', 'KeyF', 'KeyL', 'KeyC', 'KeyV', 'KeyM']);   // переключатели не должны повторяться при удержании
+    const REPEAT_BLOCKED = new Set(['KeyQ', 'KeyE', 'KeyR', 'KeyF', 'KeyL', 'KeyC', 'KeyV', 'KeyM', 'KeyU', 'Minus', 'Equal', 'Tab', 'KeyO', 'KeyH', 'Escape']);   // переключатели не должны повторяться при удержании
     window.addEventListener('keydown', e => {
       if (e.repeat && (REPEAT_BLOCKED.has(e.code) || /^(Digit|Numpad)\d$/.test(e.code))) return;
       if (!audioCtx) initAudio();
@@ -4976,6 +5411,8 @@
         case 'Digit8': case 'Numpad8': switchVehicle(7); break;
         case 'Digit9': case 'Numpad9': switchVehicle(8); break;
         case 'Digit0': case 'Numpad0': switchVehicle(9); break;
+        case 'Minus': case 'NumpadSubtract': switchVehicle(10); break;
+        case 'Equal': case 'NumpadAdd': switchVehicle(11); break;
         case 'KeyW': case 'ArrowUp': keys.forward = true; break;
         case 'KeyS': case 'ArrowDown': keys.backward = true; break;
         case 'KeyA': case 'ArrowLeft': keys.left = true; break;
@@ -4988,7 +5425,28 @@
         case 'KeyL': toggleHeadlights(); break;
         case 'KeyC': cycleCamera(); break;
         case 'KeyV': resetTruck(); break;
-        case 'KeyM': toggleAudio(); break;
+        case 'KeyU': toggleAudio(); break;
+        case 'KeyM':
+          e.preventDefault();
+          const dock = document.getElementById('vehicle-selector');
+          const mContainer = document.getElementById('map-cards-container');
+          if (dock && dock.classList.contains('open') && mContainer && mContainer.style.display !== 'none') {
+            closeVehicleDock();
+          } else {
+            switchDockTab('maps');
+            toggleVehicleDock(true);
+          }
+          break;
+        case 'Tab': e.preventDefault(); toggleVehicleDock(); break;
+        case 'KeyO': e.preventDefault(); toggleHudModal(); break;
+        case 'KeyH': e.preventDefault(); toggleTipsPanel(); break;
+        case 'Escape':
+          closeVehicleDock();
+          const mOverlay = document.getElementById('hud-modal-overlay');
+          if (mOverlay && mOverlay.classList.contains('open')) toggleHudModal();
+          const tPan = document.getElementById('tips-panel');
+          if (tPan && tPan.classList.contains('open')) toggleTipsPanel();
+          break;
       }
     });
 
@@ -5110,8 +5568,16 @@
     }
 
     function resetTruck() {
-      truckPos.set(0, 0, -75);
-      truckHeading = 0;
+      if (currentMapId === 'philippines') {
+        const spX = 38.04;
+        const spZ = 143.82;
+        const groundY = getPhilippinesGroundHeight(spX, spZ);
+        truckPos.set(spX, groundY + (currentVehicleConfig?.clearance || 0.3) + 0.35, spZ);
+        truckHeading = -2.99; // Направление прямо вдоль бульвара Mactan Boulevard
+      } else {
+        truckPos.set(0, getGroundMeshHeight(0, -75) + (currentVehicleConfig?.clearance || 0.3) + 0.35, -75);
+        truckHeading = 0;
+      }
       truckSpeed = 0;
       truckPitch = 0;
       truckRoll = 0;
@@ -5124,11 +5590,17 @@
       passedCount = 0;
       expeditionTime = 0;
       expeditionFinished = false;
-      checkpoints.forEach((cp, idx) => {
+      const curResetList = (currentMapId === 'philippines') ?
+        (window.PhilippinesTracks && window.PhilippinesTracks.getCheckpoints ? window.PhilippinesTracks.getCheckpoints() : []) :
+        checkpoints;
+
+      curResetList.forEach((cp, idx) => {
         cp.passed = false;
-        const cHex = cp.isFinish ? 0xe71d36 : 0xff9f1c;
-        cp.beaconMat.color.setHex(cHex);
-        cp.beaconMat.emissive.setHex(cHex);
+        if (cp.beaconMat) {
+          const cHex = cp.isFinish ? 0xe71d36 : 0xff9f1c;
+          cp.beaconMat.color.setHex(cHex);
+          cp.beaconMat.emissive.setHex(cHex);
+        }
         const dot = document.getElementById('cp-dot-' + idx);
         if (dot) {
           dot.classList.remove('passed');
@@ -5136,8 +5608,9 @@
           else dot.classList.remove('current');
         }
       });
-      document.getElementById('cp-text').textContent = '🏁 ЧЕКПОИНТ: 0 / 7';
-      showPopup(currentVehicleConfig.name + ' НА СТАРТЕ ПОЛИГОНА (СЕКТОР 1)');
+      const cpEl = document.getElementById('cp-text');
+      if (cpEl) cpEl.textContent = `КП 0/${curResetList.length}`;
+      showPopup(currentVehicleConfig.name + (currentMapId === 'philippines' ? ' НА СТАРТЕ: MACTAN BOULEVARD' : ' НА СТАРТЕ ПОЛИГОНА (СЕКТОР 1)'));
     }
 
     // --- 11. ФИЗИЧЕСКИЙ ЦИКЛ ОБНОВЛЕНИЯ (ЧЕСТНАЯ ПОСАДКА НА ГРУНТ, КОЛЕЯ И ДИНАМИЧЕСКАЯ ВОДА) ---
@@ -5155,6 +5628,9 @@
       const delta = Math.min(clock.getDelta(), 0.05);
       const cfg = currentVehicleConfig;
       pudUniforms.uPudTime.value = clock.elapsedTime;   // рябь и круги на лужах
+      if (currentMapId === 'philippines' && window.PhilippinesTracks && window.PhilippinesTracks.updateWater) {
+        window.PhilippinesTracks.updateWater(clock.elapsedTime);
+      }
 
       // Таймер экспедиции
       if (!expeditionFinished && (passedCount > 0 || Math.abs(truckSpeed) > 0.2)) {
@@ -5262,8 +5738,13 @@
       sinH = Math.sin(truckHeading); cosH = Math.cos(truckHeading);
       truckPos.x += (sinH * truckSpeed + cosH * rutVLat) * delta;
       truckPos.z += (cosH * truckSpeed - sinH * rutVLat) * delta;
-      truckPos.x = THREE.MathUtils.clamp(truckPos.x, -36, 36);
-      truckPos.z = THREE.MathUtils.clamp(truckPos.z, -86, 86);
+      if (currentMapId === 'philippines') {
+        truckPos.x = THREE.MathUtils.clamp(truckPos.x, -245, 245);
+        truckPos.z = THREE.MathUtils.clamp(truckPos.z, -245, 245);
+      } else {
+        truckPos.x = THREE.MathUtils.clamp(truckPos.x, -36, 36);
+        truckPos.z = THREE.MathUtils.clamp(truckPos.z, -86, 86);
+      }
 
       // Колёса после движения: налипание грязи, вдавливание в грунт, вода, вращение
       let totalSlip = soilStepOut.slipTotal;
@@ -5307,7 +5788,9 @@
         const shed = SOIL.updateMud(s, delta, surfSpeed, slip, waterK, true);
 
         // След: вдавливание, уплотнение, валики по бокам, взбитая жижа, лужи в колее
-        SOIL.stamp(s, e.x, e.z, e.hdg, e.radius, e.width, slip, delta);
+        if (currentMapId === 'taiga') {
+          SOIL.stamp(s, e.x, e.z, e.hdg, e.radius, e.width, slip, delta);
+        }
 
         // Видимая налипшая грязь на шине
         const shell = w.group.userData.mudShell;
@@ -5347,47 +5830,65 @@
       updateVehicleDirt(simWheels, delta);
 
       // Оседание валиков, течение жидкой грязи и передача изменённых ячеек в GPU
-      SOIL.relax(delta);
-      flushSoilToGpu();
-
-      // Обновление 3D-поверхности воды в болоте (волны, смешивание с грязью и пена)
-      updateDynamicWater(delta, clock.elapsedTime);   // реальное время: вода и грязь живут и до старта, и после финиша
+      if (currentMapId === 'taiga') {
+        SOIL.relax(delta);
+        flushSoilToGpu();
+        updateDynamicWater(delta, clock.elapsedTime);   // реальное время: вода и грязь живут и до старта, и после финиша
+      }
       if (soilUniforms && soilUniforms.uTime) soilUniforms.uTime.value = clock.elapsedTime;
 
       // Проверка прохождения контрольных ворот (чекпоинтов)
-      checkpoints.forEach((cp, idx) => {
-        if (!cp.passed && Math.abs(truckPos.z - cp.z) < 3.6 && Math.abs(truckPos.x) < 6.8) {
-          cp.passed = true;
-          passedCount++;
-          cp.beaconMat.color.setHex(0x2ec4b6);
-          cp.beaconMat.emissive.setHex(0x2ec4b6);
+      const curCpList = (currentMapId === 'philippines') ?
+        (window.PhilippinesTracks && window.PhilippinesTracks.getCheckpoints ? window.PhilippinesTracks.getCheckpoints() : []) :
+        checkpoints;
 
-          const dot = document.getElementById('cp-dot-' + idx);
-          if (dot) {
-            dot.classList.remove('current');
-            dot.classList.add('passed');
-          }
-          const nextDot = document.getElementById('cp-dot-' + (idx + 1));
-          if (nextDot && !nextDot.classList.contains('passed')) {
-            nextDot.classList.add('current');
-          }
-
-          document.getElementById('cp-text').textContent = `🏁 ЧЕКПОИНТ: ${passedCount} / ${checkpoints.length}`;
-
-          if (cp.isFinish || passedCount === checkpoints.length) {
-            expeditionFinished = true;
-            playCheckpointChime(true);
-            const mins = String(Math.floor(expeditionTime / 60)).padStart(2, '0');
-            const secs = String(Math.floor(expeditionTime % 60)).padStart(2, '0');
-            showPopup(`🏆 ПОЛИГОН ПРОЙДЕН НА ${cfg.name.toUpperCase()}! ВРЕМЯ: ${mins}:${secs}`);
+      if (curCpList && curCpList.length) {
+        curCpList.forEach((cp, idx) => {
+          let hit = false;
+          if (currentMapId === 'philippines') {
+            hit = !cp.passed && (Math.hypot(truckPos.x - cp.x, truckPos.z - cp.z) < 8.5);
           } else {
-            playCheckpointChime(false);
-            showPopup(`✅ ПРОЙДЕН ${cp.title} (${passedCount}/${checkpoints.length})`);
-            const hint = CP_HINTS[idx];   // совет перед трудным участком (появляется после сообщения о пройденном КП)
-            if (hint) setTimeout(() => { if (!expeditionFinished) showPopup(hint); }, 2700);
+            hit = !cp.passed && Math.abs(truckPos.z - cp.z) < 3.6 && Math.abs(truckPos.x) < 6.8;
           }
-        }
-      });
+          if (hit) {
+            cp.passed = true;
+            passedCount++;
+            if (cp.beaconMat) {
+              cp.beaconMat.color.setHex(0x2ec4b6);
+              cp.beaconMat.emissive.setHex(0x2ec4b6);
+            }
+
+            const dot = document.getElementById('cp-dot-' + idx);
+            if (dot) {
+              dot.classList.remove('current');
+              dot.classList.add('passed');
+            }
+            const nextDot = document.getElementById('cp-dot-' + (idx + 1));
+            if (nextDot && !nextDot.classList.contains('passed')) {
+              nextDot.classList.add('current');
+            }
+
+            const cpEl = document.getElementById('cp-text');
+            if (cpEl) cpEl.textContent = `КП ${passedCount}/${curCpList.length}`;
+
+            if (cp.isFinish || passedCount === curCpList.length) {
+              expeditionFinished = true;
+              playCheckpointChime(true);
+              const mins = String(Math.floor(expeditionTime / 60)).padStart(2, '0');
+              const secs = String(Math.floor(expeditionTime % 60)).padStart(2, '0');
+              const mapName = (currentMapId === 'philippines') ? 'КУРОРТНЫЙ ТРЕК ЛАПУ-ЛАПУ' : 'ПОЛИГОН ТАЙГА';
+              showPopup(`🏆 ${mapName} ПРОЙДЕН НА ${cfg.name.toUpperCase()}! ВРЕМЯ: ${mins}:${secs}`);
+            } else {
+              playCheckpointChime(false);
+              showPopup(`✅ ПРОЙДЕН ${cp.title} (${passedCount}/${curCpList.length})`);
+              if (currentMapId === 'taiga') {
+                const hint = CP_HINTS[idx];
+                if (hint) setTimeout(() => { if (!expeditionFinished) showPopup(hint); }, 2700);
+              }
+            }
+          }
+        });
+      }
 
       // --- ПОСАДКА КУЗОВА ПО ПЯТНАМ КОНТАКТА КОЛЁС НА ДЕФОРМИРОВАННЫЙ ГРУНТ (колёса стоят В колее, а не на горбе между ними) ---
       // Высота поверхности под каждым колесом = рельеф + колея/валики SoilSim (+ настил моста); плоскость по колёсам задаёт высоту, тангаж и крен
@@ -5395,7 +5896,7 @@
       const nW = simWheels.length;
       for (let k = 0; k < nW; k++) {
         const e = simWheels[k];
-        e.h = getTerrainHeight(e.x, e.z) + (SOIL.footprintDH(e.x, e.z, e.hdg, e.width) - SOIL.getDH(e.x, e.z));
+        e.h = getTerrainHeight(e.x, e.z) + (currentMapId === 'taiga' ? (SOIL.footprintDH(e.x, e.z, e.hdg, e.width) - SOIL.getDH(e.x, e.z)) : 0);
         sumH += e.h; sumZ += e.localZ; sumX += e.localX;
       }
       const mH = sumH / nW, mZ = sumZ / nW, mX = sumX / nW;
@@ -5440,7 +5941,7 @@
       if (bellyExcess > 0) {
         groundAtCenter += bellyExcess * 0.55;
         if (speedAbs > 0.05 || throttleState !== 0) {
-          SOIL.plow(truckPos.x, truckPos.z, truckHeading, cfg.trackHalfWidth * 0.75, 1.1, planeAtOrigin + bellyLimit, getGroundMeshHeight, Math.min(1, delta * 5), slopeFit);
+          if (currentMapId === 'taiga') SOIL.plow(truckPos.x, truckPos.z, truckHeading, cfg.trackHalfWidth * 0.75, 1.1, planeAtOrigin + bellyLimit, getGroundMeshHeight, Math.min(1, delta * 5), slopeFit);
         }
       }
 
@@ -5561,55 +6062,485 @@
     }
 
     function updateHUD(sector) {
-      const spd = Math.round(Math.abs(truckSpeed) * 3.6);
-      document.getElementById('speed-display').textContent = spd;
+      if (currentHudConfig.speedometer) {
+        const spd = Math.round(Math.abs(truckSpeed) * 3.6);
+        const spdEl = document.getElementById('speed-display');
+        if (spdEl) spdEl.textContent = spd;
 
-      let g = '1';
-      if (keys.backward) g = 'R';
-      else if (isLowGear) g = 'L';
-      else if (spd === 0) g = 'N';
-      else if (spd > 32) g = '3';
-      else if (spd > 16) g = '2';
-      document.getElementById('gear-display').textContent = g;
+        let g = '1';
+        if (keys.backward) g = 'R';
+        else if (isLowGear) g = 'L';
+        else if (spd === 0) g = 'N';
+        else if (spd > 32) g = '3';
+        else if (spd > 16) g = '2';
+        const gearEl = document.getElementById('gear-display');
+        if (gearEl) gearEl.textContent = g;
+      }
 
-      const rPct = Math.min(100, Math.max(0, ((engineRPM - 800) / 2500) * 100));
-      document.getElementById('rpm-display').style.width = rPct + '%';
+      if (currentHudConfig.rpm) {
+        const rPct = Math.min(100, Math.max(0, ((engineRPM - 800) / 2500) * 100));
+        const rpmEl = document.getElementById('rpm-display');
+        if (rpmEl) rpmEl.style.width = rPct + '%';
+      }
 
-      const sEl = document.getElementById('surface-display');
-      sEl.textContent = sector.label + ' • ' + currentVehicleConfig.name;
-      sEl.style.color = sector.color;
-
-      // Грунт под колёсами: тип, влажность, глубина колеи, налипшая грязь, пробуксовка
-      const sw = activeWheels._sim;
-      if (sw && sw.length) {
-        let wet = 0, rut = 0, mud = 0, slip = 0;
-        for (let i = 0; i < sw.length; i++) {
-          const st = sw[i].s;
-          wet += st.wet; rut += st.zEq + st.dig; mud += st.mud; slip += st.slip;
+      if (currentHudConfig.soil) {
+        const sEl = document.getElementById('surface-display');
+        if (sEl) {
+          sEl.textContent = sector.label + ' • ' + currentVehicleConfig.name;
+          sEl.style.color = sector.color;
         }
-        const n = sw.length;
-        wet /= n; rut /= n; mud /= n; slip /= n;
-        const tName = SOIL_NAMES[sw[0].s.t] || '—';
-        let txt = tName + ' • влажн. ' + Math.round(wet * 100) + '% • колея ' + Math.round(rut * 100) + ' см • грязь на шинах ' + Math.round(Math.min(1, mud) * 100) + '%';
-        if (bellyAmount > 0.25) txt += ' • ДНИЩЕ НА ГРУНТЕ!';
-        else if (slip > 0.75) txt += ' • БУКСУЕТ';
-        document.getElementById('soil-display').textContent = txt;
-        document.getElementById('mud-bar-fill').style.width = Math.round(Math.min(1, mud) * 100) + '%';
+
+        // Грунт под колёсами: тип, влажность, глубина колеи, налипшая грязь, пробуксовка
+        const sw = activeWheels._sim;
+        if (sw && sw.length) {
+          let wet = 0, rut = 0, mud = 0, slip = 0;
+          for (let i = 0; i < sw.length; i++) {
+            const st = sw[i].s;
+            wet += st.wet; rut += st.zEq + st.dig; mud += st.mud; slip += st.slip;
+          }
+          const n = sw.length;
+          wet /= n; rut /= n; mud /= n; slip /= n;
+          const tName = SOIL_NAMES[sw[0].s.t] || '—';
+          let txt = tName + ' • влажн. ' + Math.round(wet * 100) + '% • колея ' + Math.round(rut * 100) + ' см • грязь ' + Math.round(Math.min(1, mud) * 100) + '%';
+          if (bellyAmount > 0.25) txt += ' • ДНИЩЕ НА ГРУНТЕ!';
+          else if (slip > 0.75) txt += ' • БУКСУЕТ';
+          const soilEl = document.getElementById('soil-display');
+          if (soilEl) soilEl.textContent = txt;
+          const mudFill = document.getElementById('mud-bar-fill');
+          if (mudFill) mudFill.style.width = Math.round(Math.min(1, mud) * 100) + '%';
+        }
       }
 
       // Обновление таймера экспедиции
-      const mins = String(Math.floor(expeditionTime / 60)).padStart(2, '0');
-      const secs = String(Math.floor(expeditionTime % 60)).padStart(2, '0');
-      document.getElementById('exp-timer').textContent = `${mins}:${secs}`;
+      if (currentHudConfig.expeditionBar) {
+        const mins = String(Math.floor(expeditionTime / 60)).padStart(2, '0');
+        const secs = String(Math.floor(expeditionTime % 60)).padStart(2, '0');
+        const tenths = String(Math.floor((expeditionTime * 10) % 10));
+        const expTimer = document.getElementById('exp-timer');
+        if (expTimer) expTimer.textContent = `${mins}:${secs}.${tenths}`;
+      }
 
       // Обновление креноскопа (крен и уклон в градусах)
-      const rollDeg = Math.round(THREE.MathUtils.radToDeg(truckRoll));
-      const pitchDeg = Math.round(THREE.MathUtils.radToDeg(-truckPitch));
-      document.getElementById('roll-val').textContent = `${rollDeg}°`;
-      document.getElementById('pitch-val').textContent = `${pitchDeg}°`;
-      document.getElementById('clino-roll-bar').style.transform = `rotate(${rollDeg}deg)`;
-      document.getElementById('clino-pitch-bar').style.transform = `rotate(${pitchDeg}deg)`;
+      if (currentHudConfig.inclinometer) {
+        const rollDeg = Math.round(THREE.MathUtils.radToDeg(truckRoll));
+        const pitchDeg = Math.round(THREE.MathUtils.radToDeg(-truckPitch));
+        const rollVal = document.getElementById('roll-val');
+        const pitchVal = document.getElementById('pitch-val');
+        if (rollVal) rollVal.textContent = `${rollDeg}°`;
+        if (pitchVal) pitchVal.textContent = `${pitchDeg}°`;
+        const clinoRoll = document.getElementById('clino-roll-bar');
+        const clinoPitch = document.getElementById('clino-pitch-bar');
+        if (clinoRoll) clinoRoll.style.transform = `rotate(${rollDeg}deg)`;
+        if (clinoPitch) clinoPitch.style.transform = `rotate(${pitchDeg}deg)`;
+      }
     }
+
+    /* =========================================================================
+       МЕНЕДЖЕР НАСТРОЕК ИНТЕРФЕЙСА (HUD SETTINGS & PRESETS)
+       ========================================================================= */
+    const HUD_STORAGE_KEY = 'afri_hud_config_v1';
+    const HUD_PRESETS = {
+      expedition: {
+        speedometer: true,
+        rpm: true,
+        systems: true,
+        inclinometer: false,
+        soil: false,
+        expeditionBar: true
+      },
+      minimal: {
+        speedometer: true,
+        rpm: false,
+        systems: true,
+        inclinometer: false,
+        soil: false,
+        expeditionBar: true
+      },
+      pro: {
+        speedometer: true,
+        rpm: true,
+        systems: true,
+        inclinometer: true,
+        soil: true,
+        expeditionBar: true
+      }
+    };
+
+    function loadHudConfig() {
+      try {
+        const raw = localStorage.getItem(HUD_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          return Object.assign({}, HUD_PRESETS.expedition, parsed);
+        }
+      } catch(e) {}
+      return Object.assign({}, HUD_PRESETS.expedition);
+    }
+
+    function saveHudConfig(cfg) {
+      try {
+        localStorage.setItem(HUD_STORAGE_KEY, JSON.stringify(cfg));
+      } catch(e) {}
+    }
+
+    let currentHudConfig = loadHudConfig();
+
+    function applyHudConfig(cfg) {
+      currentHudConfig = cfg;
+      saveHudConfig(cfg);
+
+      const speedBlock = document.getElementById('dash-speed-block');
+      const rpmBlock = document.getElementById('dash-rpm-block');
+      const systemsBlock = document.getElementById('dash-systems-block');
+      const clinoBlock = document.getElementById('dash-clino-block');
+      const soilBlock = document.getElementById('dash-soil-block');
+      const expBar = document.getElementById('expedition-bar');
+      const dashboard = document.getElementById('dashboard');
+
+      if (speedBlock) speedBlock.style.display = cfg.speedometer ? 'flex' : 'none';
+      if (rpmBlock) rpmBlock.style.display = cfg.rpm ? 'block' : 'none';
+      if (systemsBlock) systemsBlock.style.display = cfg.systems ? 'grid' : 'none';
+      if (clinoBlock) clinoBlock.style.display = cfg.inclinometer ? 'flex' : 'none';
+      if (soilBlock) soilBlock.style.display = cfg.soil ? 'block' : 'none';
+      if (expBar) expBar.style.display = cfg.expeditionBar ? 'flex' : 'none';
+
+      if (dashboard) {
+        const anyDash = cfg.speedometer || cfg.rpm || cfg.systems || cfg.inclinometer || cfg.soil;
+        dashboard.style.display = anyDash ? 'block' : 'none';
+      }
+
+      ['speedometer', 'rpm', 'systems', 'inclinometer', 'soil', 'expeditionBar'].forEach(key => {
+        const el = document.getElementById('cfg-' + key);
+        if (el) el.checked = !!cfg[key];
+      });
+
+      ['expedition', 'minimal', 'pro'].forEach(p => {
+        const btn = document.getElementById('preset-' + p);
+        if (btn) {
+          const match = JSON.stringify(HUD_PRESETS[p]) === JSON.stringify(cfg);
+          if (match) btn.classList.add('active');
+          else btn.classList.remove('active');
+        }
+      });
+    }
+
+    function applyPreset(presetName) {
+      if (HUD_PRESETS[presetName]) {
+        applyHudConfig(Object.assign({}, HUD_PRESETS[presetName]));
+        showPopup('ПРЕСЕТ HUD: ' + presetName.toUpperCase());
+      }
+    }
+
+    function onToggleChange() {
+      const cfg = {
+        speedometer: document.getElementById('cfg-speedometer')?.checked ?? true,
+        rpm: document.getElementById('cfg-rpm')?.checked ?? true,
+        systems: document.getElementById('cfg-systems')?.checked ?? true,
+        inclinometer: document.getElementById('cfg-inclinometer')?.checked ?? false,
+        soil: document.getElementById('cfg-soil')?.checked ?? false,
+        expeditionBar: document.getElementById('cfg-expeditionBar')?.checked ?? true
+      };
+      applyHudConfig(cfg);
+    }
+
+    function resetHudConfig() {
+      applyPreset('expedition');
+    }
+
+    function toggleHudModal() {
+      const modal = document.getElementById('hud-modal-overlay');
+      if (!modal) return;
+      const isOpen = modal.classList.toggle('open');
+      if (isOpen) {
+        applyHudConfig(currentHudConfig);
+      }
+    }
+
+    function onOverlayClick(e) {
+      if (e.target && e.target.id === 'hud-modal-overlay') {
+        toggleHudModal();
+      }
+    }
+
+    function toggleVehicleDock(forceState) {
+      const dock = document.getElementById('vehicle-selector');
+      if (!dock) return;
+      if (typeof forceState === 'boolean') {
+        if (forceState) dock.classList.add('open');
+        else dock.classList.remove('open');
+      } else {
+        dock.classList.toggle('open');
+      }
+    }
+
+    function closeVehicleDock() {
+      const dock = document.getElementById('vehicle-selector');
+      if (dock) dock.classList.remove('open');
+    }
+
+    function switchDockTab(tab) {
+      const vContainer = document.getElementById('vehicle-cards-container');
+      const mContainer = document.getElementById('map-cards-container');
+      const vTab = document.getElementById('dock-tab-vehicles');
+      const mTab = document.getElementById('dock-tab-maps');
+      if (tab === 'maps') {
+        if (vContainer) vContainer.style.display = 'none';
+        if (mContainer) mContainer.style.display = 'flex';
+        if (vTab) vTab.classList.remove('active');
+        if (mTab) mTab.classList.add('active');
+      } else {
+        if (vContainer) vContainer.style.display = 'flex';
+        if (mContainer) mContainer.style.display = 'none';
+        if (vTab) vTab.classList.add('active');
+        if (mTab) mTab.classList.remove('active');
+      }
+    }
+    window.switchDockTab = switchDockTab;
+    window.toggleVehicleDock = toggleVehicleDock;
+    window.closeVehicleDock = closeVehicleDock;
+
+    // --- УПРАВЛЕНИЕ КАРТАМИ И ЗАГРУЗКА 3D-ФИЛИППИН ---
+    function loadPhilippinesMap(onReady) {
+      if (philippinesLoaded) {
+        if (onReady) onReady();
+        return;
+      }
+      if (philippinesLoading) return;
+      philippinesLoading = true;
+      showPopup('⏳ ЗАГРУЗКА 3D-КАРТЫ ФИЛИППИН...');
+
+      fetch('models/philippines_meta.json')
+        .then(res => res.json())
+        .then(meta => {
+          philippinesMeta = meta;
+          const loader = new THREE.GLTFLoader();
+          loader.load(meta.file || 'models/map_philippines.glb', (gltf) => {
+            const root = gltf.scene;
+            root.traverse(c => {
+              if (c.isMesh) {
+                c.receiveShadow = true;
+                c.castShadow = true;
+                if (c.material) {
+                  c.material.roughness = 0.85;
+                  c.material.metalness = 0.05;
+                }
+              }
+            });
+            root.position.y = -0.45;
+            root.visible = false; // Сырой скан скрыт: вместо него используется чистый стилизованный террейн и дороги
+            window.photogrammetryMesh = root;
+            philippinesGroup.add(root);
+
+            if (window.PhilippinesTracks && window.PhilippinesTracks.buildTracks) {
+              window.PhilippinesTracks.buildTracks(philippinesGroup, getPhilippinesGroundHeight, () => {
+                philippinesLoaded = true;
+                philippinesLoading = false;
+                console.log('3D-карта и сплайн-дороги Филиппин успешно построены!');
+                if (onReady) onReady();
+              });
+            } else {
+              philippinesLoaded = true;
+              philippinesLoading = false;
+              console.log('3D-карта Филиппин успешно загружена!');
+              if (onReady) onReady();
+            }
+          }, undefined, (err) => {
+            philippinesLoading = false;
+            console.error('Ошибка загрузки модели Филиппин:', err);
+            showPopup('ОШИБКА ЗАГРУЗКИ МОДЕЛИ КАРТЫ');
+          });
+        })
+        .catch(err => {
+          philippinesLoading = false;
+          console.error('Ошибка загрузки метаданных Филиппин:', err);
+          showPopup('ОШИБКА ЗАГРУЗКИ МЕТАДАННЫХ');
+        });
+    }
+
+    function updateCheckpointUIForMap(mapId) {
+      const container = document.getElementById('cp-dots');
+      if (!container) return;
+      container.innerHTML = '';
+      const list = (mapId === 'philippines') ?
+        (window.PhilippinesTracks && window.PhilippinesTracks.getCheckpoints ? window.PhilippinesTracks.getCheckpoints() : []) :
+        checkpoints;
+      list.forEach((cp, idx) => {
+        const d = document.createElement('div');
+        d.className = 'cp-dot' + (idx === 0 ? ' current' : '');
+        d.id = 'cp-dot-' + idx;
+        d.title = cp.title;
+        container.appendChild(d);
+      });
+      const cpEl = document.getElementById('cp-text');
+      if (cpEl) cpEl.textContent = `КП 0/${list.length}`;
+    }
+    window.updateCheckpointUIForMap = updateCheckpointUIForMap;
+
+    function switchMap(mapId) {
+      if (mapId === 'philippines') {
+        loadPhilippinesMap(() => {
+          currentMapId = 'philippines';
+          taigaObjects.forEach(o => { if (o) o.visible = false; });
+          philippinesGroup.visible = true;
+
+          // Настройка камеры и тёплого персикового тумана (art of rally Sunset)
+          camera.far = 1200;
+          camera.updateProjectionMatrix();
+          if (scene.fog) {
+            scene.fog.color.setHex(0xf4b183);
+            scene.fog.density = 0.0016;
+          }
+          scene.background = new THREE.Color(0xf4b183);
+
+          // Золотисто-янтарное закатное солнце для тропиков Филиппин
+          sunLight.position.set(150, 70, -70);
+          sunLight.color.setHex(0xffaa44);
+          sunLight.intensity = 1.65;
+          sunLight.shadow.camera.far = 450;
+          const phShadow = 220;
+          sunLight.shadow.camera.left = -phShadow;
+          sunLight.shadow.camera.right = phShadow;
+          sunLight.shadow.camera.top = phShadow;
+          sunLight.shadow.camera.bottom = -phShadow;
+          sunLight.shadow.camera.updateProjectionMatrix();
+          if (typeof hemiLight !== 'undefined') {
+            hemiLight.color.setHex(0xffdfba);
+            hemiLight.groundColor.setHex(0x38415c);
+            hemiLight.intensity = 1.20;
+          }
+          if (typeof fillLight !== 'undefined') fillLight.intensity = 0.65;
+
+          // Спавн автомобиля на старте главного проспекта Mactan Boulevard
+          const spX = 38.04;
+          const spZ = 143.82;
+          const groundY = getPhilippinesGroundHeight(spX, spZ);
+          truckPos.set(spX, groundY + (currentVehicleConfig?.clearance || 0.3) + 0.35, spZ);
+          truckHeading = -2.99; // лицом прямо вдоль проспекта Mactan Boulevard
+          truckSpeed = 0;
+          truckPitch = 0;
+          truckRoll = 0;
+          throttleState = 0;
+          rutVLat = 0;
+          bellyAmount = 0;
+          truck.position.copy(truckPos);
+          truck.rotation.set(0, truckHeading, 0);
+
+          // Обновление кнопок дока и HUD
+          document.getElementById('mbtn-default')?.classList.remove('active');
+          document.getElementById('mbtn-philippines')?.classList.add('active');
+          const mapLabel = document.getElementById('current-map-label');
+          if (mapLabel) mapLabel.textContent = 'Филиппины [M]';
+
+          passedCount = 0;
+          expeditionTime = 0;
+          expeditionFinished = false;
+          updateCheckpointUIForMap('philippines');
+
+          showPopup('🗺️ ЛОКАЦИЯ: ФИЛИППИНЫ, ЛАПУ-ЛАПУ (MACTAN NEW TOWN)');
+        });
+      } else {
+        currentMapId = 'taiga';
+        taigaObjects.forEach(o => { if (o) o.visible = true; });
+        philippinesGroup.visible = false;
+
+        // Возврат камеры и тумана Тайги
+        camera.far = 380;
+        camera.updateProjectionMatrix();
+        if (scene.fog) scene.fog.density = 0.0055;
+
+        // Возврат освещения Тайги
+        sunLight.position.set(48, 75, -35);
+        sunLight.shadow.camera.far = 250;
+        const shadowD = 68;
+        sunLight.shadow.camera.left = -shadowD;
+        sunLight.shadow.camera.right = shadowD;
+        sunLight.shadow.camera.top = shadowD;
+        sunLight.shadow.camera.bottom = -shadowD;
+        sunLight.shadow.camera.updateProjectionMatrix();
+        if (typeof hemiLight !== 'undefined') hemiLight.intensity = 1.02;
+        if (typeof fillLight !== 'undefined') fillLight.intensity = 0.48;
+
+        // Спавн на Секторе 1 Тайги
+        truckPos.set(0, getGroundMeshHeight(0, -75) + (currentVehicleConfig?.clearance || 0.3) + 0.35, -75);
+        truckHeading = 0;
+        truckSpeed = 0;
+        truckPitch = 0;
+        truckRoll = 0;
+        throttleState = 0;
+        rutVLat = 0;
+        bellyAmount = 0;
+        truck.position.copy(truckPos);
+        truck.rotation.set(0, truckHeading, 0);
+
+        // Обновление кнопок дока и HUD
+        document.getElementById('mbtn-philippines')?.classList.remove('active');
+        document.getElementById('mbtn-default')?.classList.add('active');
+        const mapLabel = document.getElementById('current-map-label');
+        if (mapLabel) mapLabel.textContent = 'Тайга [M]';
+
+        passedCount = 0;
+        expeditionTime = 0;
+        expeditionFinished = false;
+        updateCheckpointUIForMap('taiga');
+
+        showPopup('🗺️ ЛОКАЦИЯ: ПОЛИГОН «ТАЙГА-6x6»');
+      }
+    }
+    window.switchMap = switchMap;
+
+    // Тюнинг физики SoilSim для городских асфальтовых трасс и побережья Филиппин
+    if (typeof SOIL !== 'undefined' && SOIL.typeAtXZ) {
+      const origTypeAtXZ = SOIL.typeAtXZ.bind(SOIL);
+      SOIL.typeAtXZ = function(x, z) {
+        if (currentMapId === 'philippines') {
+          if (window.PhilippinesTracks && window.PhilippinesTracks.getRoadElevation) {
+            const rInfo = window.PhilippinesTracks.getRoadElevation(x, z);
+            if (rInfo && rInfo.onRoad) return SoilSim.TYPE.concrete; // Асфальт
+          }
+          if (z < -160 && x > 60 && x < 180) return SoilSim.TYPE.swamp; // Прибой лагуны / мелководье
+          if (z < -120 && x > 70) return SoilSim.TYPE.sand; // Золотой песок пляжа курорта
+          return SoilSim.TYPE.concrete;
+        }
+        return origTypeAtXZ(x, z);
+      };
+      const origSample = SOIL.sample.bind(SOIL);
+      SOIL.sample = function(x, z, out) {
+        if (currentMapId === 'philippines') {
+          if (window.PhilippinesTracks && window.PhilippinesTracks.getRoadElevation) {
+            const rInfo = window.PhilippinesTracks.getRoadElevation(x, z);
+            if (rInfo && rInfo.onRoad) {
+              out.dh = 0; out.wet = 0; out.pack = 1; out.churn = 0;
+              return;
+            }
+          }
+          if (z < -160 && x > 60 && x < 180) {
+            // Водное сопротивление в прибое
+            out.dh = -0.12; out.wet = 1.0; out.pack = 0.4; out.churn = 0.5;
+            return;
+          } else if (z < -120 && x > 70) {
+            // Песок пляжа
+            out.dh = -0.05; out.wet = 0.1; out.pack = 0.6; out.churn = 0.2;
+            return;
+          }
+          out.dh = 0; out.wet = 0; out.pack = 1; out.churn = 0;
+          return;
+        }
+        return origSample(x, z, out);
+      };
+      const origGetDH = SOIL.getDH.bind(SOIL);
+      SOIL.getDH = function(x, z) {
+        if (currentMapId === 'philippines') return 0;
+        return origGetDH(x, z);
+      };
+    }
+
+    function toggleTipsPanel() {
+      const p = document.getElementById('tips-panel');
+      if (p) p.classList.toggle('open');
+    }
+
+    // Инициализация конфигурации HUD
+    applyHudConfig(currentHudConfig);
 
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;

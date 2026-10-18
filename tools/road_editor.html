@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>🗺️ Редактор Дорожной Сети — Philippines Mactan</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background: #0f1013;
+      color: #e2e8f0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+    }
+    #sidebar {
+      width: 380px;
+      min-width: 380px;
+      background: #16181d;
+      border-right: 1px solid rgba(255,255,255,0.08);
+      display: flex;
+      flex-direction: column;
+      z-index: 10;
+      box-shadow: 4px 0 24px rgba(0,0,0,0.5);
+    }
+    .header {
+      padding: 18px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.02);
+    }
+    .header h1 {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #f59e0b;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header p {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 5px;
+      line-height: 1.4;
+    }
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .route-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .route-card:hover {
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.2);
+    }
+    .route-card.active {
+      border-color: #f59e0b;
+      background: rgba(245, 158, 11, 0.09);
+      box-shadow: 0 0 16px rgba(245, 158, 11, 0.15);
+    }
+    .route-card-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .route-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 8px;
+    }
+    .route-stats {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-top: 6px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .btn {
+      background: #23262e;
+      color: #f1f5f9;
+      border: 1px solid rgba(255,255,255,0.12);
+      padding: 9px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.15s ease;
+    }
+    .btn:hover {
+      background: #2e323d;
+      border-color: rgba(255,255,255,0.25);
+    }
+    .btn-primary {
+      background: #f59e0b;
+      color: #000;
+      border: none;
+      font-weight: 700;
+    }
+    .btn-primary:hover {
+      background: #fbbf24;
+      box-shadow: 0 0 16px rgba(245, 158, 11, 0.4);
+    }
+    .btn-row {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-row .btn {
+      flex: 1;
+    }
+    .coords-display {
+      font-family: monospace;
+      font-size: 11px;
+      color: #38bdf8;
+      background: rgba(0,0,0,0.5);
+      padding: 10px 12px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.06);
+      line-height: 1.5;
+    }
+    #viewport {
+      flex: 1;
+      position: relative;
+      background: #090a0c;
+      overflow: hidden;
+      cursor: crosshair;
+    }
+    #viewport.panning {
+      cursor: grabbing !important;
+    }
+    #viewport.space-held {
+      cursor: grab !important;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    .floating-hud {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: rgba(18, 20, 24, 0.90);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.12);
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      line-height: 1.6;
+      color: #cbd5e1;
+      max-width: 320px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      pointer-events: none;
+    }
+    .floating-hud b { color: #f59e0b; }
+    .zoom-toolbar {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      gap: 6px;
+      background: rgba(18, 20, 24, 0.88);
+      backdrop-filter: blur(8px);
+      padding: 6px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .zoom-btn {
+      width: 34px;
+      height: 34px;
+      background: #252830;
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #f1f5f9;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .zoom-btn:hover {
+      background: #383c47;
+      border-color: #f59e0b;
+      color: #f59e0b;
+    }
+    .zoom-label {
+      padding: 0 10px;
+      font-size: 12px;
+      font-family: monospace;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="sidebar">
+    <div class="header">
+      <h1>🗺️ РЕДАКТОР ТРЕКОВ MACTAN</h1>
+      <p>Оцифровка трёх маршрутов острова Лапу-Лапу (500×500м).</p>
+    </div>
+
+    <div class="content">
+      <div id="routes-list"></div>
+
+      <div class="coords-display" id="coords-info">
+        <div>Координаты Three.js:</div>
+        <div><b>X: 0.00 м | Z: 0.00 м</b></div>
+        <div id="route-point-count" style="color:#94a3b8; margin-top:4px;">Точек в треке: 0</div>
+      </div>
+
+      <div class="controls">
+        <div class="btn-row">
+          <button class="btn" id="btn-delete-last">↩️ Отменить точку</button>
+          <button class="btn" id="btn-clear-route">🗑️ Очистить трек</button>
+        </div>
+        <button class="btn btn-primary" id="btn-save-json">💾 Скачать philippines_roads.json</button>
+        <button class="btn" id="btn-copy-json">📋 Скопировать JSON в буфер</button>
+        <button class="btn" id="btn-reset-view">🎯 Сбросить вид (100%)</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="viewport">
+    <canvas id="canvas"></canvas>
+
+    <div class="floating-hud">
+      <b>Управление картой:</b><br>
+      • <b>Колёсико мыши</b> — зум в точку курсора (0.4× .. 8.0×)<br>
+      • <b>Зажатое колёсико</b> или <b>Пробел + ЛКМ</b> — перемещение карты<br>
+      • <b>ЛКМ</b> — поставить точку / перетащить точку<br>
+      • <b>ПКМ по точке</b> — удалить точку<br>
+    </div>
+
+    <div class="zoom-toolbar">
+      <button class="zoom-btn" id="btn-zoom-out" title="Уменьшить">−</button>
+      <div class="zoom-label" id="zoom-indicator">100%</div>
+      <button class="zoom-btn" id="btn-zoom-in" title="Увеличить">+</button>
+      <button class="zoom-btn" id="btn-zoom-fit" title="Сброс вида" style="font-size:12px;">1:1</button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const viewport = document.getElementById('viewport');
+    const coordsInfo = document.getElementById('coords-info');
+    const pointCountEl = document.getElementById('route-point-count');
+    const routesList = document.getElementById('routes-list');
+    const zoomIndicator = document.getElementById('zoom-indicator');
+
+    // Размер исходного ортофотоплана
+    const ORTHO_METERS = 500.0;
+    const MAP_TEX_SIZE = 1024;
+    const METERS_PER_TEX_PX = ORTHO_METERS / MAP_TEX_SIZE;
+
+    // Состояние панорамирования и зума
+    let zoom = 1.0;
+    let panX = 0;
+    let panY = 0;
+    let isPanning = false;
+    let panStartX = 0;
+    let panStartY = 0;
+    let isSpaceHeld = false;
+
+    // Редактирование точек
+    let draggedPoint = null;
+    let hoveredPoint = null;
+    let hasMovedDuringMouseDown = false;
+    let mouseDownPos = { x: 0, y: 0 };
+
+    // Загрузка текстуры карты
+    const mapImg = new Image();
+    mapImg.src = '/philippines_topdown_map.png';
+    mapImg.onload = () => { render(); };
+
+    // Три целевых маршрута согласно концепту
+    let routesData = {
+      "coastal_loop": {
+        name: "1. Coastal Loop (Набережная и курорт)",
+        color: "#00f0ff",
+        width: 8.0,
+        points: []
+      },
+      "barangay_trail": {
+        name: "2. Barangay & Coconut Trail (Грунтовка и роща)",
+        color: "#4ade80",
+        width: 7.0,
+        points: []
+      },
+      "shoreline_trail": {
+        name: "3. Shoreline Trail (Песок, лодки, брод)",
+        color: "#fbbf24",
+        width: 6.5,
+        points: []
+      },
+      "mactan_boulevard": {
+        name: "4. Mactan Boulevard (Главный проспект)",
+        color: "#f59e0b",
+        width: 10.0,
+        points: []
+      }
+    };
+
+    let activeRouteId = "coastal_loop";
+
+    // Инициализация размеров canvas
+    function resizeCanvas() {
+      const rect = viewport.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.resetTransform();
+      ctx.scale(dpr, dpr);
+      render();
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    // Преобразование координат
+    // Мировые метры Three.js: X в [-250 .. +250], Z в [-250 .. +250]
+    // Текстурные пиксели: tx в [0 .. 1024], ty в [0 .. 1024]
+    function metersToTexPx(x, z) {
+      const tx = (x / METERS_PER_TEX_PX) + MAP_TEX_SIZE / 2;
+      const ty = (z / METERS_PER_TEX_PX) + MAP_TEX_SIZE / 2;
+      return { tx, ty };
+    }
+
+    function texPxToMeters(tx, ty) {
+      const x = (tx - MAP_TEX_SIZE / 2) * METERS_PER_TEX_PX;
+      const z = (ty - MAP_TEX_SIZE / 2) * METERS_PER_TEX_PX;
+      return { x: Math.round(x * 100) / 100, z: Math.round(z * 100) / 100 };
+    }
+
+    // Экранные координаты (CSS пиксели во вьюпорте) в мировые метры Three.js
+    function screenToWorld(sx, sy) {
+      const rect = viewport.getBoundingClientRect();
+      const cx = rect.width / 2;
+      const cy = rect.height / 2;
+      // Обратное преобразование: screen = (tex - 512) * zoom + center + pan
+      const tx = (sx - cx - panX) / zoom + MAP_TEX_SIZE / 2;
+      const ty = (sy - cy - panY) / zoom + MAP_TEX_SIZE / 2;
+      return texPxToMeters(tx, ty);
+    }
+
+    // Мировые метры Three.js в экранные CSS пиксели во вьюпорте
+    function worldToScreen(x, z) {
+      const rect = viewport.getBoundingClientRect();
+      const cx = rect.width / 2;
+      const cy = rect.height / 2;
+      const { tx, ty } = metersToTexPx(x, z);
+      const sx = (tx - MAP_TEX_SIZE / 2) * zoom + cx + panX;
+      const sy = (ty - MAP_TEX_SIZE / 2) * zoom + cy + panY;
+      return { sx, sy };
+    }
+
+    // Загрузка начальных маршрутов
+    fetch('/models/philippines_roads.json')
+      .then(res => res.json())
+      .then(data => {
+        if (data.routes) {
+          if (data.routes.beach_promenade) routesData.coastal_loop.points = data.routes.beach_promenade.points;
+          if (data.routes.mangrove_trail) routesData.barangay_trail.points = data.routes.mangrove_trail.points;
+          if (data.routes.mactan_boulevard) routesData.mactan_boulevard.points = data.routes.mactan_boulevard.points;
+          if (data.routes.plaza_loop) routesData.shoreline_trail.points = data.routes.plaza_loop.points;
+        }
+        buildUI();
+        render();
+      })
+      .catch(err => {
+        console.warn('Используются дефолтные маршруты:', err);
+        buildUI();
+        render();
+      });
+
+    function buildUI() {
+      routesList.innerHTML = '';
+      Object.keys(routesData).forEach(id => {
+        const r = routesData[id];
+        const card = document.createElement('div');
+        card.className = 'route-card' + (id === activeRouteId ? ' active' : '');
+        card.innerHTML = `
+          <div class="route-card-title">
+            <span><span class="route-dot" style="background:${r.color}; box-shadow: 0 0 8px ${r.color}"></span>${r.name}</span>
+          </div>
+          <div class="route-stats">
+            <span>Ширина: ${r.width} м</span>
+            <span>Точек: ${r.points.length}</span>
+          </div>
+        `;
+        card.onclick = () => {
+          activeRouteId = id;
+          buildUI();
+          render();
+        };
+        routesList.appendChild(card);
+      });
+      const cur = routesData[activeRouteId];
+      if (pointCountEl) pointCountEl.textContent = `Точек в треке: ${cur ? cur.points.length : 0}`;
+    }
+
+    function render() {
+      const rect = viewport.getBoundingClientRect();
+      const w = rect.width;
+      const h = rect.height;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Фон за пределами карты
+      ctx.fillStyle = '#090a0c';
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.save();
+      // Центрирование + pan + zoom
+      ctx.translate(w / 2 + panX, h / 2 + panY);
+      ctx.scale(zoom, zoom);
+      ctx.translate(-MAP_TEX_SIZE / 2, -MAP_TEX_SIZE / 2);
+
+      // 1. Отрисовка спутниковой текстуры карты
+      if (mapImg.complete && mapImg.naturalWidth > 0) {
+        ctx.drawImage(mapImg, 0, 0, MAP_TEX_SIZE, MAP_TEX_SIZE);
+      } else {
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(0, 0, MAP_TEX_SIZE, MAP_TEX_SIZE);
+      }
+
+      // 2. Сетка 50 метров
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+      ctx.lineWidth = 1 / zoom;
+      const stepPx = 50 / METERS_PER_TEX_PX;
+      for (let x = 0; x <= MAP_TEX_SIZE; x += stepPx) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, MAP_TEX_SIZE); ctx.stroke();
+      }
+      for (let y = 0; y <= MAP_TEX_SIZE; y += stepPx) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(MAP_TEX_SIZE, y); ctx.stroke();
+      }
+
+      // 3. Главные оси координат X и Z
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.lineWidth = 1.5 / zoom;
+      ctx.beginPath(); ctx.moveTo(MAP_TEX_SIZE / 2, 0); ctx.lineTo(MAP_TEX_SIZE / 2, MAP_TEX_SIZE); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, MAP_TEX_SIZE / 2); ctx.lineTo(MAP_TEX_SIZE, MAP_TEX_SIZE / 2); ctx.stroke();
+
+      // Отрисовка всех трасс в мировом пространстве текстуры
+      Object.keys(routesData).forEach(id => {
+        const r = routesData[id];
+        const isActive = (id === activeRouteId);
+        if (r.points.length < 2) return;
+
+        // Полотно дороги
+        ctx.strokeStyle = r.color;
+        const roadWidthPx = (r.width / METERS_PER_TEX_PX);
+        ctx.lineWidth = isActive ? Math.max(3 / zoom, roadWidthPx * 0.75) : (roadWidthPx * 0.45);
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.globalAlpha = isActive ? 0.85 : 0.40;
+
+        ctx.beginPath();
+        r.points.forEach((pt, i) => {
+          const { tx, ty } = metersToTexPx(pt.x, pt.z);
+          if (i === 0) ctx.moveTo(tx, ty);
+          else ctx.lineTo(tx, ty);
+        });
+        ctx.stroke();
+        ctx.globalAlpha = 1.0;
+      });
+
+      ctx.restore();
+
+      // 4. Отрисовка интерактивных точек активного трека поверх в экранных координатах
+      // (чтобы маркеры всегда имели идеальный фиксированный размер для удобства клика)
+      const curRoute = routesData[activeRouteId];
+      if (curRoute && curRoute.points) {
+        curRoute.points.forEach((pt, i) => {
+          const { sx, sy } = worldToScreen(pt.x, pt.z);
+          const isSelected = (draggedPoint === pt || hoveredPoint === pt);
+
+          ctx.beginPath();
+          ctx.arc(sx, sy, isSelected ? 8 : 5.5, 0, Math.PI * 2);
+          ctx.fillStyle = isSelected ? '#ffffff' : curRoute.color;
+          ctx.fill();
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          // Текстовая метка точки
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 11px monospace';
+          ctx.shadowColor = 'rgba(0,0,0,0.8)';
+          ctx.shadowBlur = 4;
+          ctx.fillText(i + 1, sx + 9, sy - 5);
+          ctx.shadowBlur = 0;
+        });
+      }
+
+      // Обновление индикатора зума
+      zoomIndicator.textContent = `${Math.round(zoom * 100)}%`;
+    }
+
+    // =========================================================================
+    // ОБРАБОТКА МЫШИ: КОЛЁСИКО (ZOOM), ПАНОРАМИРОВАНИЕ (PAN) И РЕДАКТИРОВАНИЕ
+    // =========================================================================
+
+    // 1. Колёсико мыши: Зум строго в точку под курсором
+    viewport.addEventListener('wheel', (e) => {
+      e.preventDefault();
+
+      const rect = viewport.getBoundingClientRect();
+      const mouseScreenX = e.clientX - rect.left;
+      const mouseScreenY = e.clientY - rect.top;
+
+      // Получаем координаты мира под курсором ДО зума
+      const worldUnderCursor = screenToWorld(mouseScreenX, mouseScreenY);
+
+      // Коэффициент масштабирования
+      const zoomFactor = e.deltaY < 0 ? 1.15 : (1 / 1.15);
+      const newZoom = Math.max(0.35, Math.min(8.0, zoom * zoomFactor));
+
+      if (newZoom !== zoom) {
+        zoom = newZoom;
+        // Корректируем смещение так, чтобы точка мира осталась под курсором ПОСЛЕ зума
+        const cx = rect.width / 2;
+        const cy = rect.height / 2;
+        const { tx, ty } = metersToTexPx(worldUnderCursor.x, worldUnderCursor.z);
+        panX = mouseScreenX - cx - (tx - MAP_TEX_SIZE / 2) * zoom;
+        panY = mouseScreenY - cy - (ty - MAP_TEX_SIZE / 2) * zoom;
+
+        render();
+      }
+    }, { passive: false });
+
+    // 2. Отслеживание клавиши Пробел для панорамирования
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' && !isSpaceHeld) {
+        isSpaceHeld = true;
+        viewport.classList.add('space-held');
+      }
+    });
+    window.addEventListener('keyup', (e) => {
+      if (e.code === 'Space') {
+        isSpaceHeld = false;
+        viewport.classList.remove('space-held');
+      }
+    });
+
+    // 3. Mouse Down
+    viewport.addEventListener('mousedown', (e) => {
+      const rect = viewport.getBoundingClientRect();
+      const sx = e.clientX - rect.left;
+      const sy = e.clientY - rect.top;
+      mouseDownPos = { x: sx, y: sy };
+      hasMovedDuringMouseDown = false;
+
+      // Панорамирование: средняя кнопка мыши (СКМ) ИЛИ зажатый Пробел + ЛКМ
+      if (e.button === 1 || (e.button === 0 && isSpaceHeld)) {
+        isPanning = true;
+        panStartX = sx - panX;
+        panStartY = sy - panY;
+        viewport.classList.add('panning');
+        e.preventDefault();
+        return;
+      }
+
+      // ЛКМ — проверка захвата существующей точки
+      if (e.button === 0) {
+        const curRoute = routesData[activeRouteId];
+        if (curRoute) {
+          for (let i = curRoute.points.length - 1; i >= 0; i--) {
+            const pt = curRoute.points[i];
+            const { sx: ptSx, sy: ptSy } = worldToScreen(pt.x, pt.z);
+            if (Math.hypot(sx - ptSx, sy - ptSy) <= 12) {
+              draggedPoint = pt;
+              render();
+              return;
+            }
+          }
+        }
+      }
+    });
+
+    // 4. Mouse Move
+    viewport.addEventListener('mousemove', (e) => {
+      const rect = viewport.getBoundingClientRect();
+      const sx = e.clientX - rect.left;
+      const sy = e.clientY - rect.top;
+
+      if (Math.hypot(sx - mouseDownPos.x, sy - mouseDownPos.y) > 3) {
+        hasMovedDuringMouseDown = true;
+      }
+
+      // Если в режиме панорамирования
+      if (isPanning) {
+        panX = sx - panStartX;
+        panY = sy - panStartY;
+        render();
+        return;
+      }
+
+      // Обновление координат курсора
+      const worldPos = screenToWorld(sx, sy);
+      coordsInfo.innerHTML = `
+        <div>Координаты Three.js:</div>
+        <div><b>X: ${worldPos.x.toFixed(2)} м | Z: ${worldPos.z.toFixed(2)} м</b></div>
+      `;
+
+      // Если тащим точку
+      if (draggedPoint) {
+        draggedPoint.x = worldPos.x;
+        draggedPoint.z = worldPos.z;
+        render();
+        return;
+      }
+
+      // Подсветка точки под курсором
+      const curRoute = routesData[activeRouteId];
+      let newHovered = null;
+      if (curRoute && !isSpaceHeld) {
+        for (const pt of curRoute.points) {
+          const { sx: ptSx, sy: ptSy } = worldToScreen(pt.x, pt.z);
+          if (Math.hypot(sx - ptSx, sy - ptSy) <= 12) {
+            newHovered = pt;
+            break;
+          }
+        }
+      }
+      if (hoveredPoint !== newHovered) {
+        hoveredPoint = newHovered;
+        render();
+      }
+    });
+
+    // 5. Mouse Up
+    window.addEventListener('mouseup', (e) => {
+      if (isPanning) {
+        isPanning = false;
+        viewport.classList.remove('panning');
+      }
+
+      // Если кликнули ЛКМ без перетаскивания и не на точку — добавляем новую точку
+      if (e.button === 0 && !isSpaceHeld && !draggedPoint && !hasMovedDuringMouseDown) {
+        const rect = viewport.getBoundingClientRect();
+        if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+          const sx = e.clientX - rect.left;
+          const sy = e.clientY - rect.top;
+          const worldPos = screenToWorld(sx, sy);
+          const curRoute = routesData[activeRouteId];
+          if (curRoute) {
+            curRoute.points.push({ x: worldPos.x, z: worldPos.z });
+            buildUI();
+            render();
+          }
+        }
+      }
+
+      draggedPoint = null;
+    });
+
+    // 6. ПКМ — удаление точки
+    viewport.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      const rect = viewport.getBoundingClientRect();
+      const sx = e.clientX - rect.left;
+      const sy = e.clientY - rect.top;
+      const curRoute = routesData[activeRouteId];
+      if (!curRoute) return;
+
+      const idx = curRoute.points.findIndex(pt => {
+        const { sx: ptSx, sy: ptSy } = worldToScreen(pt.x, pt.z);
+        return Math.hypot(sx - ptSx, sy - ptSy) <= 12;
+      });
+
+      if (idx !== -1) {
+        curRoute.points.splice(idx, 1);
+        buildUI();
+        render();
+      }
+    });
+
+    // Кнопки тулбара зума
+    function applyZoom(delta) {
+      const rect = viewport.getBoundingClientRect();
+      const cx = rect.width / 2;
+      const cy = rect.height / 2;
+      const worldCenter = screenToWorld(cx, cy);
+
+      const zoomFactor = delta > 0 ? 1.25 : (1 / 1.25);
+      zoom = Math.max(0.35, Math.min(8.0, zoom * zoomFactor));
+
+      const { tx, ty } = metersToTexPx(worldCenter.x, worldCenter.z);
+      panX = -(tx - MAP_TEX_SIZE / 2) * zoom;
+      panY = -(ty - MAP_TEX_SIZE / 2) * zoom;
+
+      render();
+    }
+
+    document.getElementById('btn-zoom-in').onclick = () => applyZoom(1);
+    document.getElementById('btn-zoom-out').onclick = () => applyZoom(-1);
+    document.getElementById('btn-zoom-fit').onclick = () => {
+      zoom = 1.0; panX = 0; panY = 0; render();
+    };
+    document.getElementById('btn-reset-view').onclick = () => {
+      zoom = 1.0; panX = 0; panY = 0; render();
+    };
+
+    // Управление треком
+    document.getElementById('btn-delete-last').onclick = () => {
+      const curRoute = routesData[activeRouteId];
+      if (curRoute && curRoute.points.length > 0) {
+        curRoute.points.pop();
+        buildUI();
+        render();
+      }
+    };
+
+    document.getElementById('btn-clear-route').onclick = () => {
+      const curRoute = routesData[activeRouteId];
+      if (curRoute && confirm(`Очистить все точки трека "${curRoute.name}"?`)) {
+        curRoute.points = [];
+        buildUI();
+        render();
+      }
+    };
+
+    document.getElementById('btn-save-json').onclick = () => {
+      const exportJson = {
+        meta: {
+          map: "Mactan Tropical Island 500x500",
+          scale: ORTHO_METERS,
+          updatedAt: new Date().toISOString()
+        },
+        routes: routesData
+      };
+      const blob = new Blob([JSON.stringify(exportJson, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'philippines_roads.json';
+      a.click();
+    };
+
+    document.getElementById('btn-copy-json').onclick = () => {
+      const exportJson = {
+        meta: {
+          map: "Mactan Tropical Island 500x500",
+          scale: ORTHO_METERS,
+          updatedAt: new Date().toISOString()
+        },
+        routes: routesData
+      };
+      navigator.clipboard.writeText(JSON.stringify(exportJson, null, 2)).then(() => {
+        alert('Координаты маршрутов скопированы в буфер обмена!');
+      });
+    };
+
+    // Начальный запуск
+    resizeCanvas();
+  </script>
+</body>
+</html>
