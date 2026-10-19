@@ -290,35 +290,6 @@
       border-color: #fff;
     }
 
-    /* Кисть грунта (Soil Brush) */
-    .soil-type-btn {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 10px;
-      background: #18191f;
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      user-select: none;
-    }
-    .soil-type-btn:hover {
-      background: #252833;
-      border-color: rgba(255,255,255,0.2);
-    }
-    .soil-type-btn.active {
-      border-color: #f59e0b;
-      background: rgba(245,158,11,0.12);
-      box-shadow: 0 0 10px rgba(245,158,11,0.25);
-    }
-    .soil-swatch {
-      width: 18px;
-      height: 18px;
-      border-radius: 4px;
-      flex-shrink: 0;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
-    }
 
     /* D-Pad и инспектор перемещения */
     .dpad-container {
@@ -650,20 +621,23 @@
   <div id="sidebar">
     <div class="header">
       <div class="header-titles">
-        <h1>🗺️ РЕДАКТОР КАРТЫ MACTAN</h1>
-        <p>Дороги, пропсы и объекты острова Лапу-Лапу</p>
+        <h1 id="editor-header-title">🗺️ РЕДАКТОР КАРТЫ: ЗАИР</h1>
+        <p id="editor-header-subtitle">Мутшатша (1988) — Дорога RN39, станция и хижины</p>
       </div>
-      <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+      <div style="display:flex; flex-direction:column; align-items:flex-end; gap:5px;">
+        <select id="editor-map-select" onchange="switchEditorMap(this.value)" style="background:#1e293b; color:#fbbf24; border:1px solid #f59e0b; border-radius:6px; padding:4px 8px; font-size:11px; font-weight:700; cursor:pointer;" title="Переключение карты и окружения">
+          <option value="zaire" selected>🇿🇦 Заир (Мутшатша, 1988)</option>
+          <option value="philippines">🇵🇭 Филиппины (Мактан)</option>
+        </select>
         <span class="badge-scale" id="badge-map-scale">500 × 500 м</span>
-        <span class="badge-scale" id="badge-map-res" style="color:#00f0ff; border-color:rgba(0,240,255,0.4); background:rgba(0,240,255,0.1);">4096 × 4096 Ultra-HD</span>
+        <span class="badge-scale" id="badge-map-res" style="color:#00f0ff; border-color:rgba(0,240,255,0.4); background:rgba(0,240,255,0.1);">1280 × 1280 Спутник</span>
       </div>
     </div>
 
     <!-- Вкладки -->
     <div class="tabs-bar">
       <button class="tab-btn active" id="tab-btn-roads" onclick="switchTab('roads')">🛣️ Дороги</button>
-      <button class="tab-btn" id="tab-btn-props" onclick="switchTab('props')">🌴 Ассеты</button>
-      <button class="tab-btn" id="tab-btn-soil" onclick="switchTab('soil')">🚜 Грунт</button>
+      <button class="tab-btn" id="tab-btn-props" onclick="switchTab('props')">🛖 Ассеты</button>
       <button class="tab-btn" id="tab-btn-inspector" onclick="switchTab('inspector')">📐 Инспектор</button>
     </div>
 
@@ -685,7 +659,7 @@
       </div>
 
       <div class="section-title">
-        <span>Маршруты острова</span>
+        <span>Маршруты карты</span>
         <button class="btn" style="padding:4px 8px; font-size:11px;" onclick="promptNewRoute()">+ Новый маршрут</button>
       </div>
 
@@ -694,19 +668,20 @@
       <div class="section-title" style="margin-top:10px;">Параметры активной дороги</div>
       <div class="field-row">
         <label>Ширина полотна:</label>
-        <input type="range" id="route-width-slider" min="4" max="16" step="0.5" value="8" oninput="updateActiveRouteWidth(this.value)">
+        <input type="range" id="route-width-slider" min="2" max="16" step="0.5" value="8" oninput="updateActiveRouteWidth(this.value)">
         <span id="route-width-val" style="font-family:monospace; font-size:12px; min-width:35px;">8.0 м</span>
       </div>
 
       <div class="field-row">
         <label>Покрытие дороги:</label>
         <select id="route-surface-select" onchange="updateActiveRouteSurface(this.value)" style="background:#1e293b; color:#f1f5f9; border:1px solid rgba(255,255,255,0.15); border-radius:6px; padding:5px 8px; font-size:11px; flex:1; cursor:pointer;">
-          <option value="asphalt" selected>🛣️ Асфальт (городской бульвар)</option>
-          <option value="clay">🟫 Вязкая глина (Тайга)</option>
-          <option value="sand">🟡 Песчаная колея (пляж)</option>
-          <option value="forest">🌲 Лесная тропа (грунт и корни)</option>
-          <option value="swamp">🟤 Болото / грязевой брод</option>
-          <option value="snow">❄️ Заснеженная колея</option>
+          <option value="clay" selected>🟫 Вязкая глина / Латерит (Мутшатша RN39)</option>
+          <option value="gravel">🪨 Гравийная дорога / станция</option>
+          <option value="sand">🟡 Песчаная дорога / брод</option>
+          <option value="dirt">🌲 Грунтовка / лесная тропа</option>
+          <option value="asphalt">🛣️ Асфальт / шоссе</option>
+          <option value="swamp">🟤 Болото / трясина</option>
+          <option value="snow">❄️ Снежная колея</option>
         </select>
       </div>
 
@@ -909,107 +884,6 @@
       </details>
     </div>
 
-    <!-- Вкладка 4: Кисть и зоны грунта из Тайги -->
-    <div class="tab-content" id="tab-soil">
-      <div class="section-title">
-        <span>🚜 Кисть грунта (Тайга)</span>
-        <span id="soil-count-badge" style="color:#f59e0b; font-size:11px;">0 зон</span>
-      </div>
-      <p style="font-size:11px; color:#94a3b8; line-height:1.4; margin-bottom:8px;">
-        Выберите тип грунта и <b>рисуйте мышкой прямо по карте</b>. При езде машина будет вязнуть, буксовать и пачкаться в соответствии с физикой SoilSim!
-      </p>
-
-      <!-- Палитра грунтов -->
-      <div class="section-title" style="margin-top:2px;"><span>Тип покрытия / грунта</span></div>
-      <div class="soil-palette" id="soil-palette" style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
-        <button class="soil-type-btn active" id="soil-btn-clay" onclick="setSoilBrushType('clay')">
-          <span class="soil-swatch" style="background:#6a3f24;"></span>
-          <div style="text-align:left;">
-            <div style="font-weight:700; color:#f1f5f9; font-size:11px;">🟫 Глина</div>
-            <div style="font-size:9px; color:#94a3b8;">Колея, пробуксовка</div>
-          </div>
-        </button>
-        <button class="soil-type-btn" id="soil-btn-swamp" onclick="setSoilBrushType('swamp')">
-          <span class="soil-swatch" style="background:#4a3b2a;"></span>
-          <div style="text-align:left;">
-            <div style="font-weight:700; color:#f1f5f9; font-size:11px;">🟤 Болото / Брод</div>
-            <div style="font-size:9px; color:#94a3b8;">Жижа, брызги</div>
-          </div>
-        </button>
-        <button class="soil-type-btn" id="soil-btn-sand" onclick="setSoilBrushType('sand')">
-          <span class="soil-swatch" style="background:#c79a5b;"></span>
-          <div style="text-align:left;">
-            <div style="font-weight:700; color:#f1f5f9; font-size:11px;">🟡 Песок</div>
-            <div style="font-size:9px; color:#94a3b8;">Срыв сцепления</div>
-          </div>
-        </button>
-        <button class="soil-type-btn" id="soil-btn-forest" onclick="setSoilBrushType('forest')">
-          <span class="soil-swatch" style="background:#6b4a2f;"></span>
-          <div style="text-align:left;">
-            <div style="font-weight:700; color:#f1f5f9; font-size:11px;">🌲 Лесная почва</div>
-            <div style="font-size:9px; color:#94a3b8;">Хвоя, корни</div>
-          </div>
-        </button>
-        <button class="soil-type-btn" id="soil-btn-snow" onclick="setSoilBrushType('snow')">
-          <span class="soil-swatch" style="background:#eef3f8;"></span>
-          <div style="text-align:left;">
-            <div style="font-weight:700; color:#f1f5f9; font-size:11px;">❄️ Снег</div>
-            <div style="font-size:9px; color:#94a3b8;">Скольжение</div>
-          </div>
-        </button>
-        <button class="soil-type-btn" id="soil-btn-eraser" onclick="setSoilBrushType('eraser')">
-          <span class="soil-swatch" style="background:#386641; border:1px dashed #fff;"></span>
-          <div style="text-align:left;">
-            <div style="font-weight:700; color:#f1f5f9; font-size:11px;">🧼 Ластик</div>
-            <div style="font-size:9px; color:#94a3b8;">Стереть в траву</div>
-          </div>
-        </button>
-      </div>
-
-      <!-- Настройки кисти -->
-      <div style="background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:10px; display:flex; flex-direction:column; gap:8px; margin-top:8px;">
-        <div>
-          <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px;">
-            <span style="color:#cbd5e1; font-weight:600;">Радиус кисти:</span>
-            <span id="soil-brush-radius-label" style="color:#f59e0b; font-weight:700;">12 м</span>
-          </div>
-          <input type="range" id="soil-brush-radius" min="2" max="40" step="1" value="12" style="width:100%; accent-color:#f59e0b;" oninput="updateSoilBrushRadius(this.value)">
-          <div style="display:flex; justify-content:space-between; font-size:9px; color:#64748b; margin-top:2px;">
-            <span>2 м (колея)</span>
-            <span>20 м</span>
-            <span>40 м (полигон)</span>
-          </div>
-        </div>
-
-        <div>
-          <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px;">
-            <span style="color:#cbd5e1; font-weight:600;">Плотность / Сила:</span>
-            <span id="soil-brush-strength-label" style="color:#00f0ff; font-weight:700;">80%</span>
-          </div>
-          <input type="range" id="soil-brush-strength" min="0.2" max="1.0" step="0.05" value="0.8" style="width:100%; accent-color:#00f0ff;" oninput="updateSoilBrushStrength(this.value)">
-        </div>
-      </div>
-
-      <!-- Быстрые пресеты оффроуда -->
-      <div class="section-title" style="margin-top:6px;"><span>Готовые пресеты</span></div>
-      <div style="display:flex; flex-direction:column; gap:6px;">
-        <button class="btn" style="text-align:left; font-size:11px; padding:8px 10px;" onclick="applySoilPreset('mud_track')">
-          🟫 <b>Грязевой оффроуд-участок</b> у КП-2
-        </button>
-        <button class="btn" style="text-align:left; font-size:11px; padding:8px 10px;" onclick="applySoilPreset('beach_sand')">
-          🟡 <b>Песчаная полоса</b> вдоль курортного пляжа
-        </button>
-      </div>
-
-      <!-- Действия с грунтом -->
-      <div class="controls" style="margin-top:8px;">
-        <div class="btn-row">
-          <button class="btn" onclick="undoLastSoilZone()">↩️ Отменить мазок</button>
-          <button class="btn btn-danger" onclick="clearAllSoilZones()">🗑️ Очистить весь грунт</button>
-        </div>
-      </div>
-    </div>
-
     <!-- Футер сайдбара с быстрыми действиями -->
     <div class="sidebar-footer">
       <div class="coords-display">
@@ -1058,19 +932,117 @@
   </div>
 
   <script>
-    // --- 1. ОПРЕДЕЛЕНИЯ КАТАЛОГА АССЕТОВ (PROPS DEFINITIONS) ---
-    const PROPS_CATALOG = [
-      { type: 'palm', name: 'Кокосовая пальма', icon: '🌴', badge: 'Природа', defaultScale: 1.1, radius: 4.5 },
-      { type: 'bungalow', name: 'Курортное бунгало', icon: '🛖', badge: 'Курорт', defaultScale: 1.0, radius: 5.5 },
-      { type: 'umbrella', name: 'Пляжный зонт', icon: '⛱️', badge: 'Курорт', defaultScale: 1.0, radius: 2.2, defaultColor: '#06b6d4' },
-      { type: 'lounger', name: 'Шезлонг с полотенцем', icon: '🛋️', badge: 'Курорт', defaultScale: 1.0, radius: 2.0 },
-      { type: 'lamp', name: 'Уличный фонарь', icon: '🏮', badge: 'Город', defaultScale: 1.0, radius: 2.5 },
-      { type: 'boat', name: 'Лодка Банка', icon: '🚤', badge: 'Вода', defaultScale: 1.0, radius: 6.0 },
-      { type: 'pier', name: 'Деревянный пирс', icon: '🪵', badge: 'Курорт', defaultScale: 1.0, radius: 18.0 },
-      { type: 'buoy', name: 'Сигнальный буй', icon: '🟠', badge: 'Вода', defaultScale: 1.0, radius: 1.8 },
-      { type: 'rock', name: 'Тропический валун', icon: '🪨', badge: 'Природа', defaultScale: 1.2, radius: 3.5 },
-      { type: 'checkpoint', name: 'Арка чекпоинта', icon: '🏁', badge: 'Ралли', defaultScale: 1.0, radius: 7.0 }
-    ];
+    // --- 1. ОПРЕДЕЛЕНИЯ ПОВЕРХНОСТЕЙ ДОРОГ И КАРТ ---
+    const ROAD_SURFACES = {
+      clay: {
+        name: '🟫 Вязкая глина / Латерит (Мутшатша RN39)',
+        color: '#8f3b1e',
+        bedColor: '#6e2b14',
+        rutColor: 'rgba(0,0,0,0.38)',
+        friction: 0.55,
+        sink: 0.12
+      },
+      gravel: {
+        name: '🪨 Гравийная дорога / станция',
+        color: '#8c8275',
+        bedColor: '#6d655b',
+        rutColor: 'rgba(30,25,20,0.25)',
+        friction: 0.80,
+        sink: 0.03
+      },
+      sand: {
+        name: '🟡 Песчаная дорога / брод',
+        color: '#d4a362',
+        bedColor: '#b88947',
+        rutColor: 'rgba(80,55,20,0.30)',
+        friction: 0.60,
+        sink: 0.09
+      },
+      dirt: {
+        name: '🌲 Грунтовка / лесная тропа',
+        color: '#5c4028',
+        bedColor: '#452f1d',
+        rutColor: 'rgba(0,0,0,0.32)',
+        friction: 0.70,
+        sink: 0.05
+      },
+      asphalt: {
+        name: '🛣️ Асфальт / шоссе',
+        color: '#2b2d35',
+        bedColor: '#1d1e24',
+        rutColor: 'rgba(255,255,255,0.08)',
+        friction: 0.95,
+        sink: 0.00
+      },
+      swamp: {
+        name: '🟤 Болото / трясина',
+        color: '#3d3024',
+        bedColor: '#2b2219',
+        rutColor: 'rgba(0,0,0,0.45)',
+        friction: 0.40,
+        sink: 0.22
+      },
+      snow: {
+        name: '❄️ Снежная колея',
+        color: '#dbeafe',
+        bedColor: '#bfdbfe',
+        rutColor: 'rgba(50,80,120,0.25)',
+        friction: 0.45,
+        sink: 0.08
+      }
+    };
+
+    const MAP_CONFIGS = {
+      zaire: {
+        id: 'zaire',
+        name: 'Мутшатша (Заир, 1988)',
+        title: '🗺️ РЕДАКТОР КАРТЫ: ЗАИР',
+        subtitle: 'Мутшатша (1988) — Дорога RN39, станция и хижины',
+        imageSrc: '/assets/zaire_village_map.jpg',
+        roadsUrl: '/models/zaire_village_roads.json',
+        saveFilename: 'zaire_village_roads.json',
+        orthoMeters: 500.0,
+        defaultSurface: 'clay',
+        badgeRes: '1280 × 1280 Спутник',
+        propsCatalog: [
+          { type: 'hut_round', name: 'Хижина круглая (солома)', icon: '🛖', badge: 'Деревня', defaultScale: 1.0, radius: 4.5 },
+          { type: 'hut_clay', name: 'Хижина глинобитная', icon: '🏠', badge: 'Деревня', defaultScale: 1.0, radius: 5.0 },
+          { type: 'acacia_tree', name: 'Акация зонтичная', icon: '🌳', badge: 'Природа', defaultScale: 1.2, radius: 6.0 },
+          { type: 'mango_tree', name: 'Манговое дерево', icon: '🌲', badge: 'Природа', defaultScale: 1.1, radius: 5.5 },
+          { type: 'termite_mound', name: 'Термитник саванны', icon: '🪨', badge: 'Препятствие', defaultScale: 1.0, radius: 2.5 },
+          { type: 'barrel_fuel', name: 'Бочка топлива (Total)', icon: '🛢️', badge: 'Снабжение', defaultScale: 0.9, radius: 1.5, defaultColor: '#dc2626' },
+          { type: 'station_shed', name: 'Навес станции Мутшатша', icon: '🏢', badge: 'Станция', defaultScale: 1.3, radius: 9.0 },
+          { type: 'bicycle_roadster', name: 'Велосипед с грузом', icon: '🚲', badge: 'Транспорт', defaultScale: 0.8, radius: 1.8 }
+        ]
+      },
+      philippines: {
+        id: 'philippines',
+        name: 'Мактан (Филиппины)',
+        title: '🗺️ РЕДАКТОР КАРТЫ: ФИЛИППИНЫ',
+        subtitle: 'Лапу-Лапу — Город, пляжи и побережье',
+        imageSrc: '/philippines_topdown_map.png',
+        roadsUrl: '/models/philippines_roads.json',
+        saveFilename: 'philippines_roads.json',
+        orthoMeters: 500.0,
+        defaultSurface: 'asphalt',
+        badgeRes: '4096 × 4096 Ultra-HD',
+        propsCatalog: [
+          { type: 'palm', name: 'Кокосовая пальма', icon: '🌴', badge: 'Природа', defaultScale: 1.1, radius: 4.5 },
+          { type: 'bungalow', name: 'Курортное бунгало', icon: '🛖', badge: 'Курорт', defaultScale: 1.0, radius: 5.5 },
+          { type: 'umbrella', name: 'Пляжный зонт', icon: '⛱️', badge: 'Курорт', defaultScale: 1.0, radius: 2.2, defaultColor: '#06b6d4' },
+          { type: 'lounger', name: 'Шезлонг с полотенцем', icon: '🛋️', badge: 'Курорт', defaultScale: 1.0, radius: 2.0 },
+          { type: 'lamp', name: 'Уличный фонарь', icon: '🏮', badge: 'Город', defaultScale: 1.0, radius: 2.5 },
+          { type: 'boat', name: 'Лодка Банка', icon: '🚤', badge: 'Вода', defaultScale: 1.0, radius: 6.0 },
+          { type: 'pier', name: 'Деревянный пирс', icon: '🪵', badge: 'Курорт', defaultScale: 1.0, radius: 18.0 },
+          { type: 'buoy', name: 'Сигнальный буй', icon: '🟠', badge: 'Вода', defaultScale: 1.0, radius: 1.8 },
+          { type: 'rock', name: 'Тропический валун', icon: '🪨', badge: 'Природа', defaultScale: 1.2, radius: 3.5 },
+          { type: 'checkpoint', name: 'Арка чекпоинта', icon: '🏁', badge: 'Ралли', defaultScale: 1.0, radius: 7.0 }
+        ]
+      }
+    };
+
+    let currentMapKey = 'zaire';
+    let PROPS_CATALOG = MAP_CONFIGS.zaire.propsCatalog;
 
     // --- 2. ГЛОБАЛЬНОЕ СОСТОЯНИЕ РЕДАКТОРА ---
     const ORTHO_METERS = 500.0;
@@ -1088,7 +1060,7 @@
 
     // Режимы редактирования
     let activeTab = 'roads'; // 'roads', 'props', 'inspector'
-    let roadToolMode = 'select'; // 'select' (по умолчанию, безопасный просмотр без паразитных линий), 'draw' (добавление точек)
+    let roadToolMode = 'select'; // 'select' (по умолчанию), 'draw' (добавление точек)
     let stampPropType = null; // если активен режим штампа ассета
     let ghostPos = null; // экранная и мировая позиция для предпросмотра размещения
 
@@ -1111,26 +1083,7 @@
     // Данные карты
     let routesData = {};
     let propsData = [];
-    let activeRouteId = "mactan_boulevard";
-
-    // Зоны грунта из Тайги (SoilSim: глина, болото, песок, лес, снег)
-    let soilZones = [];
-    window.soilZones = soilZones;
-    let currentSoilType = 'clay';
-    let soilBrushRadius = 12.0;
-    let soilBrushStrength = 0.8;
-    let isPaintingSoil = false;
-    let lastSoilPaintPos = null;
-    let soilMouseWorldPos = null;
-
-    const SOIL_COLORS = {
-      clay: '#6a3f24',
-      swamp: '#4a3b2a',
-      sand: '#c79a5b',
-      forest: '#6b4a2f',
-      snow: '#eef3f8',
-      eraser: '#386641'
-    };
+    let activeRouteId = null;
 
     function hexToRgba(hex, alpha) {
       hex = hex.replace('#', '');
@@ -1149,8 +1102,7 @@
       if (undoStack.length > 30) undoStack.shift();
       undoStack.push({
         routes: JSON.parse(JSON.stringify(routesData)),
-        props: JSON.parse(JSON.stringify(propsData)),
-        soil: JSON.parse(JSON.stringify(soilZones))
+        props: JSON.parse(JSON.stringify(propsData))
       });
     }
 
@@ -1163,54 +1115,85 @@
     const statusStats = document.getElementById('status-stats');
     const toast = document.getElementById('toast');
 
-    // Загрузка текстуры карты в сверхвысоком разрешении (Ultra-HD 4096px)
+    // Текстура фоновой карты
     const mapImg = new Image();
     window.mapImg = mapImg;
-    mapImg.src = '/philippines_topdown_map.png?t=' + Date.now();
     mapImg.onload = () => {
-      console.log('🗺️ Загружена Ultra-HD карта Mactan:', mapImg.naturalWidth, 'x', mapImg.naturalHeight);
+      console.log(`🗺️ Фоновая карта [${currentMapKey}] загружена:`, mapImg.naturalWidth, 'x', mapImg.naturalHeight);
       const resBadge = document.getElementById('badge-map-res');
-      if (resBadge) resBadge.textContent = `${mapImg.naturalWidth} × ${mapImg.naturalHeight} Ultra-HD`;
+      if (resBadge) resBadge.textContent = `${mapImg.naturalWidth} × ${mapImg.naturalHeight} Снимок`;
       render();
     };
 
-    // --- 3. ИНИЦИАЛИЗАЦИЯ И ЗАГРУЗКА ДАННЫХ ---
-    fetch('/models/philippines_roads.json')
-      .then(res => res.json())
-      .then(data => {
-        routesData = data.routes || {};
-        propsData = data.props || [];
-        soilZones = data.soilZones || [];
-        window.routesData = routesData;
-        window.propsData = propsData;
-        window.soilZones = soilZones;
-        if (!routesData.mactan_boulevard) {
-          routesData.mactan_boulevard = { name: "Mactan Boulevard", color: "#f59e0b", width: 10, points: [] };
-        }
-        activeRouteId = Object.keys(routesData)[0] || "mactan_boulevard";
-        initPropsCatalogUI();
-        buildRoutesUI();
-        updateStats();
-        updateSoilCountBadge();
-        if (typeof updateAllPropsListUI === 'function') updateAllPropsListUI();
-        render();
-      })
-      .catch(err => {
-        console.warn('Загрузка дефолтных путей:', err);
-        routesData = {
-          "mactan_boulevard": { name: "Mactan Boulevard", color: "#f59e0b", width: 10, points: [] },
-          "coastal_loop": { name: "Coastal Loop", color: "#00f0ff", width: 8, points: [] }
-        };
-        soilZones = [];
-        window.soilZones = soilZones;
-        activeRouteId = "mactan_boulevard";
-        initPropsCatalogUI();
-        buildRoutesUI();
-        updateStats();
-        updateSoilCountBadge();
-        if (typeof updateAllPropsListUI === 'function') updateAllPropsListUI();
-        render();
-      });
+    // --- 3. ИНИЦИАЛИЗАЦИЯ И ПЕРЕКЛЮЧЕНИЕ КАРТЫ ---
+    function loadMapData(mapKey) {
+      currentMapKey = mapKey || 'zaire';
+      const cfg = MAP_CONFIGS[currentMapKey] || MAP_CONFIGS.zaire;
+
+      // Обновление UI шапки
+      const titleEl = document.getElementById('editor-header-title');
+      const subtitleEl = document.getElementById('editor-header-subtitle');
+      const selectEl = document.getElementById('editor-map-select');
+      const scaleBadge = document.getElementById('badge-map-scale');
+      const resBadge = document.getElementById('badge-map-res');
+
+      if (titleEl) titleEl.textContent = cfg.title;
+      if (subtitleEl) subtitleEl.textContent = cfg.subtitle;
+      if (selectEl) selectEl.value = currentMapKey;
+      if (scaleBadge) scaleBadge.textContent = `${cfg.orthoMeters} × ${cfg.orthoMeters} м`;
+      if (resBadge) resBadge.textContent = cfg.badgeRes;
+
+      // Обновление каталога пропсов
+      PROPS_CATALOG = cfg.propsCatalog;
+      initPropsCatalogUI();
+
+      // Загрузка изображения карты
+      mapImg.src = cfg.imageSrc + '?t=' + Date.now();
+
+      // Загрузка JSON путей и пропсов
+      fetch(cfg.roadsUrl + '?t=' + Date.now())
+        .then(res => res.json())
+        .then(data => {
+          routesData = data.routes || {};
+          propsData = data.props || [];
+          window.routesData = routesData;
+          window.propsData = propsData;
+
+          const routeIds = Object.keys(routesData);
+          activeRouteId = routeIds.length > 0 ? routeIds[0] : null;
+
+          buildRoutesUI();
+          updateStats();
+          if (typeof updateAllPropsListUI === 'function') updateAllPropsListUI();
+          render();
+          showToast(`Карта загружена: ${cfg.name}`);
+        })
+        .catch(err => {
+          console.warn('Ошибка загрузки данных карты:', cfg.roadsUrl, err);
+          routesData = {};
+          propsData = [];
+          activeRouteId = null;
+          buildRoutesUI();
+          updateStats();
+          render();
+          showToast(`Создана пустая карта: ${cfg.name}`);
+        });
+    }
+
+    function switchEditorMap(mapKey) {
+      if (mapKey === currentMapKey) return;
+      loadMapData(mapKey);
+    }
+    window.switchEditorMap = switchEditorMap;
+
+    // Автостарт с карты Заир (Мутшатша)
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const initialMap = urlParams.get('map') || 'zaire';
+      loadMapData(initialMap);
+      const initialTab = urlParams.get('tab');
+      if (initialTab) setTimeout(() => switchTab(initialTab), 100);
+    });
 
     // --- 4. ПРЕОБРАЗОВАНИЕ КООРДИНАТ (THREE.JS <-> SCREEN) ---
     function metersToTexPx(x, z) {
@@ -1404,22 +1387,25 @@
         const r = routesData[id];
         const card = document.createElement('div');
         card.className = 'route-card' + (id === activeRouteId ? ' active' : '');
+        const surfKey = r.surfaceType || (currentMapKey === 'zaire' ? 'clay' : 'asphalt');
         const surfIcon = {
-          asphalt: '🛣️',
           clay: '🟫',
+          gravel: '🪨',
           sand: '🟡',
-          forest: '🌲',
+          dirt: '🌲',
+          asphalt: '🛣️',
           swamp: '🟤',
           snow: '❄️'
-        }[r.surfaceType || 'asphalt'] || '🛣️';
+        }[surfKey] || '🟫';
         const surfLabel = {
-          asphalt: 'Асфальт',
           clay: 'Глина',
+          gravel: 'Гравий',
           sand: 'Песок',
-          forest: 'Лес',
+          dirt: 'Грунтовка',
+          asphalt: 'Асфальт',
           swamp: 'Болото',
           snow: 'Снег'
-        }[r.surfaceType || 'asphalt'] || 'Асфальт';
+        }[surfKey] || 'Глина';
 
         card.innerHTML = `
           <div class="route-card-title">
@@ -1461,7 +1447,7 @@
       if (val) val.textContent = (cur.width || 8.0).toFixed(1) + ' м';
 
       const surfSelect = document.getElementById('route-surface-select');
-      if (surfSelect) surfSelect.value = cur.surfaceType || 'asphalt';
+      if (surfSelect) surfSelect.value = cur.surfaceType || (currentMapKey === 'zaire' ? 'clay' : 'asphalt');
 
       // Выделение активного цвета
       document.querySelectorAll('#route-colors .color-swatch').forEach(sw => {
@@ -1477,12 +1463,13 @@
       buildRoutesUI();
       render();
       const labels = {
-        asphalt: 'Асфальт (городской)',
-        clay: 'Вязкая глина (Тайга)',
-        sand: 'Песчаная колея',
-        forest: 'Лесная тропа',
-        swamp: 'Грязевой брод',
-        snow: 'Заснеженная колея'
+        clay: '🟫 Вязкая глина / Латерит (Мутшатша RN39)',
+        gravel: '🪨 Гравийная дорога / станция',
+        sand: '🟡 Песчаная дорога / брод',
+        dirt: '🌲 Грунтовка / лесная тропа',
+        asphalt: '🛣️ Асфальт / шоссе',
+        swamp: '🟤 Болото / трясина',
+        snow: '❄️ Снежная колея'
       };
       showToast(`Покрытие дороги: ${labels[surf] || surf}`);
     }
@@ -1840,153 +1827,10 @@
     function updateStats() {
       let rCount = Object.keys(routesData).length;
       let pCount = propsData.length;
-      let sCount = (soilZones || []).length;
-      if (statusStats) statusStats.textContent = `${rCount} дорог | ${pCount} пропсов | ${sCount} зон грунта`;
+      if (statusStats) statusStats.textContent = `${rCount} дорог | ${pCount} пропсов`;
       const badge = document.getElementById('props-count-badge');
       if (badge) badge.textContent = `${pCount} на карте`;
-      updateSoilCountBadge();
     }
-
-    // --- 5B. УПРАВЛЕНИЕ КИСТЬЮ И ЗОНАМИ ГРУНТА (SOIL TAB) ---
-    function setSoilBrushType(type) {
-      currentSoilType = type;
-      document.querySelectorAll('.soil-type-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.id === 'soil-btn-' + type);
-      });
-      const names = {
-        clay: '🟫 Глина (Тайга)',
-        swamp: '🟤 Болото / Брод',
-        sand: '🟡 Сыпучий песок',
-        forest: '🌲 Лесная почва',
-        snow: '❄️ Снег',
-        eraser: '🧼 Ластик (трава)'
-      };
-      showToast(`Выбран грунт: ${names[type] || type}`);
-      render();
-    }
-    window.setSoilBrushType = setSoilBrushType;
-
-    function updateSoilBrushRadius(val) {
-      soilBrushRadius = parseFloat(val);
-      const label = document.getElementById('soil-brush-radius-label');
-      if (label) label.textContent = `${soilBrushRadius.toFixed(0)} м`;
-      render();
-    }
-    window.updateSoilBrushRadius = updateSoilBrushRadius;
-
-    function updateSoilBrushStrength(val) {
-      soilBrushStrength = parseFloat(val);
-      const label = document.getElementById('soil-brush-strength-label');
-      if (label) label.textContent = `${Math.round(soilBrushStrength * 100)}%`;
-      render();
-    }
-    window.updateSoilBrushStrength = updateSoilBrushStrength;
-
-    function updateSoilCountBadge() {
-      const badge = document.getElementById('soil-count-badge');
-      if (badge) badge.textContent = `${(soilZones || []).length} зон`;
-    }
-    window.updateSoilCountBadge = updateSoilCountBadge;
-
-    function applySoilBrush(wx, wz) {
-      if (currentSoilType === 'eraser') {
-        const eraseR = soilBrushRadius;
-        const initialCount = soilZones.length;
-        soilZones = soilZones.filter(z => {
-          const d = Math.hypot(z.x - wx, z.z - wz);
-          return d > (z.radius + eraseR) * 0.75;
-        });
-        window.soilZones = soilZones;
-        if (soilZones.length !== initialCount) {
-          updateSoilCountBadge();
-          render();
-        }
-        return;
-      }
-
-      // Не спамить мазки слишком близко друг к другу (минимум 35% от радиуса кисти)
-      if (lastSoilPaintPos) {
-        const d = Math.hypot(wx - lastSoilPaintPos.x, wz - lastSoilPaintPos.z);
-        if (d < soilBrushRadius * 0.35) return;
-      }
-
-      soilZones.push({
-        id: 'soil_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
-        type: currentSoilType,
-        x: Math.round(wx * 10) / 10,
-        z: Math.round(wz * 10) / 10,
-        radius: soilBrushRadius,
-        strength: soilBrushStrength
-      });
-      lastSoilPaintPos = { x: wx, z: wz };
-      updateSoilCountBadge();
-      updateStats();
-      render();
-    }
-
-    function undoLastSoilZone() {
-      if (!soilZones.length) return;
-      pushUndoState();
-      soilZones.pop();
-      updateSoilCountBadge();
-      updateStats();
-      render();
-      showToast('↩️ Последний мазок грунта отменён');
-    }
-    window.undoLastSoilZone = undoLastSoilZone;
-
-    function clearAllSoilZones() {
-      if (!soilZones.length) return;
-      if (!confirm('Очистить все нарисованные зоны грунта на карте?')) return;
-      pushUndoState();
-      soilZones = [];
-      window.soilZones = soilZones;
-      updateSoilCountBadge();
-      updateStats();
-      render();
-      showToast('🗑️ Все зоны грунта очищены');
-    }
-    window.clearAllSoilZones = clearAllSoilZones;
-
-    function applySoilPreset(preset) {
-      pushUndoState();
-      if (preset === 'mud_track') {
-        // Оффроуд-участок глины и болотной жижи у КП-2 (New Town grove)
-        const spots = [
-          { x: 22, z: 12, radius: 15, strength: 0.9, type: 'clay' },
-          { x: 34, z: 18, radius: 16, strength: 0.85, type: 'clay' },
-          { x: 46, z: 24, radius: 15, strength: 0.85, type: 'clay' },
-          { x: 58, z: 28, radius: 14, strength: 0.9, type: 'clay' },
-          { x: 38, z: 20, radius: 10, strength: 1.0, type: 'swamp' }
-        ];
-        spots.forEach(s => {
-          soilZones.push({
-            id: 'preset_mud_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
-            ...s
-          });
-        });
-        showToast('🟫 Грязевой оффроуд-участок у КП-2 добавлен!');
-      } else if (preset === 'beach_sand') {
-        // Песчаная полоса вдоль пляжа курорта
-        const spots = [
-          { x: 98, z: -138, radius: 20, strength: 0.95, type: 'sand' },
-          { x: 114, z: -145, radius: 22, strength: 0.95, type: 'sand' },
-          { x: 130, z: -155, radius: 24, strength: 1.0, type: 'sand' },
-          { x: 142, z: -168, radius: 20, strength: 1.0, type: 'sand' }
-        ];
-        spots.forEach(s => {
-          soilZones.push({
-            id: 'preset_sand_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
-            ...s
-          });
-        });
-        showToast('🟡 Песчаная полоса вдоль пляжа добавлена!');
-      }
-      updateSoilCountBadge();
-      updateStats();
-      render();
-    }
-    window.applySoilPreset = applySoilPreset;
 
     // --- 6. ИНСПЕКТОР ВЫДЕЛЕННОГО ПРОПСА ---
     function selectProp(prop) {
@@ -2314,31 +2158,16 @@
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(MAP_TEX_SIZE, y); ctx.stroke();
       }
 
-      // 1.5. Отрисовка зон грунта из Тайги (SoilSim zones)
-      soilZones.forEach(z => {
-        const { tx, ty } = metersToTexPx(z.x, z.z);
-        const rPx = (z.radius || 12.0) / METERS_PER_TEX_PX;
-        const col = SOIL_COLORS[z.type] || '#6a3f24';
-        const str = z.strength !== undefined ? z.strength : 0.8;
-        const grad = ctx.createRadialGradient(tx, ty, rPx * 0.15, tx, ty, rPx);
-        grad.addColorStop(0, hexToRgba(col, str * 0.85));
-        grad.addColorStop(0.65, hexToRgba(col, str * 0.50));
-        grad.addColorStop(1, hexToRgba(col, 0));
-        ctx.fillStyle = grad;
-        ctx.beginPath();
-        ctx.arc(tx, ty, rPx, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      // 2. Отрисовка дорожных маршрутов
+      // 2. Отрисовка дорожных маршрутов со строгой физической поверхностью
       Object.keys(routesData).forEach(id => {
         const r = routesData[id];
         if (!r || !r.points || r.points.length === 0) return;
         const isActive = (id === activeRouteId);
+        const surfKey = r.surfaceType || (currentMapKey === 'zaire' ? 'clay' : 'asphalt');
+        const surf = ROAD_SURFACES[surfKey] || ROAD_SURFACES.clay;
         const roadWidthPx = (r.width || 8.0) / METERS_PER_TEX_PX;
-        const isDirtRoad = (r.surfaceType && r.surfaceType !== 'asphalt');
 
-        // Полотно дороги
+        // Полотно дороги строго по выбранному типу покрытия
         if (r.points.length >= 2) {
           ctx.beginPath();
           r.points.forEach((p, idx) => {
@@ -2346,25 +2175,24 @@
             if (idx === 0) ctx.moveTo(tx, ty);
             else ctx.lineTo(tx, ty);
           });
-          const roadColor = isDirtRoad
-            ? (SOIL_COLORS[r.surfaceType] || '#6a3f24')
-            : (isActive ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.4)');
-          ctx.strokeStyle = roadColor;
+          ctx.strokeStyle = surf.color;
           ctx.lineWidth = roadWidthPx;
           ctx.lineCap = 'round';
           ctx.lineJoin = 'round';
           ctx.stroke();
 
-          // Для грунтовых дорог: две наезженные темные колеи
-          if (isDirtRoad) {
+          // Наезженные темные колеи колес для неасфальтированных дорог
+          if (surfKey !== 'asphalt') {
             ctx.save();
-            ctx.strokeStyle = 'rgba(0,0,0,0.30)';
-            ctx.lineWidth = roadWidthPx * 0.28;
+            ctx.strokeStyle = surf.rutColor;
+            ctx.lineWidth = roadWidthPx * 0.35;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
             ctx.stroke();
             ctx.restore();
           }
 
-          // Осевая линия
+          // Осевая линия трассы с цветовым акцентом маршрута
           ctx.beginPath();
           r.points.forEach((p, idx) => {
             const { tx, ty } = metersToTexPx(p.x, p.z);
@@ -2372,14 +2200,14 @@
             else ctx.lineTo(tx, ty);
           });
           ctx.strokeStyle = r.color;
-          if (!isDirtRoad) {
+          if (surfKey === 'asphalt') {
             ctx.lineWidth = isActive ? 3.5 : 2.0;
             ctx.setLineDash(id === 'mactan_boulevard' ? [] : [8, 6]);
             ctx.stroke();
             ctx.setLineDash([]);
           } else {
-            ctx.lineWidth = 1.8;
-            ctx.setLineDash([4, 10]);
+            ctx.lineWidth = isActive ? 2.5 : 1.8;
+            ctx.setLineDash([4, 8]);
             ctx.stroke();
             ctx.setLineDash([]);
           }
@@ -2621,42 +2449,140 @@
         ctx.fillText(`X:${ghostPos.x.toFixed(1)} Z:${ghostPos.z.toFixed(1)}`, tx + 16, ty - 4);
       }
 
-      // 5. Отрисовка курсора кисти грунта в режиме вкладки "Грунт"
-      if (activeTab === 'soil' && soilMouseWorldPos) {
-        const { tx, ty } = metersToTexPx(soilMouseWorldPos.x, soilMouseWorldPos.z);
-        const rPx = soilBrushRadius / METERS_PER_TEX_PX;
-        ctx.save();
-        ctx.strokeStyle = (currentSoilType === 'eraser') ? '#ffffff' : (SOIL_COLORS[currentSoilType] || '#f59e0b');
-        ctx.lineWidth = Math.max(1.5, 2.0 / zoom);
-        ctx.setLineDash([6 / zoom, 4 / zoom]);
-        ctx.beginPath();
-        ctx.arc(tx, ty, rPx, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        // Метка центра
-        ctx.fillStyle = ctx.strokeStyle;
-        ctx.beginPath();
-        ctx.arc(tx, ty, Math.max(2, 3 / zoom), 0, Math.PI * 2);
-        ctx.fill();
-
-        // Подпись радиуса
-        ctx.font = 'bold 11px monospace';
-        const txt = `${currentSoilType.toUpperCase()} (R=${soilBrushRadius}м)`;
-        const tw = ctx.measureText(txt).width;
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.90)';
-        ctx.fillRect(tx + rPx + 4, ty - 10, tw + 8, 18);
-        ctx.fillStyle = ctx.strokeStyle;
-        ctx.fillText(txt, tx + rPx + 8, ty + 3);
-        ctx.restore();
-      }
-
       ctx.restore();
     }
 
     // Векторная отрисовка иконки пропса в локальных координатах
     function drawPropIcon(c, type, color, isSelected) {
       switch (type) {
+        case 'hut_round': {
+          // Тень
+          c.fillStyle = 'rgba(0,0,0,0.35)';
+          c.beginPath(); c.ellipse(3, 4, 11, 8, 0, 0, Math.PI * 2); c.fill();
+          // Круглые стены из глины / соломы
+          c.fillStyle = '#b45309';
+          c.beginPath(); c.arc(0, 0, 10, 0, Math.PI * 2); c.fill();
+          // Коническая соломенная крыша с круговыми кольцами
+          c.fillStyle = '#d97706';
+          c.beginPath(); c.arc(0, 0, 9, 0, Math.PI * 2); c.fill();
+          c.fillStyle = '#f59e0b';
+          c.beginPath(); c.arc(0, 0, 5, 0, Math.PI * 2); c.fill();
+          c.fillStyle = '#78350f';
+          c.beginPath(); c.arc(0, 0, 2, 0, Math.PI * 2); c.fill();
+          // Радиальные соломенные лучи
+          c.strokeStyle = 'rgba(0,0,0,0.2)';
+          c.lineWidth = 1;
+          for (let i = 0; i < 8; i++) {
+            const a = (i / 8) * Math.PI * 2;
+            c.beginPath(); c.moveTo(0, 0); c.lineTo(Math.cos(a) * 9, Math.sin(a) * 9); c.stroke();
+          }
+          break;
+        }
+        case 'hut_clay': {
+          // Прямоугольная глинобитная хижина с жестяной/соломенной крышей
+          c.fillStyle = 'rgba(0,0,0,0.35)';
+          c.fillRect(-10, -8, 22, 18);
+          c.fillStyle = '#92400e';
+          c.fillRect(-9, -7, 18, 14);
+          // Двускатная крыша с коньком
+          c.fillStyle = '#b45309';
+          c.fillRect(-8, -6, 16, 12);
+          c.strokeStyle = '#fef3c7';
+          c.lineWidth = 1.2;
+          c.beginPath(); c.moveTo(0, -6); c.lineTo(0, 6); c.stroke();
+          break;
+        }
+        case 'acacia_tree': {
+          // Зонтичная акация (широкая плоская крона)
+          c.fillStyle = 'rgba(0,0,0,0.30)';
+          c.beginPath(); c.ellipse(4, 5, 14, 9, 0.1, 0, Math.PI * 2); c.fill();
+          // Ствол и ветви
+          c.fillStyle = '#451a03';
+          c.beginPath(); c.arc(0, 0, 3, 0, Math.PI * 2); c.fill();
+          // Плоские горизонтальные слои кроны
+          c.fillStyle = '#3f6212';
+          c.beginPath(); c.ellipse(-4, -3, 8, 5, -0.2, 0, Math.PI * 2); c.fill();
+          c.beginPath(); c.ellipse(5, 3, 9, 6, 0.1, 0, Math.PI * 2); c.fill();
+          c.fillStyle = '#65a30d';
+          c.beginPath(); c.ellipse(0, 0, 11, 7, 0, 0, Math.PI * 2); c.fill();
+          c.fillStyle = '#84cc16';
+          c.beginPath(); c.arc(0, -1, 4, 0, Math.PI * 2); c.fill();
+          break;
+        }
+        case 'mango_tree': {
+          // Пышное темное манговое дерево
+          c.fillStyle = 'rgba(0,0,0,0.35)';
+          c.beginPath(); c.arc(3, 4, 11, 0, Math.PI * 2); c.fill();
+          c.fillStyle = '#14532d';
+          c.beginPath(); c.arc(0, 0, 10, 0, Math.PI * 2); c.fill();
+          c.fillStyle = '#166534';
+          c.beginPath(); c.arc(-2, -2, 7, 0, Math.PI * 2); c.fill();
+          c.fillStyle = '#22c55e';
+          c.beginPath(); c.arc(1, 1, 4, 0, Math.PI * 2); c.fill();
+          // Спелые манго (желтые точки)
+          c.fillStyle = '#facc15';
+          c.beginPath(); c.arc(-4, 3, 1.2, 0, Math.PI * 2); c.fill();
+          c.beginPath(); c.arc(4, -3, 1.2, 0, Math.PI * 2); c.fill();
+          c.beginPath(); c.arc(2, 4, 1.2, 0, Math.PI * 2); c.fill();
+          break;
+        }
+        case 'termite_mound': {
+          // Термитник саванны (красная глина)
+          c.fillStyle = 'rgba(0,0,0,0.30)';
+          c.beginPath(); c.ellipse(2, 3, 6, 4, 0.2, 0, Math.PI * 2); c.fill();
+          c.fillStyle = '#7c2d12';
+          c.beginPath(); c.ellipse(0, 0, 5, 4, 0, 0, Math.PI * 2); c.fill();
+          c.fillStyle = '#9a3412';
+          c.beginPath(); c.arc(-1, -1, 3, 0, Math.PI * 2); c.fill();
+          c.fillStyle = '#c2410c';
+          c.beginPath(); c.arc(0, 0, 1.5, 0, Math.PI * 2); c.fill();
+          break;
+        }
+        case 'barrel_fuel': {
+          // Бочка с бензином / дизелем Total
+          c.fillStyle = 'rgba(0,0,0,0.30)';
+          c.beginPath(); c.ellipse(1, 2, 4, 3, 0, 0, Math.PI * 2); c.fill();
+          c.fillStyle = color || '#dc2626';
+          c.beginPath(); c.arc(0, 0, 3.5, 0, Math.PI * 2); c.fill();
+          c.strokeStyle = '#ffffff';
+          c.lineWidth = 0.8;
+          c.stroke();
+          // Пробка
+          c.fillStyle = '#ffffff';
+          c.beginPath(); c.arc(1, 1, 0.8, 0, Math.PI * 2); c.fill();
+          break;
+        }
+        case 'station_shed': {
+          // Навес станции Мутшатша
+          c.fillStyle = 'rgba(0,0,0,0.40)';
+          c.fillRect(-14, -8, 30, 18);
+          c.fillStyle = '#334155';
+          c.fillRect(-13, -7, 26, 14);
+          c.fillStyle = '#475569';
+          c.fillRect(-11, -5, 22, 10);
+          // Полосы металлического профнастила
+          c.strokeStyle = '#94a3b8';
+          c.lineWidth = 1;
+          for (let x = -8; x <= 8; x += 4) {
+            c.beginPath(); c.moveTo(x, -5); c.lineTo(x, 5); c.stroke();
+          }
+          break;
+        }
+        case 'bicycle_roadster': {
+          // Велосипед Мвепу с багажником
+          c.fillStyle = 'rgba(0,0,0,0.30)';
+          c.beginPath(); c.ellipse(1, 2, 7, 3, 0, 0, Math.PI * 2); c.fill();
+          // Рама и колеса
+          c.strokeStyle = '#1e293b';
+          c.lineWidth = 1.2;
+          c.beginPath(); c.arc(-4, 0, 2.5, 0, Math.PI * 2); c.stroke();
+          c.beginPath(); c.arc(4, 0, 2.5, 0, Math.PI * 2); c.stroke();
+          c.beginPath(); c.moveTo(-4, 0); c.lineTo(0, -2); c.lineTo(4, 0); c.stroke();
+          // Багажник с грузом
+          c.fillStyle = '#d97706';
+          c.fillRect(-6, -3, 3, 3);
+          break;
+        }
         case 'palm': {
           // Тень
           c.fillStyle = 'rgba(0,0,0,0.3)';
@@ -2786,14 +2712,6 @@
       if (e.button === 0) {
         const w = screenToWorld(e.clientX, e.clientY);
 
-        // 0. Режим рисования грунта (активна вкладка "Грунт")
-        if (activeTab === 'soil') {
-          isPaintingSoil = true;
-          pushUndoState();
-          applySoilBrush(w.x, w.z);
-          return;
-        }
-
         // 1. Режим Штампа: ставим новый объект
         if (stampPropType) {
           pushUndoState();
@@ -2884,17 +2802,7 @@
       }
 
       const w = screenToWorld(e.clientX, e.clientY);
-      soilMouseWorldPos = { x: w.x, z: w.z };
       if (statusCoords) statusCoords.textContent = `X: ${w.x.toFixed(2)} м | Z: ${w.z.toFixed(2)} м`;
-
-      if (activeTab === 'soil') {
-        viewport.style.cursor = 'crosshair';
-        if (isPaintingSoil) {
-          applySoilBrush(w.x, w.z);
-        }
-        render();
-        return;
-      }
 
       // Перетаскивание пропса (локальный обработчик)
       if (isDraggingProp && selectedProp) {
@@ -2990,12 +2898,6 @@
         updateAllPropsListUI();
         render();
       }
-      if (isPaintingSoil) {
-        isPaintingSoil = false;
-        lastSoilPaintPos = null;
-        updateSoilCountBadge();
-        render();
-      }
     });
 
     viewport.addEventListener('mouseup', () => {
@@ -3013,12 +2915,6 @@
         draggedPoint = null;
         updatePointControlCard();
         pushUndoState();
-      }
-      if (isPaintingSoil) {
-        isPaintingSoil = false;
-        lastSoilPaintPos = null;
-        updateSoilCountBadge();
-        render();
       }
     });
 
@@ -3064,19 +2960,9 @@
       return null;
     }
 
-    // Правый клик: удаление точки дороги, объекта или мазка грунта
+    // Правый клик: удаление объекта или точки дороги
     viewport.addEventListener('contextmenu', (e) => {
       e.preventDefault();
-
-      if (activeTab === 'soil') {
-        const w = screenToWorld(e.clientX, e.clientY);
-        const prevType = currentSoilType;
-        currentSoilType = 'eraser';
-        applySoilBrush(w.x, w.z);
-        currentSoilType = prevType;
-        showToast('Грунт стёрт (ПКМ)');
-        return;
-      }
 
       const hitProp = findPropAt(e.clientX, e.clientY);
       if (hitProp) {
@@ -3286,14 +3172,9 @@
           const prev = undoStack.pop();
           routesData = prev.routes;
           propsData = prev.props;
-          if (prev.soil) {
-            soilZones = prev.soil;
-            window.soilZones = soilZones;
-          }
           buildRoutesUI();
           updateStats();
           updateAllPropsListUI();
-          updateSoilCountBadge();
           selectProp(null);
           render();
           showToast('Действие отменено (Undo)');
@@ -3311,20 +3192,22 @@
 
     // --- 10. СОХРАНЕНИЕ И ЭКСПОРТ (DIRECT API + FALLBACK) ---
     function prepareFullJson() {
+      const cfg = MAP_CONFIGS[currentMapKey] || MAP_CONFIGS.zaire;
       return {
+        filename: cfg.saveFilename,
         meta: {
-          map: "Mactan Tropical Island 500x500",
-          scale: 500,
+          map: cfg.name,
+          scale: cfg.orthoMeters,
           updatedAt: new Date().toISOString()
         },
         routes: routesData,
-        props: propsData,
-        soilZones: soilZones || []
+        props: propsData
       };
     }
 
     async function saveToProject() {
       const fullData = prepareFullJson();
+      const cfg = MAP_CONFIGS[currentMapKey] || MAP_CONFIGS.zaire;
       const jsonStr = JSON.stringify(fullData, null, 2);
 
       try {
@@ -3335,7 +3218,8 @@
         });
 
         if (res.ok) {
-          showToast('✅ Успешно сохранено в models/philippines_roads.json!');
+          const resp = await res.json();
+          showToast(`✅ Успешно сохранено в models/${resp.filename || cfg.saveFilename}!`);
         } else {
           throw new Error('API returned ' + res.status);
         }
@@ -3348,14 +3232,15 @@
 
     function downloadRoadsJson() {
       const fullData = prepareFullJson();
+      const cfg = MAP_CONFIGS[currentMapKey] || MAP_CONFIGS.zaire;
       const str = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(fullData, null, 2));
       const dl = document.createElement('a');
       dl.setAttribute("href", str);
-      dl.setAttribute("download", "philippines_roads.json");
+      dl.setAttribute("download", cfg.saveFilename);
       document.body.appendChild(dl);
       dl.click();
       dl.remove();
-      showToast('📥 Файл philippines_roads.json скачан!');
+      showToast(`📥 Файл ${cfg.saveFilename} скачан!`);
     }
     window.downloadRoadsJson = downloadRoadsJson;
 

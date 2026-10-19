@@ -1,0 +1,68 @@
+{
+  "meta": {
+    "map": "Mutshatsha Zaire 1988 (The I.T. Run) 500x500",
+    "scale": 500,
+    "updatedAt": "2026-10-19T14:00:00.000Z"
+  },
+  "routes": {
+    "main_road_rn39": {
+      "name": "1. Главная дорога RN39 (Красный латерит / Глина)",
+      "color": "#8f3b1e",
+      "width": 8,
+      "surfaceType": "clay",
+      "points": [
+        { "x": -180.0, "z": -120.0 },
+        { "x": -100.0, "z": -60.0 },
+        { "x": -20.0, "z": 0.0 },
+        { "x": 60.0, "z": 70.0 },
+        { "x": 150.0, "z": 150.0 }
+      ]
+    },
+    "village_bicycle_trail": {
+      "name": "2. Велосипедная тропа Мвепу (Грунтовка через дворы)",
+      "color": "#f59e0b",
+      "width": 2.5,
+      "surfaceType": "dirt",
+      "points": [
+        { "x": -150.0, "z": 40.0 },
+        { "x": -110.0, "z": 20.0 },
+        { "x": -60.0, "z": 10.0 },
+        { "x": -20.0, "z": 0.0 }
+      ]
+    },
+    "station_access_gravel": {
+      "name": "3. Подъезд к станции Мутшатша (Гравий)",
+      "color": "#00f0ff",
+      "width": 6,
+      "surfaceType": "gravel",
+      "points": [
+        { "x": 60.0, "z": 70.0 },
+        { "x": 100.0, "z": 90.0 },
+        { "x": 140.0, "z": 110.0 }
+      ]
+    },
+    "river_ford_sand": {
+      "name": "4. Брод через ручей (Песчаная отмель)",
+      "color": "#eab308",
+      "width": 5,
+      "surfaceType": "sand",
+      "points": [
+        { "x": -60.0, "z": 10.0 },
+        { "x": -50.0, "z": 60.0 },
+        { "x": -40.0, "z": 110.0 }
+      ]
+    }
+  },
+  "props": [
+    { "id": "hut_round_1", "type": "hut_round", "name": "Хижина круглая (солома)", "x": -130.0, "z": 25.0, "rot": 0.2, "scale": 1.0 },
+    { "id": "hut_round_2", "type": "hut_round", "name": "Хижина круглая (солома)", "x": -95.0, "z": 40.0, "rot": -0.4, "scale": 1.0 },
+    { "id": "hut_clay_1", "type": "hut_clay", "name": "Хижина глинобитная", "x": -75.0, "z": -15.0, "rot": 0.1, "scale": 1.1 },
+    { "id": "acacia_1", "type": "acacia_tree", "name": "Акация зонтичная", "x": -160.0, "z": -80.0, "rot": 1.2, "scale": 1.3 },
+    { "id": "acacia_2", "type": "acacia_tree", "name": "Акация зонтичная", "x": 10.0, "z": 40.0, "rot": 0.5, "scale": 1.1 },
+    { "id": "mango_1", "type": "mango_tree", "name": "Манговое дерево", "x": -115.0, "z": 10.0, "rot": 0.0, "scale": 1.2 },
+    { "id": "termite_1", "type": "termite_mound", "name": "Термитник саванны", "x": -30.0, "z": -40.0, "rot": 0.0, "scale": 1.0 },
+    { "id": "fuel_barrel_1", "type": "barrel_fuel", "name": "Бочка с топливом (Total)", "x": 135.0, "z": 105.0, "rot": 0.0, "scale": 0.9, "color": "#dc2626" },
+    { "id": "station_shed_1", "type": "station_shed", "name": "Навес станции Мутшатша", "x": 150.0, "z": 120.0, "rot": 0.35, "scale": 1.2 },
+    { "id": "bicycle_1", "type": "bicycle_roadster", "name": "Велосипед Мвепу", "x": -125.0, "z": 20.0, "rot": 0.8, "scale": 0.8 }
+  ]
+}

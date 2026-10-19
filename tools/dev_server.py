@@ -17,11 +17,14 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 body = self.rfile.read(content_length).decode('utf-8')
                 data = json.loads(body)
 
-                target_file = os.path.join(ROOT, 'models', 'philippines_roads.json')
+                target_filename = data.get('filename', 'zaire_village_roads.json')
+                # Защита от выхода за пределы директории
+                target_filename = os.path.basename(target_filename)
+                target_file = os.path.join(ROOT, 'models', target_filename)
                 with open(target_file, 'w', encoding='utf-8') as f:
                     json.dump(data, f, indent=2, ensure_ascii=False)
 
-                resp = json.dumps({"status": "ok", "message": "Файл philippines_roads.json успешно сохранён!"}).encode('utf-8')
+                resp = json.dumps({"status": "ok", "filename": target_filename, "message": f"Файл {target_filename} успешно сохранён!"}).encode('utf-8')
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/json; charset=utf-8')
                 self.send_header('Content-Length', str(len(resp)))

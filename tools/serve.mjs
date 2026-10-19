@@ -21,6 +21,34 @@ function send(res, code, body, type = 'text/plain; charset=utf-8') {
 }
 
 const server = http.createServer((req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(200);
+    return res.end();
+  }
+
+  if (req.method === 'POST' && req.url === '/api/save-roads') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        const targetFilename = path.basename(data.filename || 'zaire_village_roads.json');
+        const targetPath = path.resolve(ROOT, 'models', targetFilename);
+        fs.writeFileSync(targetPath, JSON.stringify(data, null, 2), 'utf8');
+        console.log(`[Node Server] Успешно сохранено: ${targetFilename} (${body.length} байт)`);
+        send(res, 200, JSON.stringify({ status: 'ok', filename: targetFilename, message: `Файл ${targetFilename} успешно сохранён!` }), 'application/json; charset=utf-8');
+      } catch (e) {
+        console.error('[Node Server Error]', e);
+        send(res, 500, JSON.stringify({ status: 'error', message: String(e) }), 'application/json; charset=utf-8');
+      }
+    });
+    return;
+  }
+
   if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, 'Method not allowed');
   let rel;
   try { rel = decodeURIComponent(new URL(req.url, 'http://localhost').pathname); } catch { return send(res, 400, 'Bad request'); }

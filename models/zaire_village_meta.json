@@ -1,0 +1,27 @@
+{
+  "map": "zaire_mutshatsha",
+  "name": "Заир: Деревня Мутшатша 1988 (The I.T. Run)",
+  "bounds": {
+    "minX": -250,
+    "maxX": 250,
+    "minZ": -250,
+    "maxZ": 250
+  },
+  "scale": 500,
+  "props": [
+    { "id": "hut_mvepu_home", "type": "hut_round", "x": -155.0, "z": 45.0, "rotation": 0.3, "scale": 1.2 },
+    { "id": "hut_village_01", "type": "hut_round", "x": -140.0, "z": 60.0, "rotation": 0.9, "scale": 1.0 },
+    { "id": "hut_village_02", "type": "hut_clay", "x": -120.0, "z": 30.0, "rotation": 0.0, "scale": 1.1 },
+    { "id": "acacia_tree_01", "type": "acacia_tree", "x": -130.0, "z": 10.0, "rotation": 1.4, "scale": 1.4 },
+    { "id": "mango_tree_home", "type": "mango_tree", "x": -150.0, "z": 35.0, "rotation": 0.5, "scale": 1.5 },
+    { "id": "termite_mound_01", "type": "termite_mound", "x": -70.0, "z": -15.0, "rotation": 0.0, "scale": 1.8 },
+    { "id": "station_platform", "type": "station_building", "x": 150.0, "z": 115.0, "rotation": 0.45, "scale": 1.0 }
+  ],
+  "checkpoints": [
+    { "id": "cp_start", "name": "КП-1: Двор хижины Мвепу (Старт)", "x": -150.0, "z": 40.0 },
+    { "id": "cp_ford", "name": "КП-2: Брод через ручей", "x": -55.0, "z": 35.0 },
+    { "id": "cp_mound", "name": "КП-3: Развилка у термитника", "x": -20.0, "z": 0.0 },
+    { "id": "cp_rn39", "name": "КП-4: Латеритная трасса RN39", "x": 60.0, "z": 70.0 },
+    { "id": "cp_station", "name": "🏁 КП-5: Перрон станции Мутшатша (Финиш)", "x": 140.0, "z": 110.0, "isFinish": true }
+  ]
+}
