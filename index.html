@@ -685,6 +685,8 @@
   <script src="js/look.js"></script>
   <!-- Филиппины: сплайн-дороги, бирюзовый океан, пирс, лодки banca и курорт -->
   <script src="js/philippines_tracks.js"></script>
+  <!-- Заир 1988: Мутшатша, дорога RN39, хижины луо/банту, акации и латерит -->
+  <script src="js/zaire_village_map.js"></script>
 </head>
 <body>
   <div id="canvas-container"></div>
@@ -801,6 +803,13 @@
         <div class="v-info">
           <span class="v-name">Филиппины: Лапу-Лапу</span>
           <span class="v-type">Mactan New Town &bull; 3D-город &bull; Побережье</span>
+        </div>
+      </button>
+      <button class="v-card" id="mbtn-zaire" onclick="switchMap('zaire')">
+        <span class="v-num">3</span>
+        <div class="v-info">
+          <span class="v-name">Мутшатша (Заир, 1988)</span>
+          <span class="v-type">Красный латерит &bull; Дорога RN39 &bull; Хижины банту</span>
         </div>
       </button>
     </div>
@@ -2181,6 +2190,7 @@
 
     // Высота НЕДЕФОРМИРОВАННОЙ сетки грунта (для деревьев, камней, опор моста): билинейная выборка без ступенек
     function getGroundMeshHeight(x, z) {
+      if (currentMapId === 'zaire' && window.ZaireVillageMap) return window.ZaireVillageMap.getGroundHeight(x, z);
       if (currentMapId === 'philippines') return getPhilippinesGroundHeight(x, z);
       let fx = ((x + MAP_WIDTH / 2) / MAP_WIDTH) * SEGS_X;
       let fz = ((z + MAP_LENGTH / 2) / MAP_LENGTH) * SEGS_Z;
@@ -2196,6 +2206,7 @@
 
     // Физическая высота поверхности под колёсами: рельеф + деформация грунта SoilSim (колея / валики) + настил моста
     function getTerrainHeight(x, z) {
+      if (currentMapId === 'zaire' && window.ZaireVillageMap) return window.ZaireVillageMap.getGroundHeight(x, z);
       if (currentMapId === 'philippines') return getPhilippinesGroundHeight(x, z);
       const groundH = getGroundMeshHeight(x, z) + SOIL.getDH(x, z);
 
@@ -2216,6 +2227,10 @@
     }
 
     function getMudFactor(x, z) {
+      if (currentMapId === 'zaire' && window.ZaireVillageMap) {
+        const sz = window.ZaireVillageMap.getSoilZoneAt(x, z);
+        return (sz && sz.type === 'clay') ? 0.65 : 0.15;
+      }
       if (currentMapId === 'philippines') return 0.01;
       if (z >= 45.0 && z <= 57.0 && Math.abs(x) < 3.95) return 0.02; // На брёвнах моста грязи нет
       const { gx, gz } = worldToGrid(x, z);
@@ -5775,7 +5790,7 @@
       sinH = Math.sin(truckHeading); cosH = Math.cos(truckHeading);
       truckPos.x += (sinH * truckSpeed + cosH * rutVLat) * delta;
       truckPos.z += (cosH * truckSpeed - sinH * rutVLat) * delta;
-      if (currentMapId === 'philippines') {
+      if (currentMapId === 'philippines' || currentMapId === 'zaire') {
         truckPos.x = THREE.MathUtils.clamp(truckPos.x, -245, 245);
         truckPos.z = THREE.MathUtils.clamp(truckPos.z, -245, 245);
       } else {
@@ -5877,12 +5892,14 @@
       // Проверка прохождения контрольных ворот (чекпоинтов)
       const curCpList = (currentMapId === 'philippines') ?
         (window.PhilippinesTracks && window.PhilippinesTracks.getCheckpoints ? window.PhilippinesTracks.getCheckpoints() : []) :
+        (currentMapId === 'zaire') ?
+        (window.ZaireVillageMap && window.ZaireVillageMap.getCheckpoints ? window.ZaireVillageMap.getCheckpoints() : []) :
         checkpoints;
 
       if (curCpList && curCpList.length) {
         curCpList.forEach((cp, idx) => {
           let hit = false;
-          if (currentMapId === 'philippines') {
+          if (currentMapId === 'philippines' || currentMapId === 'zaire') {
             hit = !cp.passed && (Math.hypot(truckPos.x - cp.x, truckPos.z - cp.z) < 8.5);
           } else {
             hit = !cp.passed && Math.abs(truckPos.z - cp.z) < 3.6 && Math.abs(truckPos.x) < 6.8;
@@ -5913,7 +5930,7 @@
               playCheckpointChime(true);
               const mins = String(Math.floor(expeditionTime / 60)).padStart(2, '0');
               const secs = String(Math.floor(expeditionTime % 60)).padStart(2, '0');
-              const mapName = (currentMapId === 'philippines') ? 'КУРОРТНЫЙ ТРЕК ЛАПУ-ЛАПУ' : 'ПОЛИГОН ТАЙГА';
+              const mapName = (currentMapId === 'zaire') ? 'МУТШАТША (ЗАИР, RN39)' : (currentMapId === 'philippines') ? 'КУРОРТНЫЙ ТРЕК ЛАПУ-ЛАПУ' : 'ПОЛИГОН ТАЙГА';
               showPopup(`🏆 ${mapName} ПРОЙДЕН НА ${cfg.name.toUpperCase()}! ВРЕМЯ: ${mins}:${secs}`);
             } else {
               playCheckpointChime(false);
@@ -6401,6 +6418,8 @@
       container.innerHTML = '';
       const list = (mapId === 'philippines') ?
         (window.PhilippinesTracks && window.PhilippinesTracks.getCheckpoints ? window.PhilippinesTracks.getCheckpoints() : []) :
+        (mapId === 'zaire') ?
+        (window.ZaireVillageMap && window.ZaireVillageMap.getCheckpoints ? window.ZaireVillageMap.getCheckpoints() : []) :
         checkpoints;
       list.forEach((cp, idx) => {
         const d = document.createElement('div');
@@ -6415,10 +6434,81 @@
     window.updateCheckpointUIForMap = updateCheckpointUIForMap;
 
     function switchMap(mapId) {
-      if (mapId === 'philippines') {
+      if (mapId === 'zaire') {
+        window.ZaireVillageMap.init(scene, () => {
+          currentMapId = 'zaire';
+          taigaObjects.forEach(o => { if (o) o.visible = false; });
+          if (philippinesGroup) philippinesGroup.visible = false;
+          window.ZaireVillageMap.show();
+
+          // Атмосфера Заира: экваториальный золотой закат, терракотовая дымка саванны
+          camera.far = 1100;
+          camera.updateProjectionMatrix();
+          if (scene.fog) {
+            scene.fog.color.setHex(0xd49b6a);
+            scene.fog.density = 0.0020;
+          }
+          scene.background = new THREE.Color(0xd49b6a);
+
+          // Золотое солнце Африки
+          sunLight.position.set(130, 85, -60);
+          sunLight.color.setHex(0xffaa44);
+          sunLight.intensity = 1.75;
+          sunLight.shadow.camera.far = 420;
+          const zShadow = 220;
+          sunLight.shadow.camera.left = -zShadow;
+          sunLight.shadow.camera.right = zShadow;
+          sunLight.shadow.camera.top = zShadow;
+          sunLight.shadow.camera.bottom = -zShadow;
+          sunLight.shadow.camera.updateProjectionMatrix();
+
+          if (typeof hemiLight !== 'undefined') {
+            hemiLight.color.setHex(0xffe0b2);
+            hemiLight.groundColor.setHex(0x5c2b18);
+            hemiLight.intensity = 1.25;
+          }
+          if (typeof fillLight !== 'undefined') fillLight.intensity = 0.60;
+
+          // Спавн на старте дороги RN39 (северный въезд в Мутшатшу)
+          const spX = 81.2;
+          const spZ = -105.75;
+          const groundY = window.ZaireVillageMap.getGroundHeight(spX, spZ);
+          truckPos.set(spX, groundY + (currentVehicleConfig?.clearance || 0.3) + 0.35, spZ);
+          truckHeading = 0.05; // направлен строго на юг вдоль дороги к поселку
+          truckSpeed = 0;
+          truckPitch = 0;
+          truckRoll = 0;
+          throttleState = 0;
+          rutVLat = 0;
+          bellyAmount = 0;
+          truck.position.copy(truckPos);
+          truck.rotation.set(0, truckHeading, 0);
+
+          // Выбираем Toyota Land Cruiser J40 если доступен
+          if (typeof switchVehicle === 'function' && typeof vehicleConfigs !== 'undefined') {
+            const j40Idx = vehicleConfigs.findIndex(v => v.id === 'j40_canvas' || v.id === 'j40_hardtop' || v.id === 'j40_pickup');
+            if (j40Idx !== -1) switchVehicle(j40Idx);
+          }
+
+          // Обновление кнопок дока и HUD
+          document.getElementById('mbtn-default')?.classList.remove('active');
+          document.getElementById('mbtn-philippines')?.classList.remove('active');
+          document.getElementById('mbtn-zaire')?.classList.add('active');
+          const mapLabel = document.getElementById('current-map-label');
+          if (mapLabel) mapLabel.textContent = 'Мутшатша [M]';
+
+          passedCount = 0;
+          expeditionTime = 0;
+          expeditionFinished = false;
+          updateCheckpointUIForMap('zaire');
+
+          showPopup('🗺️ ЛОКАЦИЯ: МУТШАТША, ЗАИР (1988) — ДОРОГА RN39');
+        });
+      } else if (mapId === 'philippines') {
         loadPhilippinesMap(() => {
           currentMapId = 'philippines';
           taigaObjects.forEach(o => { if (o) o.visible = false; });
+          if (window.ZaireVillageMap) window.ZaireVillageMap.hide();
           philippinesGroup.visible = true;
 
           // Настройка камеры и тёплого персикового тумана (art of rally Sunset)
@@ -6465,6 +6555,7 @@
 
           // Обновление кнопок дока и HUD
           document.getElementById('mbtn-default')?.classList.remove('active');
+          document.getElementById('mbtn-zaire')?.classList.remove('active');
           document.getElementById('mbtn-philippines')?.classList.add('active');
           const mapLabel = document.getElementById('current-map-label');
           if (mapLabel) mapLabel.textContent = 'Филиппины [M]';
@@ -6479,7 +6570,8 @@
       } else {
         currentMapId = 'taiga';
         taigaObjects.forEach(o => { if (o) o.visible = true; });
-        philippinesGroup.visible = false;
+        if (philippinesGroup) philippinesGroup.visible = false;
+        if (window.ZaireVillageMap) window.ZaireVillageMap.hide();
 
         // Возврат камеры и тумана Тайги
         camera.far = 380;
@@ -6512,6 +6604,7 @@
 
         // Обновление кнопок дока и HUD
         document.getElementById('mbtn-philippines')?.classList.remove('active');
+        document.getElementById('mbtn-zaire')?.classList.remove('active');
         document.getElementById('mbtn-default')?.classList.add('active');
         const mapLabel = document.getElementById('current-map-label');
         if (mapLabel) mapLabel.textContent = 'Тайга [M]';
@@ -6542,6 +6635,18 @@
     if (typeof SOIL !== 'undefined' && SOIL.typeAtXZ) {
       const origTypeAtXZ = SOIL.typeAtXZ.bind(SOIL);
       SOIL.typeAtXZ = function(x, z) {
+        if (currentMapId === 'zaire') {
+          if (window.ZaireVillageMap && window.ZaireVillageMap.getSoilZoneAt) {
+            const sz = window.ZaireVillageMap.getSoilZoneAt(x, z);
+            if (sz) {
+              if (sz.type === 'clay') return SoilSim.TYPE.clay;
+              if (sz.type === 'sand') return SoilSim.TYPE.sand;
+              if (sz.type === 'gravel') return SoilSim.TYPE.concrete;
+              if (sz.type === 'dirt') return SoilSim.TYPE.forest;
+            }
+          }
+          return SoilSim.TYPE.clay;
+        }
         if (currentMapId === 'philippines') {
           if (window.PhilippinesTracks && window.PhilippinesTracks.getSoilZoneAt) {
             const sz = window.PhilippinesTracks.getSoilZoneAt(x, z);
@@ -6574,6 +6679,27 @@
 
       const origSample = SOIL.sample.bind(SOIL);
       SOIL.sample = function(x, z, out) {
+        if (currentMapId === 'zaire') {
+          if (window.ZaireVillageMap && window.ZaireVillageMap.getSoilZoneAt) {
+            const sz = window.ZaireVillageMap.getSoilZoneAt(x, z);
+            if (sz) {
+              if (sz.type === 'clay') {
+                // Красный латерит Заира: глубокая колея, влажная глина, пробуксовка
+                out.dh = -0.22; out.wet = 0.80; out.pack = 0.20; out.churn = 0.75; return;
+              } else if (sz.type === 'sand') {
+                // Песчаный брод: рыхлый песок
+                out.dh = -0.09; out.wet = 0.35; out.pack = 0.45; out.churn = 0.40; return;
+              } else if (sz.type === 'gravel') {
+                // Станционный гравий: твердый, без колеи
+                out.dh = 0.0; out.wet = 0.05; out.pack = 0.95; out.churn = 0.05; return;
+              } else if (sz.type === 'dirt') {
+                // Деревенская тропа: плотный утрамбованный грунт
+                out.dh = -0.05; out.wet = 0.20; out.pack = 0.65; out.churn = 0.25; return;
+              }
+            }
+          }
+          out.dh = -0.15; out.wet = 0.60; out.pack = 0.30; out.churn = 0.50; return;
+        }
         if (currentMapId === 'philippines') {
           if (window.PhilippinesTracks && window.PhilippinesTracks.getSoilZoneAt) {
             const sz = window.PhilippinesTracks.getSoilZoneAt(x, z);
@@ -6628,6 +6754,18 @@
 
       const origGetDH = SOIL.getDH.bind(SOIL);
       SOIL.getDH = function(x, z) {
+        if (currentMapId === 'zaire') {
+          if (window.ZaireVillageMap && window.ZaireVillageMap.getSoilZoneAt) {
+            const sz = window.ZaireVillageMap.getSoilZoneAt(x, z);
+            if (sz) {
+              if (sz.type === 'clay') return -0.22;
+              if (sz.type === 'sand') return -0.09;
+              if (sz.type === 'gravel') return 0.0;
+              if (sz.type === 'dirt') return -0.05;
+            }
+          }
+          return -0.15;
+        }
         if (currentMapId === 'philippines') {
           if (window.PhilippinesTracks && window.PhilippinesTracks.getSoilZoneAt) {
             const sz = window.PhilippinesTracks.getSoilZoneAt(x, z);

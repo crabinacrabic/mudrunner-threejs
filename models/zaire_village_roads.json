@@ -1,33 +1,73 @@
 {
+  "filename": "zaire_village_roads.json",
   "meta": {
-    "map": "Mutshatsha Zaire 1988 (The I.T. Run) 500x500",
+    "map": "Мутшатша (Заир, 1988)",
     "scale": 500,
-    "updatedAt": "2026-10-19T14:00:00.000Z"
+    "updatedAt": "2026-10-19T15:03:26.555Z"
   },
   "routes": {
     "main_road_rn39": {
       "name": "1. Главная дорога RN39 (Красный латерит / Глина)",
       "color": "#8f3b1e",
-      "width": 8,
+      "width": 5,
       "surfaceType": "clay",
       "points": [
-        { "x": -180.0, "z": -120.0 },
-        { "x": -100.0, "z": -60.0 },
-        { "x": -20.0, "z": 0.0 },
-        { "x": 60.0, "z": 70.0 },
-        { "x": 150.0, "z": 150.0 }
+        {
+          "x": 81.2,
+          "z": -105.75
+        },
+        {
+          "x": 82.3,
+          "z": -83.15
+        },
+        {
+          "x": 35.13,
+          "z": -35.51
+        },
+        {
+          "x": 35.8,
+          "z": -3.86
+        },
+        {
+          "x": 60,
+          "z": 70
+        },
+        {
+          "x": 150,
+          "z": 150
+        }
       ]
     },
     "village_bicycle_trail": {
       "name": "2. Велосипедная тропа Мвепу (Грунтовка через дворы)",
       "color": "#f59e0b",
-      "width": 2.5,
+      "width": 2,
       "surfaceType": "dirt",
       "points": [
-        { "x": -150.0, "z": 40.0 },
-        { "x": -110.0, "z": 20.0 },
-        { "x": -60.0, "z": 10.0 },
-        { "x": -20.0, "z": 0.0 }
+        {
+          "x": -150,
+          "z": 40
+        },
+        {
+          "x": -110,
+          "z": 20
+        },
+        {
+          "x": -129.72,
+          "z": -83.94
+        },
+        {
+          "x": -103.06,
+          "z": -244.29
+        },
+        {
+          "x": 71.53,
+          "z": -111.73
+        },
+        {
+          "x": 82.17,
+          "z": -103.86
+        }
       ]
     },
     "station_access_gravel": {
@@ -36,33 +76,413 @@
       "width": 6,
       "surfaceType": "gravel",
       "points": [
-        { "x": 60.0, "z": 70.0 },
-        { "x": 100.0, "z": 90.0 },
-        { "x": 140.0, "z": 110.0 }
+        {
+          "x": 70.1,
+          "z": 46.64
+        },
+        {
+          "x": 118.09,
+          "z": 82.25
+        },
+        {
+          "x": 140.76,
+          "z": 113.23
+        }
       ]
     },
     "river_ford_sand": {
       "name": "4. Брод через ручей (Песчаная отмель)",
       "color": "#eab308",
-      "width": 5,
+      "width": 2,
       "surfaceType": "sand",
       "points": [
-        { "x": -60.0, "z": 10.0 },
-        { "x": -50.0, "z": 60.0 },
-        { "x": -40.0, "z": 110.0 }
+        {
+          "x": -53.18,
+          "z": 15.11
+        },
+        {
+          "x": -19.99,
+          "z": 55.4
+        },
+        {
+          "x": 4.67,
+          "z": 85.9
+        },
+        {
+          "x": 26.66,
+          "z": 113.64
+        }
       ]
     }
   },
   "props": [
-    { "id": "hut_round_1", "type": "hut_round", "name": "Хижина круглая (солома)", "x": -130.0, "z": 25.0, "rot": 0.2, "scale": 1.0 },
-    { "id": "hut_round_2", "type": "hut_round", "name": "Хижина круглая (солома)", "x": -95.0, "z": 40.0, "rot": -0.4, "scale": 1.0 },
-    { "id": "hut_clay_1", "type": "hut_clay", "name": "Хижина глинобитная", "x": -75.0, "z": -15.0, "rot": 0.1, "scale": 1.1 },
-    { "id": "acacia_1", "type": "acacia_tree", "name": "Акация зонтичная", "x": -160.0, "z": -80.0, "rot": 1.2, "scale": 1.3 },
-    { "id": "acacia_2", "type": "acacia_tree", "name": "Акация зонтичная", "x": 10.0, "z": 40.0, "rot": 0.5, "scale": 1.1 },
-    { "id": "mango_1", "type": "mango_tree", "name": "Манговое дерево", "x": -115.0, "z": 10.0, "rot": 0.0, "scale": 1.2 },
-    { "id": "termite_1", "type": "termite_mound", "name": "Термитник саванны", "x": -30.0, "z": -40.0, "rot": 0.0, "scale": 1.0 },
-    { "id": "fuel_barrel_1", "type": "barrel_fuel", "name": "Бочка с топливом (Total)", "x": 135.0, "z": 105.0, "rot": 0.0, "scale": 0.9, "color": "#dc2626" },
-    { "id": "station_shed_1", "type": "station_shed", "name": "Навес станции Мутшатша", "x": 150.0, "z": 120.0, "rot": 0.35, "scale": 1.2 },
-    { "id": "bicycle_1", "type": "bicycle_roadster", "name": "Велосипед Мвепу", "x": -125.0, "z": 20.0, "rot": 0.8, "scale": 0.8 }
+    {
+      "id": "hut_round_1",
+      "type": "hut_round",
+      "name": "Хижина круглая (солома)",
+      "x": -130,
+      "z": 25,
+      "rot": 0.2,
+      "scale": 1
+    },
+    {
+      "id": "hut_round_2",
+      "type": "hut_round",
+      "name": "Хижина круглая (солома)",
+      "x": -95,
+      "z": 40,
+      "rot": -0.4,
+      "scale": 1
+    },
+    {
+      "id": "hut_clay_1",
+      "type": "hut_clay",
+      "name": "Хижина глинобитная",
+      "x": -53.2,
+      "z": -7.5,
+      "rot": 0.6283185307179586,
+      "scale": 1.1
+    },
+    {
+      "id": "acacia_1",
+      "type": "acacia_tree",
+      "name": "Акация зонтичная",
+      "x": -160,
+      "z": -80,
+      "rot": 1.2,
+      "scale": 1.3
+    },
+    {
+      "id": "acacia_2",
+      "type": "acacia_tree",
+      "name": "Акация зонтичная",
+      "x": 37.4,
+      "z": 113.8,
+      "rot": 0.5,
+      "scale": 1.1
+    },
+    {
+      "id": "mango_1",
+      "type": "mango_tree",
+      "name": "Манговое дерево",
+      "x": -115,
+      "z": 10,
+      "rot": 0,
+      "scale": 1.2
+    },
+    {
+      "id": "termite_1",
+      "type": "termite_mound",
+      "name": "Термитник саванны",
+      "x": -30,
+      "z": -40,
+      "rot": 0,
+      "scale": 1
+    },
+    {
+      "id": "fuel_barrel_1",
+      "type": "barrel_fuel",
+      "name": "Бочка с топливом (Total)",
+      "x": 135,
+      "z": 105,
+      "rot": 0,
+      "scale": 0.9,
+      "color": "#dc2626"
+    },
+    {
+      "id": "station_shed_1",
+      "type": "station_shed",
+      "name": "Навес станции Мутшатша",
+      "x": 181.8,
+      "z": 91.5,
+      "rot": 0.8726646259971648,
+      "scale": 1.2
+    },
+    {
+      "id": "bicycle_1",
+      "type": "bicycle_roadster",
+      "name": "Велосипед Мвепу",
+      "x": -125,
+      "z": 20,
+      "rot": 0.8,
+      "scale": 0.8
+    },
+    {
+      "id": "hut_clay_1792422099955",
+      "type": "hut_clay",
+      "name": "Хижина глинобитная",
+      "x": -41.53,
+      "z": 3.27,
+      "rot": 0.5235987755982988,
+      "scale": 1
+    },
+    {
+      "id": "hut_round_1792422112358",
+      "type": "hut_round",
+      "name": "Хижина круглая (солома)",
+      "x": -38.62,
+      "z": 62.44,
+      "rot": 0,
+      "scale": 1
+    },
+    {
+      "id": "hut_round_1792422115049",
+      "type": "hut_round",
+      "name": "Хижина круглая (солома)",
+      "x": -19.3,
+      "z": 65.9,
+      "rot": 0,
+      "scale": 1
+    },
+    {
+      "id": "hut_round_1792422121093",
+      "type": "hut_round",
+      "name": "Хижина круглая (солома)",
+      "x": -6.3,
+      "z": 86.3,
+      "rot": 0,
+      "scale": 1
+    },
+    {
+      "id": "hut_round_1792422121399",
+      "type": "hut_round",
+      "name": "Хижина круглая (солома)",
+      "x": -0.5,
+      "z": 93.9,
+      "rot": 0,
+      "scale": 1
+    },
+    {
+      "id": "hut_round_1792422121610",
+      "type": "hut_round",
+      "name": "Хижина круглая (солома)",
+      "x": 9.1,
+      "z": 102.9,
+      "rot": 0,
+      "scale": 1
+    },
+    {
+      "id": "hut_round_1792422121802",
+      "type": "hut_round",
+      "name": "Хижина круглая (солома)",
+      "x": 15.8,
+      "z": 111.9,
+      "rot": 0,
+      "scale": 1
+    },
+    {
+      "id": "hut_round_1792422121993",
+      "type": "hut_round",
+      "name": "Хижина круглая (солома)",
+      "x": -29.3,
+      "z": 98.9,
+      "rot": 0,
+      "scale": 1
+    },
+    {
+      "id": "hut_round_1792422122205",
+      "type": "hut_round",
+      "name": "Хижина круглая (солома)",
+      "x": -10.6,
+      "z": 121.5,
+      "rot": 0,
+      "scale": 1
+    },
+    {
+      "id": "hut_round_1792422122415",
+      "type": "hut_round",
+      "name": "Хижина круглая (солома)",
+      "x": -0.6,
+      "z": 132.2,
+      "rot": 0,
+      "scale": 1
+    },
+    {
+      "id": "barrel_fuel_1792422141384",
+      "type": "barrel_fuel",
+      "name": "Бочка топлива (Total)",
+      "x": -3.4,
+      "z": 76.8,
+      "rot": 0,
+      "scale": 0.9,
+      "color": "#dc2626"
+    },
+    {
+      "id": "barrel_fuel_1792422142468",
+      "type": "barrel_fuel",
+      "name": "Бочка топлива (Total)",
+      "x": -11.5,
+      "z": 75.5,
+      "rot": 0,
+      "scale": 0.9,
+      "color": "#dc2626"
+    },
+    {
+      "id": "barrel_fuel_1792422142794",
+      "type": "barrel_fuel",
+      "name": "Бочка топлива (Total)",
+      "x": 8,
+      "z": 76.09,
+      "rot": 0,
+      "scale": 0.9,
+      "color": "#dc2626"
+    },
+    {
+      "id": "barrel_fuel_1792422143024",
+      "type": "barrel_fuel",
+      "name": "Бочка топлива (Total)",
+      "x": -7.8,
+      "z": 69.5,
+      "rot": 0,
+      "scale": 0.9,
+      "color": "#dc2626"
+    },
+    {
+      "id": "barrel_fuel_1792422143216",
+      "type": "barrel_fuel",
+      "name": "Бочка топлива (Total)",
+      "x": 17.5,
+      "z": 86.4,
+      "rot": 0,
+      "scale": 0.9,
+      "color": "#dc2626"
+    },
+    {
+      "id": "barrel_fuel_1792422143427",
+      "type": "barrel_fuel",
+      "name": "Бочка топлива (Total)",
+      "x": 22.9,
+      "z": 95.4,
+      "rot": 0,
+      "scale": 0.9,
+      "color": "#dc2626"
+    },
+    {
+      "id": "barrel_fuel_1792422151607",
+      "type": "barrel_fuel",
+      "name": "Бочка топлива (Total)",
+      "x": -5.8,
+      "z": 71.5,
+      "rot": 0,
+      "scale": 0.9,
+      "color": "#dc2626"
+    },
+    {
+      "id": "acacia_tree_1792422154199",
+      "type": "acacia_tree",
+      "name": "Акация зонтичная",
+      "x": 12.6,
+      "z": 5.5,
+      "rot": 0.5,
+      "scale": 1.1
+    },
+    {
+      "id": "acacia_tree_1792422154467",
+      "type": "acacia_tree",
+      "name": "Акация зонтичная",
+      "x": -6.7,
+      "z": 21,
+      "rot": 0.5,
+      "scale": 1.1
+    },
+    {
+      "id": "acacia_tree_1792422154659",
+      "type": "acacia_tree",
+      "name": "Акация зонтичная",
+      "x": 8.9,
+      "z": 23.3,
+      "rot": 0.5,
+      "scale": 1.1
+    },
+    {
+      "id": "acacia_tree_1792422154851",
+      "type": "acacia_tree",
+      "name": "Акация зонтичная",
+      "x": 12.8,
+      "z": 35.4,
+      "rot": 0.5,
+      "scale": 1.1
+    },
+    {
+      "id": "acacia_tree_1792422155042",
+      "type": "acacia_tree",
+      "name": "Акация зонтичная",
+      "x": 24.9,
+      "z": 46,
+      "rot": 0.5,
+      "scale": 1.1
+    },
+    {
+      "id": "acacia_tree_1792422155254",
+      "type": "acacia_tree",
+      "name": "Акация зонтичная",
+      "x": 20,
+      "z": 58.4,
+      "rot": 0.5,
+      "scale": 1.1
+    },
+    {
+      "id": "acacia_tree_1792422172928",
+      "type": "acacia_tree",
+      "name": "Акация зонтичная",
+      "x": 65.5,
+      "z": 88.4,
+      "rot": 0.5,
+      "scale": 1.1
+    },
+    {
+      "id": "acacia_tree_1792422173216",
+      "type": "acacia_tree",
+      "name": "Акация зонтичная",
+      "x": 44.8,
+      "z": 104.2,
+      "rot": 0.5,
+      "scale": 1.1
+    },
+    {
+      "id": "acacia_tree_1792422173427",
+      "type": "acacia_tree",
+      "name": "Акация зонтичная",
+      "x": 56.3,
+      "z": 97,
+      "rot": 0.5,
+      "scale": 1.1
+    },
+    {
+      "id": "termite_mound_1792422182314",
+      "type": "termite_mound",
+      "name": "Термитник саванны",
+      "x": -40.3,
+      "z": 49.7,
+      "rot": 0,
+      "scale": 1
+    },
+    {
+      "id": "termite_mound_1792422183190",
+      "type": "termite_mound",
+      "name": "Термитник саванны",
+      "x": -35.4,
+      "z": 55.7,
+      "rot": 0,
+      "scale": 1
+    },
+    {
+      "id": "termite_mound_1792422183439",
+      "type": "termite_mound",
+      "name": "Термитник саванны",
+      "x": -42.4,
+      "z": 40.2,
+      "rot": 0,
+      "scale": 1
+    },
+    {
+      "id": "bicycle_roadster_1792422191614",
+      "type": "bicycle_roadster",
+      "name": "Велосипед с грузом",
+      "x": 24.4,
+      "z": 108.6,
+      "rot": 0,
+      "scale": 0.8
+    }
   ]
 }
