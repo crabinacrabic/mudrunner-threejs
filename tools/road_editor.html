@@ -698,14 +698,19 @@
       </div>
 
       <!-- Режим добавления и расстановки точек -->
-      <div class="section-title" style="margin-top:10px;">Режим расстановки точек</div>
+      <div class="section-title" style="margin-top:10px;">Привязка новых точек</div>
+      <div style="display:flex; gap:4px; margin-bottom:8px;">
+        <button id="btn-mode-append" class="btn" style="flex:1; font-size:10px; padding:6px 4px; background:#0284c7; color:#fff; font-weight:700;" onclick="setPointInsertMode('append')" title="Продолжать дорогу от последней точки (строго за 1 точку)">➕ В конец (за 1 точку)</button>
+        <button id="btn-mode-selected" class="btn" style="flex:1; font-size:10px; padding:6px 4px; background:#1e293b; color:#94a3b8;" onclick="setPointInsertMode('after-selected')" title="Продолжать дорогу от выделенной точки (за 1 точку)">📍 От выбранной</button>
+        <button id="btn-mode-smart" class="btn" style="flex:1; font-size:10px; padding:6px 4px; background:#1e293b; color:#94a3b8;" onclick="setPointInsertMode('smart')" title="Вставить точку внутрь дороги (только в упор к полотну)">✂️ В середину</button>
+      </div>
       <div class="field-row">
-        <label>Режим вставки:</label>
+        <label>Режим привязки:</label>
         <select id="point-insert-mode" onchange="setPointInsertMode(this.value)" style="background:#1e293b; color:#f1f5f9; border:1px solid rgba(255,255,255,0.15); border-radius:6px; padding:5px 8px; font-size:11px; flex:1; cursor:pointer;">
-          <option value="smart" selected>🎯 Умная вставка (в ближайший сегмент)</option>
-          <option value="append">➕ В конец маршрута</option>
-          <option value="prepend">⏪ В начало маршрута</option>
-          <option value="after-selected">📍 После выбранной точки</option>
+          <option value="append" selected>➕ В конец дороги (за 1 точку — по умолчанию)</option>
+          <option value="after-selected">📍 От выбранной точки (за 1 точку)</option>
+          <option value="prepend">⏪ В начало дороги (за 1 точку)</option>
+          <option value="smart">🎯 Вставка в середину (только в упор к полотну)</option>
         </select>
       </div>
 
@@ -730,6 +735,7 @@
         <div class="btn-row" style="margin-top:4px;">
           <button class="btn" onclick="moveSelectedPointOrder(-1)" title="Сдвинуть точку на одну позицию раньше (к началу)">▲ Раньше</button>
           <button class="btn" onclick="moveSelectedPointOrder(1)" title="Сдвинуть точку на одну позицию позже (к концу)">▼ Позже</button>
+          <button class="btn" onclick="splitRouteAtSelectedPoint()" title="Разрезать текущую дорогу на две независимые дороги в этой точке">✂️ Разрезать</button>
           <button class="btn btn-danger" onclick="deleteSelectedPoint()" title="Удалить эту точку">🗑️ Удалить</button>
         </div>
       </div>
@@ -1075,7 +1081,7 @@
     let draggedPoint = null;
     let hoveredPoint = null;
     let selectedPoint = null; // { routeId, idx }
-    let pointInsertMode = 'smart'; // 'smart', 'append', 'prepend', 'after-selected'
+    let pointInsertMode = 'append'; // 'append' (по умолчанию: строго за 1 точку), 'after-selected', 'prepend', 'smart'
     let ghostInsertInfo = null; // { index, mode, wx, wz, routeId }
     let hasMovedDuringMouseDown = false;
     let mouseDownPos = { x: 0, y: 0 };
@@ -1549,10 +1555,31 @@
 
     function setPointInsertMode(mode) {
       pointInsertMode = mode;
-      showToast(`Режим вставки: ${
-        mode === 'smart' ? '🎯 Умная вставка' :
-        mode === 'append' ? '➕ В конец' :
-        mode === 'prepend' ? '⏪ В начало' : '📍 После выбранной'
+      const sel = document.getElementById('point-insert-mode');
+      if (sel) sel.value = mode;
+      const bApp = document.getElementById('btn-mode-append');
+      const bSel = document.getElementById('btn-mode-selected');
+      const bSm = document.getElementById('btn-mode-smart');
+      if (bApp) {
+        bApp.style.background = mode === 'append' ? '#0284c7' : '#1e293b';
+        bApp.style.color = mode === 'append' ? '#fff' : '#94a3b8';
+        bApp.style.fontWeight = mode === 'append' ? '700' : '400';
+      }
+      if (bSel) {
+        bSel.style.background = mode === 'after-selected' ? '#0284c7' : '#1e293b';
+        bSel.style.color = mode === 'after-selected' ? '#fff' : '#94a3b8';
+        bSel.style.fontWeight = mode === 'after-selected' ? '700' : '400';
+      }
+      if (bSm) {
+        bSm.style.background = mode === 'smart' ? '#0284c7' : '#1e293b';
+        bSm.style.color = mode === 'smart' ? '#fff' : '#94a3b8';
+        bSm.style.fontWeight = mode === 'smart' ? '700' : '400';
+      }
+      showToast(`Привязка точек: ${
+        mode === 'append' ? '➕ В конец (строго за 1 точку)' :
+        mode === 'after-selected' ? '📍 От выбранной точки (за 1 точку)' :
+        mode === 'prepend' ? '⏪ В начало (за 1 точку)' :
+        '✂️ В середину (только в упор к полотну)'
       }`);
       render();
     }
@@ -1567,34 +1594,32 @@
         return { index: 1, mode: 'append', routeId: activeRouteId, dist: d };
       }
 
+      // 1. По умолчанию и основной режим: продолжаем дорогу строго от ОДНОЙ точки на конце
       if (pointInsertMode === 'append') {
         const last = pts[pts.length - 1];
         const d = Math.hypot(wx - last.x, wz - last.z);
         return { index: pts.length, mode: 'append', routeId: activeRouteId, dist: d };
       }
+
+      // 2. От выбранной точки: продолжаем строго от этой ОДНОЙ точки
+      if (pointInsertMode === 'after-selected') {
+        const selIdx = (selectedPoint && selectedPoint.routeId === activeRouteId && selectedPoint.idx >= 0 && selectedPoint.idx < pts.length)
+          ? selectedPoint.idx
+          : (pts.length - 1);
+        const p = pts[selIdx];
+        const d = p ? Math.hypot(wx - p.x, wz - p.z) : 0;
+        return { index: selIdx + 1, mode: 'after-selected', routeId: activeRouteId, dist: d, fromIdx: selIdx };
+      }
+
+      // 3. В начало: цепляемся за ОДНУ первую точку
       if (pointInsertMode === 'prepend') {
         const first = pts[0];
         const d = Math.hypot(wx - first.x, wz - first.z);
         return { index: 0, mode: 'prepend', routeId: activeRouteId, dist: d };
       }
-      if (pointInsertMode === 'after-selected' && selectedPoint && selectedPoint.routeId === activeRouteId) {
-        const p = pts[selectedPoint.idx];
-        const d = p ? Math.hypot(wx - p.x, wz - p.z) : 0;
-        return { index: selectedPoint.idx + 1, mode: 'after-selected', routeId: activeRouteId, dist: d };
-      }
 
-      // SMART MODE:
-      const distStart = Math.hypot(wx - pts[0].x, wz - pts[0].z);
-      const distEnd = Math.hypot(wx - pts[pts.length - 1].x, wz - pts[pts.length - 1].z);
-
-      const vStart = { x: pts[0].x - pts[1].x, z: pts[0].z - pts[1].z };
-      const toClickStart = { x: wx - pts[0].x, z: wz - pts[0].z };
-      const dotStart = toClickStart.x * vStart.x + toClickStart.z * vStart.z;
-
-      const vEnd = { x: pts[pts.length - 1].x - pts[pts.length - 2].x, z: pts[pts.length - 1].z - pts[pts.length - 2].z };
-      const toClickEnd = { x: wx - pts[pts.length - 1].x, z: wz - pts[pts.length - 1].z };
-      const dotEnd = toClickEnd.x * vEnd.x + toClickEnd.z * vEnd.z;
-
+      // 4. Режим SMART: врезка в середину разрешена ТОЛЬКО если курсор находится ВПЛОТНУЮ к полотну дороги (не далее 3.5 м)!
+      // На любом расстоянии в стороне — цепляемся строго за ОДНУ последнюю точку!
       let minSegDist = Infinity;
       let bestSegIdx = -1;
 
@@ -1617,15 +1642,15 @@
         }
       }
 
-      if (dotEnd > 0 && distEnd < minSegDist) {
-        return { index: pts.length, mode: 'append', routeId: activeRouteId, dist: distEnd };
-      }
-      if (dotStart > 0 && distStart < minSegDist) {
-        return { index: 0, mode: 'prepend', routeId: activeRouteId, dist: distStart };
-      }
-      if (bestSegIdx !== -1) {
+      const maxRoadSnap = Math.min(route.width ? route.width * 0.75 : 3.5, 4.0);
+      // Если курсор прямо на полотне между точками (в упор):
+      if (bestSegIdx !== -1 && minSegDist <= maxRoadSnap) {
         return { index: bestSegIdx + 1, mode: 'smart-segment', routeId: activeRouteId, segIdx: bestSegIdx, dist: minSegDist };
       }
+
+      // На любом расстоянии в стороне — цепляемся строго за ОДНУ конечную точку!
+      const last = pts[pts.length - 1];
+      const distEnd = Math.hypot(wx - last.x, wz - last.z);
       return { index: pts.length, mode: 'append', routeId: activeRouteId, dist: distEnd };
     }
     window.findBestInsertionIndex = findBestInsertionIndex;
@@ -1752,6 +1777,46 @@
       showToast('🔄 Направление трассы развёрнуто (Реверс)!');
     }
     window.reverseActiveRoute = reverseActiveRoute;
+
+    function splitRouteAtSelectedPoint() {
+      if (!selectedPoint || selectedPoint.routeId !== activeRouteId) {
+        showToast('⚠️ Сначала выберите точку для разделения дороги');
+        return;
+      }
+      const cur = routesData[activeRouteId];
+      if (!cur || !cur.points || cur.points.length < 3) {
+        showToast('⚠️ Для разделения нужно минимум 3 точки');
+        return;
+      }
+      const idx = selectedPoint.idx;
+      if (idx <= 0 || idx >= cur.points.length - 1) {
+        showToast('⚠️ Нельзя разрезать в начальной или конечной точке');
+        return;
+      }
+      pushUndoState();
+      const firstPartPoints = cur.points.slice(0, idx + 1);
+      const secondPartPoints = cur.points.slice(idx);
+
+      cur.points = firstPartPoints;
+
+      const newRouteId = 'route_' + Date.now();
+      routesData[newRouteId] = {
+        name: cur.name + ' (часть 2)',
+        surface: cur.surface,
+        width: cur.width,
+        color: cur.color,
+        closed: false,
+        points: secondPartPoints
+      };
+
+      activeRouteId = newRouteId;
+      selectedPoint = { routeId: newRouteId, idx: 0 };
+      buildRoutesUI();
+      updatePointControlCard();
+      render();
+      showToast(`✂️ Дорога разделена на 2 независимые части в точке #${idx + 1}!`);
+    }
+    window.splitRouteAtSelectedPoint = splitRouteAtSelectedPoint;
 
     function sortActiveRoutePoints() {
       const cur = routesData[activeRouteId];
@@ -2273,7 +2338,7 @@
         });
       });
 
-      // 2b. Предпросмотр умной вставки точки в режиме 'roads' ТОЛЬКО когда включен режим рисования
+      // 2b. Предпросмотр привязки новой точки в режиме 'roads' ТОЛЬКО когда включен режим рисования
       if (activeTab === 'roads' && roadToolMode === 'draw' && ghostInsertInfo && ghostInsertInfo.routeId === activeRouteId) {
         const { tx, ty } = metersToTexPx(ghostInsertInfo.wx, ghostInsertInfo.wz);
         const cur = routesData[activeRouteId];
@@ -2284,16 +2349,33 @@
         ctx.lineWidth = 1.8;
         ctx.setLineDash([4, 4]);
 
-        const prevIdx = ghostInsertInfo.index - 1;
-        const nextIdx = ghostInsertInfo.index;
-
-        if (prevIdx >= 0 && prevIdx < pts.length) {
-          const prevP = metersToTexPx(pts[prevIdx].x, pts[prevIdx].z);
-          ctx.beginPath(); ctx.moveTo(prevP.tx, prevP.ty); ctx.lineTo(tx, ty); ctx.stroke();
-        }
-        if (nextIdx >= 0 && nextIdx < pts.length) {
-          const nextP = metersToTexPx(pts[nextIdx].x, pts[nextIdx].z);
-          ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(nextP.tx, nextP.ty); ctx.stroke();
+        if (ghostInsertInfo.mode === 'smart-segment') {
+          // Исключительно при наведении прямо на полотно между точками врезаемся в сегмент (2 линии)
+          const prevIdx = ghostInsertInfo.index - 1;
+          const nextIdx = ghostInsertInfo.index;
+          if (prevIdx >= 0 && prevIdx < pts.length) {
+            const prevP = metersToTexPx(pts[prevIdx].x, pts[prevIdx].z);
+            ctx.beginPath(); ctx.moveTo(prevP.tx, prevP.ty); ctx.lineTo(tx, ty); ctx.stroke();
+          }
+          if (nextIdx >= 0 && nextIdx < pts.length) {
+            const nextP = metersToTexPx(pts[nextIdx].x, pts[nextIdx].z);
+            ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(nextP.tx, nextP.ty); ctx.stroke();
+          }
+        } else if (ghostInsertInfo.mode === 'prepend') {
+          // В начало: строго за ОДНУ первую точку
+          if (pts.length > 0) {
+            const firstP = metersToTexPx(pts[0].x, pts[0].z);
+            ctx.beginPath(); ctx.moveTo(firstP.tx, firstP.ty); ctx.lineTo(tx, ty); ctx.stroke();
+          }
+        } else {
+          // СТРОГО ЗА ОДНУ ТОЧКУ: от последней точки (или от выбранной точки)
+          const attachIdx = (ghostInsertInfo.mode === 'after-selected' && typeof ghostInsertInfo.fromIdx === 'number')
+            ? ghostInsertInfo.fromIdx
+            : (pts.length - 1);
+          if (attachIdx >= 0 && attachIdx < pts.length) {
+            const attachP = metersToTexPx(pts[attachIdx].x, pts[attachIdx].z);
+            ctx.beginPath(); ctx.moveTo(attachP.tx, attachP.ty); ctx.lineTo(tx, ty); ctx.stroke();
+          }
         }
         ctx.setLineDash([]);
 
@@ -2307,11 +2389,13 @@
 
         let label = `+ Точка ${ghostInsertInfo.index + 1}`;
         if (ghostInsertInfo.mode === 'smart-segment') {
-          label += ` (между ${ghostInsertInfo.index} и ${ghostInsertInfo.index + 1})`;
+          label += ` (врезка между ${ghostInsertInfo.index} и ${ghostInsertInfo.index + 1})`;
         } else if (ghostInsertInfo.mode === 'prepend') {
           label += ` (в начало)`;
+        } else if (ghostInsertInfo.mode === 'after-selected') {
+          label += ` (от точки ${ghostInsertInfo.fromIdx + 1})`;
         } else {
-          label += ` (в конец)`;
+          label += ` (продолжение дороги)`;
         }
 
         ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
@@ -2834,12 +2918,12 @@
         return;
       }
 
-      // Превью умной вставки точки в режиме 'roads' (ТОЛЬКО при включенном режиме рисования 'draw')
+      // Превью привязки новой точки в режиме 'roads' (ТОЛЬКО при включенном режиме рисования 'draw')
       if (activeTab === 'roads' && roadToolMode === 'draw' && !draggedPoint && !isPanning && !isDraggingProp && !stampPropType) {
         const cur = routesData[activeRouteId];
         if (cur && cur.points && cur.points.length > 0) {
           const ins = findBestInsertionIndex(cur, w.x, w.z);
-          if (ins && (ins.dist <= 65.0 || cur.points.length < 2)) {
+          if (ins) {
             ghostInsertInfo = { ...ins, wx: w.x, wz: w.z };
           } else {
             ghostInsertInfo = null;
