@@ -3,7 +3,7 @@ import json
 import os
 import sys
 
-PORT = 8765
+PORT = int(sys.argv[1]) if len(sys.argv) > 1 else int(os.environ.get('PORT', 8765))
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 class CustomHandler(http.server.SimpleHTTPRequestHandler):

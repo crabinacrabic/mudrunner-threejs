@@ -28,3 +28,6 @@ tools/research_wip/
 
 # Результаты автопилота
 tools/autopilot/out/
+
+# Архив: отладочные картинки из tools/ (167 МБ, раньше игнорировались как tools/*.jpg|png)
+архив/debug_images/
